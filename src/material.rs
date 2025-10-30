@@ -294,12 +294,12 @@ impl Default for DielectricMaterial {
 
 impl DielectricMaterial {
 
-    fn get_beers_law_attenuation(&self, ray_in: &Ray, ray_t: Float) -> Vector3 {
+    fn get_beers_law_attenuation(&self, distance: Float) -> Vector3 {
         // Slides 02, p.27, only e^(-Cx) part
         // where C is the absorption coefficient
         // WARNING: ray_in.origin is assumed to be the location of the last hit point
         // i.e. point in p.28 with arrow to L(x)
-        (- self.absorption_coeff * ray_in.distance_at(ray_t)).exp() 
+        (- self.absorption_coeff * distance).exp() 
     }
 
     fn fresnel(&self, ray_in: &Ray, hit_record: &HitRecord, fresnel: &mut FresnelData) ->  bool {
@@ -321,8 +321,7 @@ impl DielectricMaterial {
         let mut n1 = 1.00029 as Float; // Assuming Air in slides 02, p.22
         let mut n2 = self.refraction_index;
         if !hit_record.is_front_face {
-            n1 = self.refraction_index;
-            n2 = 1.00029 as Float;
+            std::mem::swap(&mut n1, &mut n2);
         }
         
         let ratio_squared: Float = (n1 / n2).powi(2);
@@ -400,7 +399,8 @@ impl Material for DielectricMaterial {
             if !hit_record.is_front_face {
                 // Attenuate as it goes out of object 
                 // assumes glass object is empty
-                attenuation *= self.get_beers_law_attenuation(ray_in, hit_record.ray_t);
+                let distance = ray_in.distance_at(hit_record.ray_t);
+                attenuation *= self.get_beers_law_attenuation(distance);
             } 
            
             Some((ray, attenuation))
