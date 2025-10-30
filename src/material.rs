@@ -319,7 +319,7 @@ impl DielectricMaterial {
         let cos_theta = n.dot(-d);
         
         // TODO: Would it be more flexible if we read it from FresnelData?
-        let mut n1 = 1.00029 as Float; // Assuming Air in slides 02, p.22
+        let mut n1 = 1.0 as Float; // Assuming Vacuum in slides 02, p.22
         let mut n2 = self.refraction_index;
         if !hit_record.is_front_face {
             std::mem::swap(&mut n1, &mut n2);

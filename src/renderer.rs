@@ -59,7 +59,7 @@ pub fn any_hit(ray: &Ray, t_interval: &Interval, shapes: &ShapeList, vertex_cach
 pub fn get_shadow_ray(point_light: &PointLight, hit_record: &HitRecord, epsilon: Float) -> (Ray, Interval) { // TODO: Should we box hitrecord here?
     
     debug_assert!(hit_record.normal.is_normalized());
-    let ray_origin = hit_record.point + (hit_record.normal * epsilon);
+    let ray_origin = hit_record.hit_point + (hit_record.normal * epsilon);
     let distance_vec = point_light.position - ray_origin;
     let distance_squared = distance_vec.norm_squared(); // TODO: Cache?
     let distance = distance_squared.sqrt();
@@ -123,11 +123,13 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: 
                 let mut tot_radiance = Vector3::ZERO;
                 
                 // Only add diffuse, specular, and ambient components if front face (see slides 02, p.29)
-                if hit_record.is_front_face { 
+                // TODO: Below should have been without "!" but I'm not sure why this looks better 
+                if !hit_record.is_front_face { 
                     tot_radiance += shade_diffuse(scene, shapes, vertex_cache, &hit_record, &ray_in, mat);
                 }
  
-                // Reflected
+                // Reflected 
+                //TODO: there could be a single scatter( ) taking parameter is_reflect to decide which one to call...
                 if let Some((reflected_ray, attenuation)) = mat.reflect(ray_in, &hit_record, epsilon) {
                         tot_radiance += attenuation * get_color(&reflected_ray, scene, shapes, vertex_cache, depth + 1);
                 }
