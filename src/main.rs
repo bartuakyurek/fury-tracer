@@ -36,9 +36,7 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
     let json_path: &String = if args.len() == 1 {
         warn!("No arguments were provided, setting default scene path...");
         //&String::from("./inputs/deniz_sayin/lobster.json")
-        &String::from("./inputs/other_dragon.json")
-        //        &String::from("./input/chinese_dragon.json")
-
+        &String::from("./inputs/scienceTree_glass.json")
     } else if args.len() == 2 {
         &args[1]
     } else {
@@ -59,9 +57,9 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
     let root = root; // Shadow mutatability before render
 
     // Render image and return array of RGB
-    let start = Instant::now();
+    
     let images = renderer::render(&root.scene)?;
-    info!("Rendering of {} image(s) took: {:?}", images.len(), start.elapsed()); 
+    
 
     // Write images to .png files
     for im in images.into_iter() {

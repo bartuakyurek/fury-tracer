@@ -18,6 +18,7 @@ use std::io::{self, Write};
 use bevy_math::{NormedVectorSpace, VectorSpace};
 use tracing::span::Record;
 use tracing::{debug, info, warn, error};
+use std::{self, time::Instant};
 
 use crate::camera::Camera;
 use crate::material::{HeapAllocMaterial};
@@ -161,9 +162,12 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         cam.setup(); // TODO: Could this be integrated to deserialization? Because it's easy to forget calling it
         if cam.num_samples != 1 { warn!("Found num_samples = '{}' > 1, sampling is not implemented yet...", cam.num_samples); }
         
+        let start = Instant::now();
+       
         let eye_rays = cam.generate_primary_rays();
         let shapes: &ShapeList = &scene.objects.all_shapes;
-        // get a reference to the vertex cache stored in the scene
+        info!(">> There are {} shapes in the scene.", shapes.len());
+        
         let vcache: &HeapAllocatedVerts = &scene.vertex_cache;
 
         // --- Rayon Multithreading ---
@@ -175,6 +179,7 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
             
         let im = ImageData::new_from_colors(cam.image_resolution, cam.image_name, pixel_colors);
         images.push(im);
+        info!("Rendering of image took: {:?}", start.elapsed()); 
     }
     
     Ok(images)
