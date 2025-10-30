@@ -330,6 +330,7 @@ impl DielectricMaterial {
 
         let cos_phi: Float = if inside_of_sqrt < 0. {
             //info!("Total internal reflection occured!");
+            fresnel.f_r = 1.0;
             return false; // TODO No need to compute, right? I assume it is total internal reflection (p.16)
         }
         else {
