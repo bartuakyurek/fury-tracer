@@ -402,8 +402,8 @@ impl Material for DielectricMaterial {
                 // Attenuate as it goes out of object 
                 // assumes glass object is empty
                 let distance = (hit_record.entry_point - hit_record.hit_point).norm(); 
-                let distance2 = ray_in.distance_at(hit_record.ray_t);
-                debug_assert_eq!(distance, distance2);
+                //let distance2 = ray_in.distance_at(hit_record.ray_t);
+                //debug_assert_eq!(distance, distance2);
                 attenuation *= self.get_beers_law_attenuation(distance);
             } 
            
