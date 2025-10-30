@@ -12,6 +12,7 @@
 
 */
 use std::fmt::Debug;
+use bevy_math::NormedVectorSpace;
 use bevy_math::ops::cos;
 use tracing::{error, info, warn};
 use serde::{Deserialize, de::DeserializeOwned};
@@ -202,7 +203,7 @@ impl Material for MirrorMaterial {
         let w_r = w_i - 2. * n * (n.dot(w_i));
         debug_assert!(w_r.is_normalized());
         
-        let ray = Ray::new(hit_record.point + (n * epsilon), w_r);
+        let ray = Ray::new(hit_record.hit_point + (n * epsilon), w_r);
         let attenuation = self.mirror_rf;
         Some((ray, attenuation)) // Always reflects
     }
@@ -377,7 +378,7 @@ impl Material for DielectricMaterial {
             let w_r = w_i - 2.0 * n * (n.dot(w_i));
             debug_assert!(w_r.is_normalized());
             
-            let ray = Ray::new(hit_record.point + (n * epsilon), w_r);
+            let ray = Ray::new(hit_record.hit_point + (n * epsilon), w_r);
             let attenuation = fresnel.f_r * self.mirror_rf; // TODO: Am I doing it right?? scalar times a vector, is that really the attenuation from glass reflectance?
             Some((ray, attenuation))
         } else {
@@ -395,12 +396,14 @@ impl Material for DielectricMaterial {
             let refracted_direction = ((d + (n * frd.cos_theta)) * frd.n_ratio) - (n * frd.cos_phi); // p.15
             debug_assert!(refracted_direction.is_normalized());
 
-            let ray = Ray::new(hit_record.point - n * epsilon, refracted_direction);
+            let ray = Ray::new(hit_record.hit_point - n * epsilon, refracted_direction);
             let mut attenuation = frd.f_t * Vector3::ONE;
             if !hit_record.is_front_face {
                 // Attenuate as it goes out of object 
                 // assumes glass object is empty
-                let distance = ray_in.distance_at(hit_record.ray_t);
+                let distance = (hit_record.entry_point - hit_record.hit_point).norm(); 
+                let distance2 = ray_in.distance_at(hit_record.ray_t);
+                debug_assert_eq!(distance, distance2);
                 attenuation *= self.get_beers_law_attenuation(distance);
             } 
            
@@ -541,7 +544,7 @@ impl Material for ConductorMaterial {
             let w_r = w_i - 2.0 * n * (n.dot(w_i));
             debug_assert!(w_r.is_normalized());
             
-            let ray = Ray::new(hit_record.point + (n * epsilon), w_r);
+            let ray = Ray::new(hit_record.hit_point + (n * epsilon), w_r);
             let attenuation = fresnel.f_r * self.mirror_rf; // TODO: Am I doing it right?? scalar times a vector, is that really the attenuation from glass reflectance?
             Some((ray, attenuation))
         } else {

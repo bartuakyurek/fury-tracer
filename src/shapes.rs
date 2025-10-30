@@ -212,7 +212,7 @@ impl PrimitiveShape for Sphere {
             
             let is_front_face = ray.is_front_face(normal);
             let normal = if is_front_face { normal } else { -normal };
-            Some(HitRecord::new(point, normal, t, self.material_idx, is_front_face))
+            Some(HitRecord::new(ray.origin, point, normal, t, self.material_idx, is_front_face))
             
         }
     }
@@ -247,7 +247,7 @@ impl PrimitiveShape for Plane {
             // Construct Hit Record
             let front_face = ray.is_front_face(self.normal);
             let normal = if front_face { self.normal } else { -self.normal };
-            Some(HitRecord::new(ray.at(t), normal, t, self.material_idx, front_face))
+            Some(HitRecord::new(ray.origin, ray.at(t), normal, t, self.material_idx, front_face))
         }
         else {
             None // t is not within the limits

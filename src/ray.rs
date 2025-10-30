@@ -55,7 +55,8 @@ impl Ray {
 // DISCLAIMER: This struct is based on the approach presented in Ray Tracing in One Weekend book.
 #[derive(Debug)]  
 pub struct HitRecord {
-    pub point: Vector3,
+    pub entry_point: Vector3,
+    pub hit_point: Vector3,
     pub normal: Vector3,
     pub ray_t: Float,  // To check which HitRecord has smaller t 
     pub material: usize, // TODO: Should we hold the index of material or actually Option<Rc<dyn Material>> as in here https://the-ray-tracing-road-to-rust.vercel.app/9-metal? Or Arc instead of Rc if we use rayon in future.
@@ -63,23 +64,15 @@ pub struct HitRecord {
 }
 
 impl HitRecord {
-    pub fn new(point: Vector3, normal: Vector3, ray_t: Float, material: usize, is_front_face: bool) -> Self {
+    pub fn new(entry_point: Vector3, hit_point: Vector3, normal: Vector3, ray_t: Float, material: usize, is_front_face: bool) -> Self {
         Self {
-            point,
+            entry_point,
+            hit_point,
             normal,
             ray_t,
             material,
             is_front_face,
         }
     }
-    //pub fn new_from(ray: &Ray, n: Vector3, t: Float, material: usize) -> Self {
-    //    let is_front_face = ray.is_front_face(n);
-    //    Self {
-    //        point: ray.at(t),
-    //        normal: if is_front_face {n} else {-n}, // TODO: is this correct?
-    //        ray_t: t,
-    //        material: material, 
-    //        is_front_face,
-    //    }
-    //}
+    
 }
