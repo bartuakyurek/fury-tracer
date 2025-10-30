@@ -526,7 +526,7 @@ impl ConductorMaterial {
 impl Material for ConductorMaterial {
 
     fn get_type(&self) -> &str {
-        "dielectric"
+        "conductor"
     }
     
     fn reflect(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float) -> Option<(Ray, Vector3)> {
