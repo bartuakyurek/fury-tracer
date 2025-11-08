@@ -19,10 +19,8 @@ use crate::prelude::*;
 pub type HeapAllocatedShape = Arc<dyn PrimitiveShape>;
 pub type ShapeList = Vec<HeapAllocatedShape>; 
 
+
 pub trait PrimitiveShape : Debug + Send + Sync  {
-    //fn normal(&self, _: &VertexData) -> Option<Vector3> {
-    //    None
-    //}
     fn indices(&self) -> Vec<usize>;
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord>;
 }
@@ -53,16 +51,6 @@ impl PrimitiveShape for Triangle {
     }
 
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
-
-        // TODO: cache vertex / face normals
-        // WARNING: vertex normals are tricky because if the same vertex was used by multiple 
-        // meshes, that means there are more vertex normals than the length of vertexdata because
-        // connectivities are different. Perhaps it is safe to assume no vertex is used in multiple
-        // objects, but there needs to be function to actually check the scene if a vertex in VertexData
-        // only referred by a single scene object. 
-        // Furthermore, what if there were multiple VertexData to load multiple meshes in the Scene? 
-        // this is not handled yet and our assumption is VertexData is the only source of vertices, every
-        // shape refers to this data for their coordinates. 
         
         let verts = &vertex_cache.vertex_data;
         if let Some((u, v, t)) = moller_trumbore_intersection(ray, t_interval, self.indices, verts) {

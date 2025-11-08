@@ -15,7 +15,7 @@
 use bevy_math::NormedVectorSpace; // traits needed for norm_squared( ) 
 
 use crate::shapes::{Triangle};
-use crate::numeric::{Float, Vector3, approx_zero};
+use crate::numeric::{Float, Vector3};
 use crate::{ray::Ray, interval::Interval, json_structs::VertexData};
 use crate::prelude::*;
 
@@ -37,11 +37,18 @@ impl Default for VertexCache {
     }
 }
 
+// WARNING: caching vertex normals are tricky because if the same vertex was used by multiple 
+// meshes, that means there are more vertex normals than the length of vertexdata because
+// connectivities are different. Perhaps it is safe to assume no vertex is used in multiple
+// objects, but there needs to be function to actually check the scene if a vertex in VertexData
+// only referred by a single scene object. 
+// Furthermore, what if there were multiple VertexData to load multiple meshes in the Scene? 
+// this is not handled yet and our assumption is VertexData is the only source of vertices, every
+// shape refers to this data for their coordinates. 
 impl VertexCache {
     
     pub fn build(verts: &VertexData, triangles: &Vec<Triangle>) -> VertexCache {
-        // Computes per-vertex normals by averaging adjacent triangle normals
-
+        // Compute per-vertex normal from neighbouring triangles
         let vertex_data = verts.clone();
         let mut vertex_normals: Vec<Vector3> = vec![Vector3::ZERO; vertex_data._data.len()];
         for tri in triangles.iter() {
@@ -55,9 +62,9 @@ impl VertexCache {
             let v3 = vertex_data._data[indices[2]];
             let edge_ab = v2 - v1;
             let edge_ac = v3 - v1;
-            let face_n = edge_ab.cross(edge_ac); // Be careful, not normalized yet!
+            let face_n = edge_ab.cross(edge_ac); // Be careful, not normalized yet, to preserve area contribution from each face
 
-            // Add the area-weighted face normal to each vertex normal
+            // Sum the area-weighted face normals 
             for &idx in &indices {
                 if idx < vertex_normals.len() {
                     vertex_normals[idx] += face_n;
@@ -93,7 +100,7 @@ pub fn get_tri_normal(v1: &Vector3, v2: &Vector3, v3: &Vector3) -> Vector3{
     let mut normal = right.cross(left); 
     normal = normal.normalize();
     
-    debug_assert!(approx_zero(normal.length() - 1.0));
+    debug_assert!(normal.is_normalized());
     normal
 }
 

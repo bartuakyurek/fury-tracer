@@ -64,17 +64,14 @@ pub fn get_shadow_ray(point_light: &PointLight, hit_record: &HitRecord, epsilon:
     (shadow_ray, interval)
 }
 
-// TODO: Wait why there is both scene and shapes where scene already should contain shapes?
-// TODO: Why don't you make it inside 
+// TODO: Wait why there is both scene and shapes where scene already should contain shapes? Because 
 pub fn shade_diffuse(scene: &Scene, shapes: &ShapeList, vertex_cache: &HeapAllocatedVerts, hit_record: &HitRecord, ray_in: &Ray, mat: &HeapAllocMaterial) -> Vector3 {
     let mut color = Vector3::ZERO;
     for point_light in scene.lights.point_lights.all() {
             
             let (shadow_ray, interval) = get_shadow_ray(&point_light, hit_record, scene.shadow_ray_epsilon);
             if !any_hit(&shadow_ray, &interval, shapes, vertex_cache) {
-                // TODO: We can implement attenuate( ) for diffuse by taking 
-                // denominator part out of irradiance and use it in attenuate( )
-                // that way get_shadow_ray( ) can return ray_t: Float, instead of interval
+                
                 let irradiance = point_light.rgb_intensity / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
                 let n = hit_record.normal;
                 let w_i = shadow_ray.direction;
@@ -100,12 +97,11 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: 
         let mut color = mat.ambient() * scene.lights.ambient_light;
         let mat_type = mat.get_type();
         let epsilon = scene.intersection_test_epsilon; // TODO: Is this the correct epsilon? Seems like yes, visually checked with other epsilon vs. given output image 
-        color += match mat_type{ // WARNING: Expecting lowercase material
+        color += match mat_type{ 
             "diffuse" => {
                 shade_diffuse(scene, shapes, vertex_cache, &hit_record, &ray_in, mat)
             },
             "mirror" => {
-                    //let attenuation = mat.attenuate_reflect(ray_in, hit_record.ray_t); 
                     if let Some((reflected_ray, attenuation)) = mat.reflect(ray_in, &hit_record, epsilon) {
                         shade_diffuse(scene, shapes, vertex_cache, &hit_record, &ray_in, mat) + attenuation * get_color(&reflected_ray, scene, shapes, vertex_cache, depth + 1) 
                     }
