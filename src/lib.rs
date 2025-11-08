@@ -1,5 +1,6 @@
 
 pub mod ray;
+pub mod mesh;
 pub mod image;
 pub mod scene;
 pub mod camera;
