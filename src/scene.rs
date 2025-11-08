@@ -33,8 +33,9 @@ use serde_json::{self, Value};
 
 use crate::material::{*};
 use crate::shapes::{*};
+use crate::mesh::Mesh;
 use crate::json_structs::{*};
-use crate::geometry::{get_tri_normal, VertexCache, HeapAllocatedVerts};
+use crate::geometry::{VertexCache, HeapAllocatedVerts};
 use crate::camera::{Cameras};
 use crate::prelude::*;
 
@@ -44,19 +45,22 @@ pub struct RootScene {
     pub scene: Scene,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, SmartDefault)]
 #[serde(rename_all = "PascalCase")]
 #[serde(default)]
 pub struct Scene {
+    #[default = 5]
     #[serde(deserialize_with = "deser_usize")]
     pub max_recursion_depth: usize,
 
     #[serde(deserialize_with = "deser_vec3")]
     pub background_color: Vector3,
 
+    #[default = 1e-10]
     #[serde(deserialize_with = "deser_float")]
     pub shadow_ray_epsilon: Float,
 
+    #[default = 1e-10]
     #[serde(deserialize_with = "deser_float")]
     pub intersection_test_epsilon: Float,
 
@@ -92,26 +96,10 @@ impl Scene {
         self.vertex_data.insert_dummy_at_the_beginning();
         warn!("Inserted a dummy vertex at the beginning to use vertex IDs beginning from 1.");
 
-        // 
+        // 4- Build cache
         let cache = self.objects.setup(&mut self.vertex_data,  jsonpath)?; // Appends new vertices if mesh is from PLY
         self.vertex_cache = Arc::new(cache);
 
-        // TODO: Below is a terrible way to set defaults, if Scene is decoupled from JSON
-        // then it can impl Default for Scene and there we can specify default values
-        // without secretly changing like we do below:
-        if self.shadow_ray_epsilon < 1e-16 {
-            self.shadow_ray_epsilon = 1e-10; 
-            warn!("Shadow Ray epsilon found 0, setting it to default: {}.", self.shadow_ray_epsilon);
-        }
-        if self.intersection_test_epsilon < 1e-16 {
-            self.intersection_test_epsilon = 1e-10;
-            warn!("Intersection Ray epsilon found 0, setting it to default: {}.", self.intersection_test_epsilon);
-        }
-
-        if self.max_recursion_depth == 0 {
-            self.max_recursion_depth = 5;
-            warn!("Found max recursion depth 0, setting it to {} as default. If that zero was intentional please update your code.", self.max_recursion_depth);
-        }
         Ok(())
     }
 
@@ -211,56 +199,6 @@ fn parse_material(value: serde_json::Value) -> Vec<HeapAllocMaterial> {
         }
     }
 }
-
-
-
-#[derive(Debug, Deserialize, Clone)]
-#[derive(SmartDefault)]
-#[serde(default)]
-pub struct Mesh {
-    #[serde(deserialize_with = "deser_usize")]
-    pub _id: usize,
-    #[serde(rename = "Material", deserialize_with = "deser_usize")]
-    pub material_idx: usize,
-    #[serde(rename = "Faces")]
-    pub faces: FaceType,
-
-    #[serde(rename = "_shadingMode")]
-    #[default = "flat"]
-    pub _shading_mode: String,
-
-}
-
-impl Mesh {
-    
-    // Helper function to convert a Mesh into individual Triangles
-    pub fn to_triangles(&self, verts: &VertexData, id_offset: usize) -> Vec<Triangle> {
-        
-        if self.faces._type != "triangle" {
-            panic!(">> Expected triangle faces in mesh_to_triangles, got '{}'.", self.faces._type);
-        }
-        
-        let n_faces = self.faces.len();
-        let mut triangles = Vec::with_capacity(n_faces);
-        
-        for i in 0..n_faces {
-            let indices = self.faces.get_indices(i);
-            let [v1, v2, v3] = indices.map(|i| verts[i]);
-            triangles.push(Triangle {
-                _id: id_offset + i, 
-                indices,
-                material_idx: self.material_idx,
-                is_smooth: self._shading_mode.to_ascii_lowercase() == "smooth",
-                normal: get_tri_normal(&v1, &v2, &v3),
-                //cache: None, // TODO: Fill cache
-            });
-        }
-        
-        triangles
-    }
-
-}
-
 
 
 #[derive(Debug, Deserialize, Default)]
