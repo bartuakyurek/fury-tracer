@@ -10,73 +10,14 @@
 use bevy_math::NormedVectorSpace;
 use std::{fmt::Debug};
 
-use crate::geometry::{get_tri_normal, moller_trumbore_intersection};
-use crate::dataforms::{VertexData};
+use crate::geometry::{get_tri_normal, moller_trumbore_intersection, HeapAllocatedVerts};
+
 use crate::ray::{Ray, HitRecord}; // TODO: Can we create a small crate for gathering shapes.rs, ray.rs?
 use crate::interval::{Interval};
 use crate::prelude::*;
 
 pub type HeapAllocatedShape = Arc<dyn PrimitiveShape>;
 pub type ShapeList = Vec<HeapAllocatedShape>; 
-pub type HeapAllocatedVerts = Arc<VertexCache>;
-
-//#[derive(Default)]
-#[derive(Debug, Clone)]
-pub struct VertexCache {
-    vertex_data: VertexData,
-    vertex_normals: Vec<Vector3>,
-}
-
-impl Default for VertexCache {
-    fn default() -> Self {
-        Self {
-            vertex_data: VertexData::default(),
-            vertex_normals: Vec::new(),
-        }
-    }
-}
-
-impl VertexCache {
-    
-    pub fn build(verts: &VertexData, triangles: &Vec<Triangle>) -> VertexCache {
-        // Computes per-vertex normals by averaging adjacent triangle normals
-
-        let vertex_data = verts.clone();
-        let mut vertex_normals: Vec<Vector3> = vec![Vector3::ZERO; vertex_data._data.len()];
-        for tri in triangles.iter() {
-            let indices = tri.indices;
-            // Check if indices are in bounds of vertex_data
-            if indices.iter().any(|&i| i >= vertex_data._data.len()) {
-                continue;
-            }
-            let v1 = vertex_data._data[indices[0]];
-            let v2 = vertex_data._data[indices[1]];
-            let v3 = vertex_data._data[indices[2]];
-            let edge_ab = v2 - v1;
-            let edge_ac = v3 - v1;
-            let face_n = edge_ab.cross(edge_ac); // Be careful, not normalized yet!
-
-            // Add the area-weighted face normal to each vertex normal
-            for &idx in &indices {
-                if idx < vertex_normals.len() {
-                    vertex_normals[idx] += face_n;
-                }
-            }
-        }
-
-        // Normalize accumulated normals
-        for n in vertex_normals.iter_mut() {
-            if n.norm_squared() > 0.0 { 
-                *n = n.normalize();
-            }
-        }
-
-        VertexCache {
-            vertex_data,
-            vertex_normals,
-        }
-    }
-}
 
 pub trait PrimitiveShape : Debug + Send + Sync  {
     //fn normal(&self, _: &VertexData) -> Option<Vector3> {

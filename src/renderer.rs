@@ -20,9 +20,9 @@ use crate::ray::{HitRecord, Ray};
 use crate::scene::{PointLight, Scene};
 use crate::image::{ImageData};
 use crate::interval::{Interval, FloatConst};
-use crate::shapes::{ShapeList, HeapAllocatedVerts};
+use crate::shapes::{ShapeList};
+use crate::geometry::{HeapAllocatedVerts};
 use crate::prelude::*;
-
 
 pub fn closest_hit(ray: &Ray, t_interval: &Interval, shapes: &ShapeList, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord>{
     // Refers to p.91 of slide 01_b, lines 3-7

@@ -31,11 +31,10 @@
 use std::{path::Path, io::BufReader, error::Error, fs::File};
 use serde_json::{self, Value};
 
-use crate::material::{ConductorMaterial, DielectricMaterial, DiffuseMaterial, HeapAllocMaterial, Material, MirrorMaterial};
-use crate::shapes::{HeapAllocatedShape, Plane, ShapeList, Sphere, Triangle, VertexCache};
-use crate::dataforms::{SingleOrVec, VertexData, DataField};
-use crate::shapes::HeapAllocatedVerts;
-use crate::geometry::get_tri_normal;
+use crate::material::{*};
+use crate::shapes::{*};
+use crate::dataforms::{*};
+use crate::geometry::{get_tri_normal, VertexCache, HeapAllocatedVerts};
 use crate::camera::{Cameras};
 use crate::prelude::*;
 
@@ -188,7 +187,7 @@ fn parse_single_material(value: serde_json::Value) -> HeapAllocMaterial {
     let mat_type = value.get("_type").and_then(|v| v.as_str()).unwrap_or("diffuse");
 
     match mat_type {
-        // TODO: This box will break if you change HeapAllocatedMaterial type! 
+        // TODO: This box will break if you change HeapAllocatedMaterial type! Update: wait it didn't... I understand both are smart pointers but why this function is stil valid? Shouldn't it be updated to Arc? 
         "diffuse" => Box::new(DiffuseMaterial::new_from(&value)),
         "mirror" => Box::new(MirrorMaterial::new_from(&value)),
         "dielectric" => Box::new(DielectricMaterial::new_from(&value)),
