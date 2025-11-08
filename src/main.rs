@@ -7,11 +7,11 @@
 
 */
 
-use tracing::{info, warn, error, debug};
 use std::{env, path::Path};
 use tracing_subscriber;
 
-use fury_tracer::*;
+use fury_tracer::*; // lib.rs mods
+use crate::prelude::*; 
 
 fn main()  -> Result<(), Box<dyn std::error::Error>> {
 
@@ -22,7 +22,9 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     let json_path: &String = if args.len() == 1 {
         warn!("No arguments were provided, setting default scene path...");
-        &String::from("./inputs/hw1/scienceTree_glass.json")
+        //&String::from("./inputs/hw1/scienceTree_glass.json")
+        &String::from("./inputs/hw1/akif_uslu/berserker_smooth.json")
+        //&String::from("./inputs/hw2/dragon_metal.json")
     } else if args.len() == 2 {
         &args[1]
     } else {

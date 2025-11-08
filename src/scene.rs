@@ -28,21 +28,16 @@
     @date: 2 Oct, 2025
     @author: Bartu
 */
-use std::{path::Path, io::BufReader, error::Error, fs::File, sync::Arc};
-use tracing::{warn, error, debug, info};
-use smart_default::SmartDefault;
+use std::{path::Path, io::BufReader, error::Error, fs::File};
 use serde_json::{self, Value};
-use serde::{Deserialize};
 
 use crate::material::{ConductorMaterial, DielectricMaterial, DiffuseMaterial, HeapAllocMaterial, Material, MirrorMaterial};
 use crate::shapes::{HeapAllocatedShape, Plane, ShapeList, Sphere, Triangle, VertexCache};
 use crate::dataforms::{SingleOrVec, VertexData, DataField};
-use crate::json_parser::{deser_string_or_struct};
-use crate::numeric::{Int, Float, Vector3};
 use crate::shapes::HeapAllocatedVerts;
 use crate::geometry::get_tri_normal;
 use crate::camera::{Cameras};
-use crate::json_parser::*;
+use crate::prelude::*;
 
 #[derive(Debug, Deserialize)]
 pub struct RootScene {
@@ -99,11 +94,8 @@ impl Scene {
         warn!("Inserted a dummy vertex at the beginning to use vertex IDs beginning from 1.");
 
         // 
-    // Build shapes and the vertex cache (returned by setup)
-    let cache = self.objects.setup(&mut self.vertex_data,  jsonpath)?; // Appends new vertices if mesh is from PLY
-    self.vertex_cache = Arc::new(cache);
-
-       
+        let cache = self.objects.setup(&mut self.vertex_data,  jsonpath)?; // Appends new vertices if mesh is from PLY
+        self.vertex_cache = Arc::new(cache);
 
         // TODO: Below is a terrible way to set defaults, if Scene is decoupled from JSON
         // then it can impl Default for Scene and there we can specify default values

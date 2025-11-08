@@ -8,16 +8,13 @@
 */
 
 use bevy_math::NormedVectorSpace;
-use std::{sync::Arc, fmt::Debug};
-use smart_default::SmartDefault;
-use serde::{Deserialize};
+use std::{fmt::Debug};
 
 use crate::geometry::{get_tri_normal, moller_trumbore_intersection};
-use crate::numeric::{Float, Vector3};
 use crate::dataforms::{VertexData};
 use crate::ray::{Ray, HitRecord}; // TODO: Can we create a small crate for gathering shapes.rs, ray.rs?
 use crate::interval::{Interval};
-use crate::json_parser::*;
+use crate::prelude::*;
 
 pub type HeapAllocatedShape = Arc<dyn PrimitiveShape>;
 pub type ShapeList = Vec<HeapAllocatedShape>; 

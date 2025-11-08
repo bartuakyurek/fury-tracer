@@ -13,12 +13,11 @@
 */
 use std::fmt::Debug;
 use bevy_math::NormedVectorSpace;
-use bevy_math::ops::cos;
-use tracing::{error, info, warn};
 use serde::{Deserialize, de::DeserializeOwned};
-use crate::json_parser::*;
-use crate::numeric::{approx_zero, Float, Vector3};
-use crate::ray::{Ray, HitRecord}; // TODO: rename it to light or lighting, not lights?
+
+use crate::ray::{Ray, HitRecord}; 
+use crate::prelude::*;
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// 

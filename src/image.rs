@@ -2,11 +2,10 @@
 
 
 use std::path::{Path, PathBuf};
-use tracing::{warn, info};
 use std::io::BufWriter;
 use std::fs::File;
 
-use crate::numeric::{Vector3, Float};
+use crate::prelude::*;
 
 
 #[derive(Clone)]

@@ -11,24 +11,17 @@
     @author: Bartu
 */
 
-use std::rc::Rc;
-use std::sync::Arc;
 use rayon::prelude::*;
-use std::io::{self, Write};
-use bevy_math::{NormedVectorSpace, VectorSpace};
-use tracing::span::Record;
-use tracing::{debug, info, warn, error};
+use bevy_math::{NormedVectorSpace};
 use std::{self, time::Instant};
 
-use crate::camera::Camera;
 use crate::material::{HeapAllocMaterial};
 use crate::ray::{HitRecord, Ray};
 use crate::scene::{PointLight, Scene};
-use crate::numeric::{Float, Vector3};
 use crate::image::{ImageData};
 use crate::interval::{Interval, FloatConst};
 use crate::shapes::{ShapeList, HeapAllocatedVerts};
-
+use crate::prelude::*;
 
 
 pub fn closest_hit(ray: &Ray, t_interval: &Interval, shapes: &ShapeList, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord>{

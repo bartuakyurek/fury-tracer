@@ -6,13 +6,11 @@
     @author: bartu
 */
 
-use smart_default::SmartDefault;
-use serde::{Deserialize};
-use tracing::{info, debug};
+
+
+use crate::prelude::*;
 use crate::{image, ray::Ray};
-use crate::json_parser::*;
 use crate::dataforms::{SingleOrVec};
-use crate::numeric::{Int, Float, Vector3, approx_zero};
 
 #[derive(Debug, Deserialize, Default)]
 pub struct Cameras {
