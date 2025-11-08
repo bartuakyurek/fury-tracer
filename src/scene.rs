@@ -231,6 +231,36 @@ pub struct Mesh {
 
 }
 
+impl Mesh {
+    
+    // Helper function to convert a Mesh into individual Triangles
+    pub fn to_triangles(&self, verts: &VertexData, id_offset: usize) -> Vec<Triangle> {
+        
+        if self.faces._type != "triangle" {
+            panic!(">> Expected triangle faces in mesh_to_triangles, got '{}'.", self.faces._type);
+        }
+        
+        let n_faces = self.faces.len();
+        let mut triangles = Vec::with_capacity(n_faces);
+        
+        for i in 0..n_faces {
+            let indices = self.faces.get_indices(i);
+            let [v1, v2, v3] = indices.map(|i| verts[i]);
+            triangles.push(Triangle {
+                _id: id_offset + i, 
+                indices,
+                material_idx: self.material_idx,
+                is_smooth: self._shading_mode.to_ascii_lowercase() == "smooth",
+                normal: get_tri_normal(&v1, &v2, &v3),
+                //cache: None, // TODO: Fill cache
+            });
+        }
+        
+        triangles
+    }
+
+}
+
 
 
 #[derive(Debug, Deserialize, Default)]
@@ -306,7 +336,7 @@ impl SceneObjects {
                 }
             }
             let offset = verts._data.len();
-            let triangles: Vec<Triangle> = mesh_to_triangles(&mesh, verts, offset);
+            let triangles: Vec<Triangle> = mesh.to_triangles(verts, offset);
             all_triangles.extend(triangles.iter().cloned());
             shapes.extend(triangles.into_iter().map(|t| Arc::new(t) as HeapAllocatedShape));
         }
@@ -318,29 +348,3 @@ impl SceneObjects {
 
 }
 
-
-// Helper function to convert a Mesh into individual Triangles
-fn mesh_to_triangles(mesh: &Mesh, verts: &VertexData, id_offset: usize) -> Vec<Triangle> {
-    
-    if mesh.faces._type != "triangle" {
-        panic!(">> Expected triangle faces in mesh_to_triangles, got '{}'.", mesh.faces._type);
-    }
-    
-    let n_faces = mesh.faces.len();
-    let mut triangles = Vec::with_capacity(n_faces);
-    
-    for i in 0..n_faces {
-        let indices = mesh.faces.get_indices(i);
-        let [v1, v2, v3] = indices.map(|i| verts[i]);
-        triangles.push(Triangle {
-            _id: id_offset + i, 
-            indices,
-            material_idx: mesh.material_idx,
-            is_smooth: mesh._shading_mode.to_ascii_lowercase() == "smooth",
-            normal: get_tri_normal(&v1, &v2, &v3),
-            //cache: None, // TODO: Fill cache
-        });
-    }
-    
-    triangles
-}
