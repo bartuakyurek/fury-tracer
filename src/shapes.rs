@@ -145,6 +145,7 @@ impl PrimitiveShape for Triangle {
                     if self.normal.norm_squared() > 0.0 {
                         self.normal
                     } else {
+                        // info!("I hope this never occurs"); --> WARNING: Occurs when triangle is not constructed from Mesh data
                         let verts = &vertex_cache.vertex_data;
                         let [a, b, c] = self.indices.map(|i| verts[i]);
                         get_tri_normal(&a, &b, &c)

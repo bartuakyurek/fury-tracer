@@ -72,6 +72,7 @@ pub fn get_shadow_ray(point_light: &PointLight, hit_record: &HitRecord, epsilon:
 }
 
 // TODO: Wait why there is both scene and shapes where scene already should contain shapes?
+// TODO: Why don't you make it inside 
 pub fn shade_diffuse(scene: &Scene, shapes: &ShapeList, vertex_cache: &HeapAllocatedVerts, hit_record: &HitRecord, ray_in: &Ray, mat: &HeapAllocMaterial) -> Vector3 {
     let mut color = Vector3::ZERO;
     for point_light in scene.lights.point_lights.all() {
@@ -177,9 +178,9 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
             .collect();
         // -----------------------------
             
-        let im = ImageData::new_from_colors(cam.image_resolution, cam.image_name, pixel_colors);
+        let im = ImageData::new_from_colors(cam.image_resolution, cam.image_name.clone(), pixel_colors);
         images.push(im);
-        info!("Rendering of image took: {:?}", start.elapsed()); 
+        info!("Rendering of {} took: {:?}", cam.image_name, start.elapsed()); 
     }
     
     Ok(images)

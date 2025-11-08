@@ -149,7 +149,7 @@ pub fn moller_trumbore_intersection(ray: &Ray, t_interval: &Interval, tri_indice
     debug_assert!(ray.direction.is_normalized());
     let perp = ray.direction.cross(edge_ac);
     let determinant: Float = perp.dot(edge_ab);
-    if (determinant > -t_interval.min) && (determinant < t_interval.min) {
+    if (determinant > -t_interval.min) && (determinant < t_interval.min) { // TODO: shouldn't this be ray epsilon? t_interval.min could be zero here?
         return None;
     }
     let inverse_determinant = 1.0 as Float / determinant;

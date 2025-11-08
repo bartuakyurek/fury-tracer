@@ -26,7 +26,7 @@ use crate::ray::{Ray, HitRecord}; // TODO: rename it to light or lighting, not l
 /// 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 pub trait Material : Debug + Send + Sync  {
-    
+    // TODO: could’ve implemet shade_diffuse(shadow_ray: &Ray, …) inside Material for cleaner logic ?
     fn new_from(value: &serde_json::Value) -> Self 
     where
         Self: Sized + DeserializeOwned + Default,

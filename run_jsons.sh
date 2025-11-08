@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-root_path="./inputs"
+root_path="./inputs/hw1"
 
 # List of JSON files to run
 json_files=(
@@ -12,7 +12,7 @@ json_files=(
     "cornellbox_recursive.json"
     #"scienceTree.json"
     #"scienceTree_glass.json"
-    "akif_uslu/ton_Roosendaal_smooth.json"
+    #"akif_uslu/ton_Roosendaal_smooth.json"
     #"raven/rt_david.json"
     #"raven/rt_raven.json"
     #"raven/rt_utahteapot_mug_ceng.json"

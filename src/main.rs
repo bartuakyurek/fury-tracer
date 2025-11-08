@@ -36,7 +36,7 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
     let json_path: &String = if args.len() == 1 {
         warn!("No arguments were provided, setting default scene path...");
         //&String::from("./inputs/deniz_sayin/lobster.json")
-        &String::from("./inputs/scienceTree_glass.json")
+        &String::from("./inputs/hw1/scienceTree_glass.json")
     } else if args.len() == 2 {
         &args[1]
     } else {
@@ -63,7 +63,7 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
 
     // Write images to .png files
     for im in images.into_iter() {
-        let imagefolder = "./"; // Save to current folder 
+        let imagefolder = "./"; // Save to this folder TODO: add outputs/subfolder/... 
         if let Err(e) = im.save_png(&imagefolder) {
             eprintln!("Failed to save {}: {}", imagefolder, e);
         }

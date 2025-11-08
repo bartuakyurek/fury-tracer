@@ -145,8 +145,7 @@ impl Camera {
 
     pub fn generate_primary_rays(&self) -> Vec<Ray> {
         let (width, height) = self.get_resolution();
-        let pixel_centers = image::get_pixel_centers(width, height, &self.get_nearplane_corners()); // Adjust based on actual field name
-
+        let pixel_centers = image::get_pixel_centers(width, height, &self.get_nearplane_corners()); 
         let ray_origin = self.position;
         let mut rays = Vec::<Ray>::with_capacity(pixel_centers.len());
         for pixel_center in pixel_centers.iter() {            
@@ -155,8 +154,6 @@ impl Camera {
         }
         rays
     }
-
-
 }
 
 #[derive(Debug, Deserialize, Clone, Default)]

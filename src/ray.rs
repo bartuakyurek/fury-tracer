@@ -18,6 +18,7 @@ pub struct Ray {
 
 impl Ray {
     pub fn new(origin: Vector3, direction: Vector3) -> Self {
+        debug_assert!(direction.is_normalized());
         Self {
             origin,
             direction,

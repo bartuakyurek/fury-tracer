@@ -380,11 +380,11 @@ struct Vertex {
 
 #[derive(Deserialize)]
 struct Face {
-    vertex_indices: Vec<usize>, // assuming property list uchar int vertex_indices
+    vertex_indices: Vec<usize>, 
 }
 
 #[derive(Deserialize)]
 struct PlyMesh {
     vertex: Vec<Vertex>,
-    face: Option<Vec<Face>>, // make optional if you don't always need it
+    face: Option<Vec<Face>>, 
 }
