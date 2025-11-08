@@ -1,7 +1,10 @@
 /*
 
-    Declare some (hopefully) useful data structures
-    for this repo.  
+    Declare data structs needed to parse JSON. 
+
+    - DataField: To be used in Mesh and Faces
+    - SingleOrVec
+    - VertexData: Type alias of DataField<Vector3>
 
     @date: 13 Oct, 2025
     @author: Bartu
@@ -119,6 +122,25 @@ impl<T: Default> Default for SingleOrVec<T> {
 }
 
 
+ 
+#[derive(Deserialize)]
+pub struct Vertex {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+}
+
+#[derive(Deserialize)]
+pub struct Face {
+    pub vertex_indices: Vec<usize>, 
+}
+
+#[derive(Deserialize)]
+pub struct PlyMesh {
+    pub vertex: Vec<Vertex>,
+    pub face: Option<Vec<Face>>, 
+}
+
 
 pub type VertexData = DataField<Vector3>; // TODO: use CoordLike in geometry_processing.rs?
 
@@ -179,4 +201,5 @@ impl VertexData{
         return true;
     }
 }
+
 

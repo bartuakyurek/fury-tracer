@@ -10,7 +10,7 @@
 
 use crate::prelude::*;
 use crate::{image, ray::Ray};
-use crate::dataforms::{SingleOrVec};
+use crate::json_structs::{SingleOrVec};
 
 #[derive(Debug, Deserialize, Default)]
 pub struct Cameras {

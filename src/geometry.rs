@@ -16,7 +16,7 @@ use bevy_math::NormedVectorSpace; // traits needed for norm_squared( )
 
 use crate::shapes::{Triangle};
 use crate::numeric::{Float, Vector3, approx_zero};
-use crate::{ray::Ray, interval::Interval, dataforms::VertexData};
+use crate::{ray::Ray, interval::Interval, json_structs::VertexData};
 use crate::prelude::*;
 
 pub type HeapAllocatedVerts = Arc<VertexCache>;

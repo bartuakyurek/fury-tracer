@@ -33,7 +33,7 @@ use serde_json::{self, Value};
 
 use crate::material::{*};
 use crate::shapes::{*};
-use crate::dataforms::{*};
+use crate::json_structs::{*};
 use crate::geometry::{get_tri_normal, VertexCache, HeapAllocatedVerts};
 use crate::camera::{Cameras};
 use crate::prelude::*;
@@ -356,22 +356,4 @@ fn mesh_to_triangles(mesh: &Mesh, verts: &VertexData, id_offset: usize) -> Vec<T
     }
     
     triangles
-}
- 
-#[derive(Deserialize)]
-struct Vertex {
-    x: f32,
-    y: f32,
-    z: f32,
-}
-
-#[derive(Deserialize)]
-struct Face {
-    vertex_indices: Vec<usize>, 
-}
-
-#[derive(Deserialize)]
-struct PlyMesh {
-    vertex: Vec<Vertex>,
-    face: Option<Vec<Face>>, 
 }
