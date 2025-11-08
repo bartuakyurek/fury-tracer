@@ -11,19 +11,7 @@ use std::{self, env, time::Instant, path::Path};
 use tracing::{info, warn, error, debug};
 use tracing_subscriber;
 
-mod ray;
-mod image;
-mod scene;
-mod camera;
-mod shapes;
-mod numeric;
-mod interval;
-mod material;
-mod renderer;
-mod geometry;
-mod dataforms;
-mod json_parser;
-use crate::{json_parser::parse_json795};
+use fury_tracer::*;
 // TODO: How to group these mods better to declutter main?
 
 fn main()  -> Result<(), Box<dyn std::error::Error>> {
