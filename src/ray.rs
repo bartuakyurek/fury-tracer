@@ -1,13 +1,12 @@
 
 
 
-use bevy_math::curve::derivatives;
+
+
+
 use bevy_math::NormedVectorSpace;
 
-use crate::dataforms::VertexData;
-use crate::material;
 use crate::numeric::{Vector3, Float};
-use crate::interval::{Interval};
 
 
 #[derive(Debug)]

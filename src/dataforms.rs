@@ -7,15 +7,13 @@
     @author: Bartu
 */
 
-
-use std::fs::File;
-use std::io::BufReader;
-use void::Void;
-use std::{ops::Index, str::FromStr};
-use tracing::{warn, info};
 use serde::{Deserialize, de::{Deserializer}};
-use crate::numeric::{Vector3};
+use std::{ops::Index, str::FromStr};
+use tracing::{warn};
+use void::Void;
+
 use crate::json_parser::{deser_vertex_data, deser_usize_vec, parse_string_vecvec3};
+use crate::numeric::{Vector3};
 
 // To be used for VertexData and Faces in JSON files
 #[derive(Debug, Clone, Default)]

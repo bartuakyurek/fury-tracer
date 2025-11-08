@@ -7,12 +7,11 @@
 
 */
 
-use std::{self, env, time::Instant, path::Path};
 use tracing::{info, warn, error, debug};
+use std::{env, path::Path};
 use tracing_subscriber;
 
 use fury_tracer::*;
-// TODO: How to group these mods better to declutter main?
 
 fn main()  -> Result<(), Box<dyn std::error::Error>> {
 
@@ -23,7 +22,6 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     let json_path: &String = if args.len() == 1 {
         warn!("No arguments were provided, setting default scene path...");
-        //&String::from("./inputs/deniz_sayin/lobster.json")
         &String::from("./inputs/hw1/scienceTree_glass.json")
     } else if args.len() == 2 {
         &args[1]
@@ -44,11 +42,9 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
     debug!("Scene is setup successfully.\n {:#?}", root);
     let root = root; // Shadow mutatability before render
 
-    // Render image and return array of RGB
-    
+    // Render images and return array of RGB
     let images = renderer::render(&root.scene)?;
     
-
     // Write images to .png files
     for im in images.into_iter() {
         let imagefolder = "./"; // Save to this folder TODO: add outputs/subfolder/... 

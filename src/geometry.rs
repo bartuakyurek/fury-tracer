@@ -12,7 +12,6 @@
     @author: bartu
 */
 
-use std::{ops::Index};
 use crate::shapes::{Triangle};
 use crate::numeric::{Float, Vector3, approx_zero};
 use crate::{ray::Ray, interval::Interval, dataforms::VertexData};

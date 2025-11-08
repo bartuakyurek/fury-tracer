@@ -28,25 +28,21 @@
     @date: 2 Oct, 2025
     @author: Bartu
 */
-use std::fs::File;
-use std::error::Error;
-use std::io::BufReader;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use serde_json::{self, Value};
-use serde::{Deserialize};
+use std::{path::Path, io::BufReader, error::Error, fs::File, sync::Arc};
 use tracing::{warn, error, debug, info};
 use smart_default::SmartDefault;
+use serde_json::{self, Value};
+use serde::{Deserialize};
 
-use crate::geometry::get_tri_normal;
-use crate::json_parser::{deser_string_or_struct};
 use crate::material::{ConductorMaterial, DielectricMaterial, DiffuseMaterial, HeapAllocMaterial, Material, MirrorMaterial};
+use crate::shapes::{HeapAllocatedShape, Plane, ShapeList, Sphere, Triangle, VertexCache};
+use crate::dataforms::{SingleOrVec, VertexData, DataField};
+use crate::json_parser::{deser_string_or_struct};
 use crate::numeric::{Int, Float, Vector3};
-use crate::shapes::{HeapAllocatedShape, Plane, PrimitiveShape, ShapeList, Sphere, Triangle, VertexCache};
+use crate::shapes::HeapAllocatedVerts;
+use crate::geometry::get_tri_normal;
 use crate::camera::{Cameras};
 use crate::json_parser::*;
-use crate::dataforms::{SingleOrVec, VertexData, DataField};
-use crate::shapes::HeapAllocatedVerts;
 
 #[derive(Debug, Deserialize)]
 pub struct RootScene {
