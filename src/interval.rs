@@ -42,6 +42,10 @@ impl Interval {
         max: FloatConst::INF,
     };
 
+    pub fn validate(&self) -> bool {
+        self.max >= self.min
+    }
+
     pub fn new(min: Float, max: Float) -> Self {
         Self { 
             min,
@@ -95,6 +99,11 @@ impl Interval {
         if x < self.min { self. min }
         else if x > self.max { self.max }
         else { x }
+    }
+
+    pub fn expand(&mut self, x: Float) {
+        if x < self.min { self.min = x; }
+        if x > self.max { self.max = x; }
     }
 
 }
