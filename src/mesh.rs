@@ -7,13 +7,13 @@
 */
 
 use crate::json_structs::{FaceType, VertexData};
-use crate::geometry::{get_tri_normal};
-use crate::shapes::{Triangle};
-use crate::prelude::*;
-use crate::shapes::PrimitiveShape;
-use crate::geometry::HeapAllocatedVerts;
+use crate::geometry::{HeapAllocatedVerts, get_tri_normal};
+use crate::shapes::{Shape, Triangle};
 use crate::ray::{Ray, HitRecord};
 use crate::interval::Interval;
+use crate::bbox::{BBoxable, BBox};
+
+use crate::prelude::*;
 
 
 #[derive(Debug, Deserialize, Clone)]
@@ -32,7 +32,6 @@ pub struct Mesh {
     pub _shading_mode: String,
     #[serde(skip)]
     pub triangles: Vec<Triangle>,
-
 }
 
 impl Mesh {
@@ -70,10 +69,9 @@ impl Mesh {
         
         triangles
     }
-
 }
 
-impl PrimitiveShape for Mesh {
+impl Shape for Mesh {
     fn indices(&self) -> Vec<usize> {
         self.faces._data.clone()
     }
@@ -93,5 +91,33 @@ impl PrimitiveShape for Mesh {
             }
         }
         closest
+    }
+}
+
+impl BBoxable for Mesh {
+    fn get_bbox(&self, verts: &VertexData) -> BBox {
+        let (mut xint, mut yint, mut zint) = (Interval::EMPTY, Interval::EMPTY, Interval::EMPTY);
+
+        // TODO: This is not an optimal way to get bbox, as it uses faces
+        // to access vertices of a mesh but ideally we'd like to iterate only
+        // faces. As a solution Mesh struct could contain where its data begins
+        // in global vertexdata, and number of verts, such that we can use this info
+        // to access relevant vertices. This solution assumes vertexdata has one continuous
+        // segment of data per scene object, which is a reasonable assumption. However in order
+        // to implement it, if given Mesh in JSON has directly face data, one should save the min
+        // and max indices occuring in face._data. On the downside, introducing extra variables in
+        // deserialized struct requires additional function implementation to fill those variables,
+        // e.g. setup( ) functions I've been using for these purposes. Since this has been a pattern
+        // perhaps we could have a fromJSON trait with setup( ) and new_from( ) and impl it for 
+        // Scene, Mesh etc.
+        for &i in &self.faces._data { // FaceType does not impl Copy, so using & to borrow
+            let v = verts[i];
+
+            xint.expand(v.x);
+            yint.expand(v.y);
+            zint.expand(v.z);
+        }
+
+        BBox::new_from(&xint, &yint, &zint)
     }
 }
