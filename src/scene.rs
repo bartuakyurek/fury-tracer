@@ -182,27 +182,27 @@ pub struct SceneObjects {
     pub meshes: SingleOrVec<Mesh>,
 
     #[serde(skip)]
-    pub all_shapes: ShapeList,
+    pub all_shapes: ShapeList, 
 }
 
 impl SceneObjects {
 
     pub fn setup(&mut self, verts: &mut VertexData, jsonpath: &Path) -> Result<VertexCache, Box<dyn Error>> {
-        // Return a vector of all shapes in the scene
-        warn!("SceneObjects.all( ) assumes there are only triangles, spheres, planes, and meshes. If there are other Shape trait implementations they are not added yet.");
+        // NOTE: Vec::extend( ) pushes a collection of data all at once, 
+        // if you have a single object to push, then use Vec::push( )
+
         let mut shapes: ShapeList = Vec::new();
         let mut all_triangles: Vec<Triangle> = self.triangles.all();
 
         shapes.extend(self.triangles.all().into_iter().map(|t| Arc::new(t) as HeapAllocatedShape));
         shapes.extend(self.spheres.all().into_iter().map(|s| Arc::new(s) as HeapAllocatedShape));
         shapes.extend(self.planes.all().into_iter().map(|p| Arc::new(p) as HeapAllocatedShape));
-        //shapes.extend(self.meshes.all().into_iter().map(|m| Rc::new(m) as Rc<dyn Shape>));
-
-        // Convert meshes to triangles 
+        
+        // Convert meshes: UPDATE: do not convert it into individual triangles
         for mesh in self.meshes.all() {
             let mut mesh = mesh;
-            if !mesh.faces._ply_file.is_empty() { 
-                
+            if !mesh.faces._ply_file.is_empty() {
+
                 // Get path containing the JSON (_plyFile in json is relative to that json)
                 let json_dir = Path::new(jsonpath)
                     .parent()
@@ -217,12 +217,12 @@ impl SceneObjects {
                 }
 
                 info!("Loading mesh {} from PLY file path: {:?}", mesh._id, ply_path);
-                
+
                 let file = File::open(ply_path)?;
                 let reader = BufReader::new(file);
                 let plymesh: PlyMesh = serde_ply::from_reader(reader)?;
                 let old_vertex_count = verts._data.len();
-                // Append loaded ply to vertexdata 
+                // Append loaded ply to vertexdata
                 for v in &plymesh.vertex {
                     verts._data.push(Vector3::new(v.x as Float, v.y as Float, v.z as Float));
                 }
@@ -235,15 +235,20 @@ impl SceneObjects {
                         .map(|idx| idx + old_vertex_count)      // shift by existing vertices
                         .collect();
                     info!(">> Mesh {} has {} faces.", mesh._id, mesh.faces._data.len());
-                } 
+                }
                 else {
                     warn!("PLY mesh {} has no face data!", mesh._id);
                 }
             }
+
+            // For vertex cache, get the triangles in a single mesh 
+            // TODO: this is done because we have global vertex_data
             let offset = verts._data.len();
-            let triangles: Vec<Triangle> = mesh.to_triangles(verts, offset);
-            all_triangles.extend(triangles.iter().cloned());
-            shapes.extend(triangles.into_iter().map(|t| Arc::new(t) as HeapAllocatedShape));
+            let triangles: Vec<Triangle> = mesh.setup_triangles_vec(verts, offset);
+            all_triangles.extend(triangles.into_iter());
+
+            // Push mesh to shapes (previously I was deconstructing it into individual triangles)
+            shapes.push(Arc::new(mesh) as HeapAllocatedShape);
         }
         info!(">> There are {} vertices in the scene.", verts._data.len());
         self.all_shapes = shapes;
