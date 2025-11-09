@@ -16,18 +16,17 @@ use crate::ray::{Ray, HitRecord}; // TODO: Can we create a small crate for gathe
 use crate::interval::{Interval};
 use crate::prelude::*;
 
-pub type HeapAllocatedShape = Arc<dyn PrimitiveShape>;
+pub type HeapAllocatedShape = Arc<dyn Shape>;
 pub type ShapeList = Vec<HeapAllocatedShape>; 
 
 
-pub trait PrimitiveShape : Debug + Send + Sync  {
+pub trait Shape : Debug + Send + Sync  {
     fn indices(&self) -> Vec<usize>;
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord>;
 }
 
 // Raw data deserialized from .JSON file
 // WARNING: it assumes vertex indices start from 1
-// TODO: How to convert this struct into V, F matrices, for both array of triangles and Mesh objects in the scene?
 #[derive(Debug, Deserialize, Clone, SmartDefault)]
 pub struct Triangle {
     #[serde(deserialize_with = "deser_usize")]
@@ -45,7 +44,7 @@ pub struct Triangle {
     pub normal: Vector3,
 }
 
-impl PrimitiveShape for Triangle {
+impl Shape for Triangle {
     fn indices(&self) -> Vec<usize> {
         self.indices.to_vec()
     }
@@ -100,7 +99,7 @@ pub struct Sphere {
     pub material_idx: usize,
 }
 
-impl PrimitiveShape for Sphere {
+impl Shape for Sphere {
 
     fn indices(&self) -> Vec<usize> {
         [self.center_idx].to_vec()
@@ -155,7 +154,7 @@ pub struct Plane {
     pub material_idx: usize,
 }
 
-impl PrimitiveShape for Plane {
+impl Shape for Plane {
 
     fn indices(&self) -> Vec<usize> {
         [self.point_idx].to_vec()
