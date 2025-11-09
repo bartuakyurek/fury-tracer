@@ -31,8 +31,10 @@ use std::io::BufReader;
 use void::Void;
 use serde::{Deserialize, Deserializer};
 use serde::de::{self, Visitor, SeqAccess, MapAccess};
+use serde_json::{self, Value};
 
 use crate::prelude::*;
+use crate::material::{*};
 use crate::scene::{RootScene};
 use crate::camera::{NearPlane};
 use crate::numeric::{Int, Float, Vector3};
@@ -442,4 +444,38 @@ where
     deserializer.deserialize_any(StringOrStruct(PhantomData))
 }
 
+
+
+fn parse_single_material(value: serde_json::Value) -> HeapAllocMaterial {
+    
+    debug!("Parsing material JSON: {:#?}", value);
+
+    // Check _type field
+    let mat_type = value.get("_type").and_then(|v| v.as_str()).unwrap_or("diffuse");
+
+    match mat_type {
+        // TODO: This box will break if you change HeapAllocatedMaterial type! Update: wait it didn't... I understand both are smart pointers but why this function is stil valid? Shouldn't it be updated to Arc? 
+        "diffuse" => Box::new(DiffuseMaterial::new_from(&value)),
+        "mirror" => Box::new(MirrorMaterial::new_from(&value)),
+        "dielectric" => Box::new(DielectricMaterial::new_from(&value)),
+        "conductor" => Box::new(ConductorMaterial::new_from(&value)),
+        // Add more materials here
+
+        other => {
+            error!("Unknown material type '{other}', defaulting to DiffuseMaterial");
+            Box::new(DiffuseMaterial::new_from(&value))
+        }
+    }
+}
+
+pub fn parse_material(value: serde_json::Value) -> Vec<HeapAllocMaterial> {
+    match value {
+        Value::Array(arr) => arr.into_iter().map(parse_single_material).collect(),
+        Value::Object(_) => vec![parse_single_material(value)],
+        _ => {
+            error!("Invalid material JSON, expected object or array: {value:?}");
+            vec![]
+        }
+    }
+}
 

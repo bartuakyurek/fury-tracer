@@ -67,7 +67,7 @@ pub fn get_shadow_ray(point_light: &PointLight, hit_record: &HitRecord, epsilon:
 // TODO: Wait why there is both scene and shapes where scene already should contain shapes? Because 
 pub fn shade_diffuse(scene: &Scene, shapes: &ShapeList, vertex_cache: &HeapAllocatedVerts, hit_record: &HitRecord, ray_in: &Ray, mat: &HeapAllocMaterial) -> Vector3 {
     let mut color = Vector3::ZERO;
-    for point_light in scene.lights.point_lights.all() {
+    for point_light in scene.lights.point_lights.iter() {
             
             let (shadow_ray, interval) = get_shadow_ray(&point_light, hit_record, scene.shadow_ray_epsilon);
             if !any_hit(&shadow_ray, &interval, shapes, vertex_cache) {

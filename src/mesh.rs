@@ -5,34 +5,61 @@
 @author: Bartu
 
 */
+use std::error::Error;
+use std::path::{Path, PathBuf};
+use std::{io::BufReader, fs::File};
 
-use crate::json_structs::{FaceType, VertexData};
+use crate::json_structs::{FaceType, VertexData, PlyMesh};
 use crate::geometry::{get_tri_normal};
 use crate::shapes::{Triangle};
 use crate::prelude::*;
 
+fn get_ply_path(jsonpath: &Path, ply_filename: String) -> PathBuf {
 
-#[derive(Debug, Deserialize, Clone)]
-#[derive(SmartDefault)]
-#[serde(default)]
-pub struct Mesh {
-    #[serde(deserialize_with = "deser_usize")]
-    pub _id: usize,
-    #[serde(rename = "Material", deserialize_with = "deser_usize")]
-    pub material_idx: usize,
-    #[serde(rename = "Faces")]
-    pub faces: FaceType,
+    let json_dir = Path::new(jsonpath)
+                            .parent()
+                            .unwrap_or(Path::new("."));
 
-    #[serde(rename = "_shadingMode")]
-    #[default = "flat"]
-    pub _shading_mode: String,
-
+    let ply_path = json_dir.join(ply_filename);
+    
+    if ply_path.exists() {
+        info!("PLY file exists: {:?}", ply_path);
+    } else {
+        error!("PLY file NOT found at: {:?}", ply_path);
+    }
+    ply_path
 }
 
-impl Mesh {
-    
+fn load_ply(ply_path: &PathBuf) -> Result<PlyMesh, Box<dyn Error>> {
+    let file = File::open(ply_path)?;
+    let reader = BufReader::new(file);
+    let plymesh: PlyMesh = serde_ply::from_reader(reader)?;
+    Ok(plymesh)
+}
+
+pub struct Mesh {
+    pub _id: usize,
+    pub material_idx: usize,
+    pub tri_faces: Vec<usize>,
+    pub _shading_mode: String,
+}
+
+
+impl Mesh { // TODO: all these JSON and their actual structs could derive a trait and implement it.
+    pub fn new_from(mj: &MeshJSON, jsonpath: &Path) -> Self {
+
+        mj.setup(jsonpath); 
+
+        Self {
+            _id: mj._id,
+            material_idx: mj.material_idx,
+            tri_faces: mj.faces._data.clone(),
+            _shading_mode: mj._shading_mode.clone(),
+        }
+    }
+
     // Helper function to convert a Mesh into individual Triangles
-    pub fn to_triangles(&self, verts: &VertexData, id_offset: usize) -> Vec<Triangle> {
+    pub fn get_triangles(&self, verts: &VertexData, id_offset: usize) -> Vec<Triangle> {
         
         if self.faces._type != "triangle" {
             panic!(">> Expected triangle faces in mesh_to_triangles, got '{}'.", self.faces._type);
@@ -57,3 +84,4 @@ impl Mesh {
     }
 
 }
+

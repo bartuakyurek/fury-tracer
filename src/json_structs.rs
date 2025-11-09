@@ -6,6 +6,12 @@
     - SingleOrVec
     - VertexData: Type alias of DataField<Vector3>
 
+    TODO: This module is named json_structs but it actually
+    does not declare any SceneJSON, MeshJSON or other helper
+    structs I've used so far. When it is stabilized we better 
+    move those StructNameJSONs to here (though their impls are
+    coupled with parser but still)
+
     @date: 13 Oct, 2025
     @author: Bartu
 */
@@ -15,8 +21,7 @@ use std::{ops::Index, str::FromStr};
 use tracing::{warn};
 use void::Void;
 
-use crate::json_parser::{deser_vertex_data, deser_usize_vec, parse_string_vecvec3};
-use crate::numeric::{Vector3};
+use crate::prelude::*;
 
 // To be used for VertexData and Faces in JSON files
 #[derive(Debug, Clone, Default)]
@@ -216,3 +221,5 @@ impl FaceType {
         [self._data[start], self._data[start + 1], self._data[start + 2]]
     }
 }
+
+

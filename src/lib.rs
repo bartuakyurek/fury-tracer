@@ -13,5 +13,6 @@ pub mod renderer;
 pub mod geometry;
 pub mod json_structs;
 pub mod json_parser;
+pub mod json_deserialized;
 
 pub mod prelude;
