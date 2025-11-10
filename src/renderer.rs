@@ -114,8 +114,8 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: 
                 let mut tot_radiance = Vector3::ZERO;
                 
                 // Only add diffuse, specular, and ambient components if front face (see slides 02, p.29)
-                // TODO: Below should have been without "!" but I'm not sure why this looks better 
-                if !hit_record.is_front_face { 
+                // TODO: is below correct? 
+                if hit_record.is_front_face && depth > 0 { 
                     tot_radiance += shade_diffuse(scene, shapes, vertex_cache, &hit_record, &ray_in, mat);
                 }
  
