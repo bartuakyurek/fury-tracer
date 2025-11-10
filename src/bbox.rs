@@ -16,13 +16,16 @@ use crate::ray::{Ray, HitRecord};
 use crate::shapes::Shape;
 
 pub struct BBox {
-    xmin: Float, xmax: Float,
-    ymin: Float, ymax: Float,
-    zmin: Float, zmax: Float,
+    pub xmin: Float, 
+    pub xmax: Float,
+    pub ymin: Float, 
+    pub ymax: Float,
+    pub zmin: Float, 
+    pub zmax: Float,
     
-    width: Float,
-    height: Float,
-    depth: Float,
+    pub width: Float,
+    pub height: Float,
+    pub depth: Float,
 }
 
 impl BBox {

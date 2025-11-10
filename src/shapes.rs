@@ -10,12 +10,13 @@
 use bevy_math::NormedVectorSpace;
 use std::{fmt::Debug};
 
-use crate::geometry::{get_tri_normal, moller_trumbore_intersection, HeapAllocatedVerts};
+use crate::geometry::{get_tri_normal, moller_trumbore_intersection};
 
 use crate::bbox::{BBox, BBoxable};
 use crate::ray::{Ray, HitRecord}; // TODO: Can we create a small crate for gathering shapes.rs, ray.rs?
 use crate::interval::{Interval};
 use crate::json_structs::{VertexData};
+use crate::scene::HeapAllocatedVerts;
 use crate::prelude::*;
 
 pub type HeapAllocatedShape = Arc<dyn Shape>;

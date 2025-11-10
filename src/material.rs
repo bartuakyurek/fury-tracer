@@ -377,7 +377,7 @@ impl DielectricMaterial {
             let refracted_direction = ((d + (n * frd.cos_theta)) * frd.n_ratio) - (n * frd.cos_phi); // p.15
             debug_assert!(refracted_direction.is_normalized());
 
-            let ray = Ray::new(hit_record.hit_point - n * epsilon, refracted_direction);
+            let ray = Ray::new(hit_record.hit_point - n * epsilon, refracted_direction); // Apply epsilon in negative normal direction!
             let mut attenuation = frd.f_t * Vector3::ONE;
             if !hit_record.is_front_face {
                 // Attenuate as it goes out of object 

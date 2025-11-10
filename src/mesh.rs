@@ -7,11 +7,12 @@
 */
 
 use crate::json_structs::{FaceType, VertexData};
-use crate::geometry::{HeapAllocatedVerts, get_tri_normal};
+use crate::geometry::{get_tri_normal};
 use crate::shapes::{Shape, Triangle};
 use crate::ray::{Ray, HitRecord};
 use crate::interval::Interval;
 use crate::bbox::{BBoxable, BBox};
+use crate::scene::{HeapAllocatedVerts};
 
 use crate::prelude::*;
 
@@ -77,8 +78,8 @@ impl Shape for Mesh {
     }
 
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
-        // Delegate intersection test to per-mesh Triangle objects (avoids duplicating the
-        // Möller–Trumbore code / normal interpolation logic which is implemented in Triangle).
+        // Delegate intersection test to per-mesh Triangle objects 
+        // by iterating over all the triangles (hence naive, accelerated intersection function is to be added soon)
         let mut closest: Option<HitRecord> = None;
         let mut t_min = std::f64::INFINITY as crate::numeric::Float;
 
@@ -99,8 +100,8 @@ impl BBoxable for Mesh {
         let (mut xint, mut yint, mut zint) = (Interval::EMPTY, Interval::EMPTY, Interval::EMPTY);
 
         // TODO: This is not an optimal way to get bbox, as it uses faces
-        // to access vertices of a mesh but ideally we'd like to iterate only
-        // faces. As a solution Mesh struct could contain where its data begins
+        // to access vertices of a mesh but ideally we'd like to iterate 
+        // vertices one-shot. As a solution Mesh struct could contain where its data begins
         // in global vertexdata, and number of verts, such that we can use this info
         // to access relevant vertices. This solution assumes vertexdata has one continuous
         // segment of data per scene object, which is a reasonable assumption. However in order

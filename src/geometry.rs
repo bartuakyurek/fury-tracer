@@ -12,80 +12,10 @@
     @author: bartu
 */
 
-use bevy_math::NormedVectorSpace; // traits needed for norm_squared( ) 
 
-use crate::shapes::{Triangle};
+use crate::json_structs::{VertexData};
 use crate::numeric::{Float, Vector3};
-use crate::{ray::Ray, interval::Interval, json_structs::VertexData};
-use crate::prelude::*;
-
-pub type HeapAllocatedVerts = Arc<VertexCache>;
-
-
-#[derive(Debug, Clone)]
-pub struct VertexCache {
-    pub vertex_data: VertexData,
-    pub vertex_normals: Vec<Vector3>,
-}
-
-impl Default for VertexCache {
-    fn default() -> Self {
-        Self {
-            vertex_data: VertexData::default(),
-            vertex_normals: Vec::new(),
-        }
-    }
-}
-
-// WARNING: caching vertex normals are tricky because if the same vertex was used by multiple 
-// meshes, that means there are more vertex normals than the length of vertexdata because
-// connectivities are different. Perhaps it is safe to assume no vertex is used in multiple
-// objects, but there needs to be function to actually check the scene if a vertex in VertexData
-// only referred by a single scene object. 
-// Furthermore, what if there were multiple VertexData to load multiple meshes in the Scene? 
-// this is not handled yet and our assumption is VertexData is the only source of vertices, every
-// shape refers to this data for their coordinates. 
-impl VertexCache {
-    
-    pub fn build(verts: &VertexData, triangles: &Vec<Triangle>) -> VertexCache {
-        // Compute per-vertex normal from neighbouring triangles
-        let vertex_data = verts.clone();
-        let mut vertex_normals: Vec<Vector3> = vec![Vector3::ZERO; vertex_data._data.len()];
-        for tri in triangles.iter() {
-            let indices = tri.indices;
-            // Check if indices are in bounds of vertex_data
-            if indices.iter().any(|&i| i >= vertex_data._data.len()) {
-                continue;
-            }
-            let v1 = vertex_data._data[indices[0]];
-            let v2 = vertex_data._data[indices[1]];
-            let v3 = vertex_data._data[indices[2]];
-            let edge_ab = v2 - v1;
-            let edge_ac = v3 - v1;
-            let face_n = edge_ab.cross(edge_ac); // Be careful, not normalized yet, to preserve area contribution from each face
-
-            // Sum the area-weighted face normals 
-            for &idx in &indices {
-                if idx < vertex_normals.len() {
-                    vertex_normals[idx] += face_n;
-                }
-            }
-        }
-
-        // Normalize accumulated normals
-        for n in vertex_normals.iter_mut() {
-            if n.norm_squared() > 0.0 { 
-                *n = n.normalize();
-            }
-        }
-
-        VertexCache {
-            vertex_data,
-            vertex_normals,
-        }
-    }
-}
-
+use crate::{ray::Ray, interval::Interval};
 
 
 pub fn get_tri_normal(v1: &Vector3, v2: &Vector3, v3: &Vector3) -> Vector3{

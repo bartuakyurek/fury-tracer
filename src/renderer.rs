@@ -21,7 +21,7 @@ use crate::scene::{PointLight, Scene};
 use crate::image::{ImageData};
 use crate::interval::{Interval, FloatConst};
 use crate::shapes::{ShapeList};
-use crate::geometry::{HeapAllocatedVerts};
+use crate::scene::{HeapAllocatedVerts};
 use crate::prelude::*;
 
 /// Iterate over all shapes to find the closest hit
