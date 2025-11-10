@@ -24,12 +24,17 @@ use crate::shapes::{ShapeList};
 use crate::geometry::{HeapAllocatedVerts};
 use crate::prelude::*;
 
-pub fn closest_hit(ray: &Ray, t_interval: &Interval, shapes: &ShapeList, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord>{
+pub fn hit(ray: &Ray, t_interval: &Interval, shapes: &ShapeList, vertex_cache: &HeapAllocatedVerts, return_any: bool) -> Option<HitRecord>{
     // Refers to p.91 of slide 01_b, lines 3-7
     let mut rec = None;
     let mut t_min = FloatConst::INF;
     for shape in shapes.iter() { // TODO: later we'll use acceleration structures instead of checking *all* objects like this
        if let Some(hit_record) = shape.intersects_with(ray, &t_interval, vertex_cache){
+
+           if return_any { // Early break 
+            return Some(hit_record);
+           }
+
            // Update if new hit is closer 
            if t_min > hit_record.ray_t { 
                t_min = hit_record.ray_t;
@@ -38,16 +43,6 @@ pub fn closest_hit(ray: &Ray, t_interval: &Interval, shapes: &ShapeList, vertex_
        }
    }
    rec
-}
-
-pub fn any_hit(ray: &Ray, t_interval: &Interval, shapes: &ShapeList, vertex_cache: &HeapAllocatedVerts) -> bool {
-    // Check if ray intersects with any shape in the scene
-    for shape in shapes.iter() { // TODO: later we'll use acceleration structures instead of checking *all* objects like this
-       if let Some(_) = shape.intersects_with(ray, &t_interval, vertex_cache){
-           return true;
-       }
-   }
-   false
 }
 
 pub fn get_shadow_ray(point_light: &PointLight, hit_record: &HitRecord, epsilon: Float) -> (Ray, Interval) { // TODO: Should we box hitrecord here?
@@ -70,7 +65,7 @@ pub fn shade_diffuse(scene: &Scene, shapes: &ShapeList, vertex_cache: &HeapAlloc
     for point_light in scene.lights.point_lights.all() {
             
             let (shadow_ray, interval) = get_shadow_ray(&point_light, hit_record, scene.shadow_ray_epsilon);
-            if !any_hit(&shadow_ray, &interval, shapes, vertex_cache) {
+            if hit(&shadow_ray, &interval, shapes, vertex_cache, true).is_none() {
                 
                 let irradiance = point_light.rgb_intensity / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
                 let n = hit_record.normal;
@@ -91,7 +86,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: 
    }
    
    let t_interval = Interval::positive(scene.intersection_test_epsilon);
-   if let Some(hit_record) = closest_hit(ray_in, &t_interval, shapes, vertex_cache) {
+   if let Some(hit_record) = hit(ray_in, &t_interval, shapes, vertex_cache, false) {
         
         let mat: &HeapAllocMaterial = &scene.materials.materials[hit_record.material - 1];
         let mut color = mat.ambient() * scene.lights.ambient_light;
@@ -101,7 +96,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: 
             "diffuse" => {
                 shade_diffuse(scene, shapes, vertex_cache, &hit_record, &ray_in, mat)
             },
-            "mirror" | "conductor" => {
+            "mirror" | "conductor" => { 
                     if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
                         shade_diffuse(scene, shapes, vertex_cache, &hit_record, &ray_in, mat) + attenuation * get_color(&reflected_ray, scene, shapes, vertex_cache, depth + 1) 
                     }
@@ -110,12 +105,12 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: 
                         Vector3::ZERO // Perfect mirror always reflects so this hopefully is not triggered
                     }
             }, 
-           "dielectric"  => {
+           "dielectric" => {
                 let mut tot_radiance = Vector3::ZERO;
                 
                 // Only add diffuse, specular, and ambient components if front face (see slides 02, p.29)
                 // TODO: is below correct? 
-                if hit_record.is_front_face && depth > 0 { 
+                if hit_record.is_front_face && depth == 0 { 
                     tot_radiance += shade_diffuse(scene, shapes, vertex_cache, &hit_record, &ray_in, mat);
                 }
  
