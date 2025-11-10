@@ -53,7 +53,7 @@ impl Ray {
 // but ray origin so t=0 is at ray origin, smaller t is, closer the object is.  
 //
 // DISCLAIMER: This struct is based on the approach presented in Ray Tracing in One Weekend book.
-#[derive(Debug)]  
+#[derive(Debug, Default)]  
 pub struct HitRecord {
     pub entry_point: Vector3,
     pub hit_point: Vector3,
@@ -74,5 +74,5 @@ impl HitRecord {
             is_front_face,
         }
     }
-    
 }
+
