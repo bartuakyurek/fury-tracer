@@ -50,16 +50,27 @@ impl BBox {
         
         debug_assert!(ray.direction.is_normalized());
         
-        // X slabs
-        let mut t1 = (self.xmin - ray.origin.x) / ray.direction.x;
-        let mut t2 = (self.xmax - ray.origin.x) / ray.direction.x;
-        if t2 < t1 {
-            std::mem::swap(&mut t1, &mut t2);
-        }
-        // Y slabs
+        // Helper function for p.5
+        let slab_intersect = |min: Float, max: Float, o: Float, d: Float| -> (Float , Float) {
+            let mut t1 = (min - o) / d;
+            let mut t2 = (max - o) / d;
+            if t2 < t1 {
+                std::mem::swap(&mut t1, &mut t2);
+            }
+            (t1, t2)
+        };
 
-        // Z slabs
-        false
+        // Intersections for X Y Z slabs
+        let (t1x, t2x) = slab_intersect(self.xmin, self.xmax, ray.origin.x, ray.direction.x);
+        let (t1y, t2y) = slab_intersect(self.ymin, self.ymax, ray.origin.y, ray.direction.y);
+        let (t1z, t2z) = slab_intersect(self.zmin, self.zmax, ray.origin.z, ray.direction.z);
+
+        // p.6
+        let t1: Float = t1x.max(t1y).max(t1z);
+        let t2: Float = t2x.min(t2y).min(t2z);
+
+        // WARNING: It does not save enterance and exit points atm, just bool returned
+        t1 <= t2 
     }
 }
 
