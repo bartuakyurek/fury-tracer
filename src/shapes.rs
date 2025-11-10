@@ -12,18 +12,28 @@ use std::{fmt::Debug};
 
 use crate::geometry::{get_tri_normal, moller_trumbore_intersection, HeapAllocatedVerts};
 
+use crate::bbox::{BBox, BBoxable};
 use crate::ray::{Ray, HitRecord}; // TODO: Can we create a small crate for gathering shapes.rs, ray.rs?
 use crate::interval::{Interval};
+use crate::json_structs::{VertexData};
 use crate::prelude::*;
 
 pub type HeapAllocatedShape = Arc<dyn Shape>;
 pub type ShapeList = Vec<HeapAllocatedShape>; 
 
 
+// =======================================================================================================
+// Shape Trait
+// =======================================================================================================
 pub trait Shape : Debug + Send + Sync  {
     fn indices(&self) -> Vec<usize>;
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord>;
 }
+
+
+// =======================================================================================================
+// Triangle (impl Shape + BBoxable)
+// =======================================================================================================
 
 // Raw data deserialized from .JSON file
 // WARNING: it assumes vertex indices start from 1
@@ -87,6 +97,25 @@ impl Shape for Triangle {
     }
 }
 
+
+impl BBoxable for Triangle {
+    fn get_bbox(&self, verts: &VertexData) -> BBox {
+        let (mut xint, mut yint, mut zint) = (Interval::EMPTY, Interval::EMPTY, Interval::EMPTY);
+        for &i in &self.indices { // using & to borrow instead of move
+            let v = verts[i];
+
+            xint.expand(v.x);
+            yint.expand(v.y);
+            zint.expand(v.z);
+        }
+
+        BBox::new_from(&xint, &yint, &zint)
+    }
+}
+
+// =======================================================================================================
+// Sphere (impl Shape + BBoxable)
+// =======================================================================================================
 #[derive(Debug, Deserialize, Clone, Default)]
 pub struct Sphere {
     #[serde(deserialize_with = "deser_usize")]
@@ -141,6 +170,24 @@ impl Shape for Sphere {
         }
     }
 }
+
+impl BBoxable for Sphere {
+    fn get_bbox(&self, verts: &VertexData) -> BBox {
+        
+        let center = verts[self.center_idx];
+
+        let xint = Interval::new(center.x - self.radius, center.x + self.radius);
+        let yint = Interval::new(center.y - self.radius, center.y + self.radius);
+        let zint = Interval::new(center.z - self.radius, center.z + self.radius);
+
+        BBox::new_from(&xint, &yint, &zint)
+    }
+}
+
+
+// =======================================================================================================
+// Plane (impl Shape)
+// =======================================================================================================
 
 #[derive(Debug, Deserialize, Clone, Default)]
 pub struct Plane {
