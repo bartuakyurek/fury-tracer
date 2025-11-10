@@ -153,7 +153,7 @@ impl<'a> Scene<'a> { // Lifetime annotation 'a looks scary but it was needed for
     // stay the same as hit_naive, we could even impl Acceleration for Vec<Shapes> that simply iterates
     // shapes. Then hit_naive( ) and hit_bvh( ) and any potential future functions could be reduced to 
     // hit<T>( ) where T: Acceleration { }
-    pub fn hit_bvh(&self, ray: &Ray, t_interval: &Interval) -> Option<HitRecord> {
+    pub fn hit_bvh(&self, ray: &Ray, t_interval: &Interval, early_break: bool) -> Option<HitRecord> {
         todo!()
     }
 }

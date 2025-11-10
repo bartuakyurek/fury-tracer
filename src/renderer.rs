@@ -17,10 +17,9 @@ use std::{self, time::Instant};
 
 use crate::material::{HeapAllocMaterial};
 use crate::ray::{HitRecord, Ray};
-use crate::scene::{HeapAllocatedVerts, PointLight, Scene};
+use crate::scene::{PointLight, Scene};
 use crate::image::{ImageData};
 use crate::interval::{Interval};
-use crate::shapes::{ShapeList};
 use crate::prelude::*;
 
 
@@ -40,7 +39,6 @@ pub fn get_shadow_ray(point_light: &PointLight, hit_record: &HitRecord, epsilon:
     (shadow_ray, interval)
 }
 
-// TODO: Wait why there is both scene and shapes where scene already should contain shapes? Because 
 pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, mat: &HeapAllocMaterial) -> Vector3 {
     let mut color = mat.ambient() * scene.data.lights.ambient_light; 
     for point_light in scene.data.lights.point_lights.all() {
@@ -99,7 +97,6 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
                 }
         
                 // Refracted 
-                // TODO: Should we check !is_front_face here? 
                 if let Some((refracted_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, false) {
                         tot_radiance += attenuation * get_color(&refracted_ray, scene, depth + 1);
                 }
