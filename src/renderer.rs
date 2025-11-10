@@ -4,7 +4,7 @@
     render an image.
 
     Currently supports:
-        - <TODO: type of raytracing here e.g. recursive>
+        - Recursive ray tracing 
 
 
     @date: Oct 11, 2025
@@ -64,7 +64,7 @@ pub fn get_shadow_ray(point_light: &PointLight, hit_record: &HitRecord, epsilon:
 
 // TODO: Wait why there is both scene and shapes where scene already should contain shapes? Because 
 pub fn shade_diffuse(scene: &Scene, shapes: &ShapeList, vertex_cache: &HeapAllocatedVerts, hit_record: &HitRecord, ray_in: &Ray, mat: &HeapAllocMaterial) -> Vector3 {
-    let mut color = Vector3::ZERO;
+    let mut color = mat.ambient() * scene.lights.ambient_light; 
     for point_light in scene.lights.point_lights.all() {
             
             let (shadow_ray, interval) = get_shadow_ray(&point_light, hit_record, scene.shadow_ray_epsilon);
@@ -82,8 +82,7 @@ pub fn shade_diffuse(scene: &Scene, shapes: &ShapeList, vertex_cache: &HeapAlloc
 }
 
 pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: &HeapAllocatedVerts, depth: usize) -> Vector3 { 
-   // TODO: Shouldn't we box the scene or even Rc<scene> here? otherwise it lives on the stack
-   // and it's a huge struct, isn't it?
+  
    if depth >= scene.max_recursion_depth {
         return scene.background_color;
    }
@@ -92,9 +91,9 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: 
    if let Some(hit_record) = hit_naive(ray_in, &t_interval, shapes, vertex_cache, false) {
         
         let mat: &HeapAllocMaterial = &scene.materials.materials[hit_record.material - 1];
-        let mut color = mat.ambient() * scene.lights.ambient_light;
+        let mut color = Vector3::ZERO;
         let mat_type = mat.get_type();
-        let epsilon = scene.intersection_test_epsilon; // TODO: Is this the correct epsilon? Seems like yes, visually checked with other epsilon vs. given output image 
+        let epsilon = scene.intersection_test_epsilon;  
         color += match mat_type{ 
             "diffuse" => {
                 shade_diffuse(scene, shapes, vertex_cache, &hit_record, &ray_in, mat)
@@ -146,7 +145,12 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
     let mut images: Vec<ImageData> = Vec::new();
 
     for mut cam in scene.cameras.all() {
-        cam.setup(); // TODO: Could this be integrated to deserialization? Because it's easy to forget calling it
+        // TODO: Could setup() be integrated to deserialization? Because it's easy to forget calling it
+        // but for that to be done in Scene creation (or in setup() of scene), cameras need to be
+        // vectorized via .all( ) call, however we don't hold the vec versions (currently they are SingleOrVec) 
+        //  in actual scene structs, that needs to be changed maybe.
+        cam.setup(); 
+        
         if cam.num_samples != 1 { warn!("Found num_samples = '{}' > 1, sampling is not implemented yet...", cam.num_samples); }
         
         let start = Instant::now();
