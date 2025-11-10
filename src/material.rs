@@ -43,15 +43,8 @@ pub trait Material : Debug + Send + Sync  {
     fn specular(&self, w_o: Vector3, w_i: Vector3, n: Vector3) -> Vector3;
     fn ambient(&self) -> Vector3; 
 
-    //fn get_attenuiation(&self, ray_in: &Ray, ray_out: &mut Option<Ray>, hit_record: &HitRecord) -> Vector3;
-    //fn attenuate_reflect(&self, ray_in: &Ray, ray_t: Float) -> Vector3;
-    //fn attenuate_refract(&self, ray_in: &Ray, ray_t: Float) -> Vector3;
-    fn reflect(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float) -> Option<(Ray, Vector3)>; //(Ray, attenuation)
-    fn refract(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float) -> Option<(Ray, Vector3)>;
-
-    //fn get_fresnel_ratio(&self, ray_in: &Ray, hit_record: &HitRecord) -> Float {
-    //    0.0 // Default: no fresnel for non-dielectric materials
-    //}
+    
+    fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)>; //(Ray, attenuation)
 }
 
 pub type HeapAllocMaterial = Box<dyn Material>; // Box, Rc, Arc -> Probably will be Arc when we use rayon
@@ -103,13 +96,8 @@ impl Material for DiffuseMaterial{
         "diffuse"
     }
 
-    fn reflect(&self, _: &Ray, _: &HitRecord, _: Float) -> Option<(Ray, Vector3)> {
-        warn!("Reflect not implemented for Diffuse! Only use shadow rays for now.");
-        todo!()
-    }
-
-    fn refract(&self, _: &Ray, _: &HitRecord, _: Float) -> Option<(Ray, Vector3)> {
-        warn!("There is no refract for DiffuseMaterial. If this is intentional please delete this warning.");
+    fn interact(&self, _: &Ray, _: &HitRecord, _: Float, _: bool) -> Option<(Ray, Vector3)> {
+        warn!("Diffuse material assumed to only use shadow rays, rays are not meant to be scattered here.");
         None
     }
 
@@ -120,9 +108,7 @@ impl Material for DiffuseMaterial{
     }
 
     fn diffuse(&self, w_i: Vector3, n: Vector3) -> Vector3 {
-        // Returns outgoing radiance (see Slides 01_B, p.73)
-        // TODO: reduce the verbosity here
-        
+        // Returns outgoing radiance (see Slides 01_B, p.73)        
         debug_assert!(w_i.is_normalized());
         debug_assert!(n.is_normalized());
 
@@ -184,15 +170,6 @@ impl Default for MirrorMaterial {
 }
 
 impl MirrorMaterial {
- 
-}
-
-impl Material for MirrorMaterial {
-
-    fn get_type(&self) -> &str {
-        "mirror"
-    }
-
     fn reflect(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float) -> Option<(Ray, Vector3)> {
         // Reflected ray from Slides 02, p.4 (Perfect Mirror)
         // wr ​= - wo ​+ 2 n (n . wo)
@@ -207,9 +184,22 @@ impl Material for MirrorMaterial {
         Some((ray, attenuation)) // Always reflects
     }
 
-    fn refract(&self, _: &Ray, _: &HitRecord, _: Float) -> Option<(Ray, Vector3)> {
-        None // Never refract
+}
+
+impl Material for MirrorMaterial {
+
+    fn get_type(&self) -> &str {
+        "mirror"
     }
+
+    
+    fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)> {
+        if !does_reflect {
+            warn!("Mirror material assumed to always reflect but interact( ) got does_reflect=False. Ignoring...");
+        }
+        self.reflect(ray_in, hit_record, epsilon)
+    }
+
     
     fn ambient(&self) -> Vector3 {
         self.ambient_rf  
@@ -357,15 +347,7 @@ impl DielectricMaterial {
         fresnel.f_t = 1. - f_r;
         true
     }
-}
 
-
-impl Material for DielectricMaterial {
-
-    fn get_type(&self) -> &str {
-        "dielectric"
-    }
-    
     fn reflect(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float) -> Option<(Ray, Vector3)> {
         
         let mut fresnel = FresnelData::default();
@@ -414,6 +396,24 @@ impl Material for DielectricMaterial {
        
         
     }
+}
+
+
+impl Material for DielectricMaterial {
+
+    fn get_type(&self) -> &str {
+        "dielectric"
+    }
+    
+    fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)> {
+        if does_reflect {
+            self.reflect(ray_in, hit_record, epsilon)
+        } 
+        else {
+            self.refract(ray_in, hit_record, epsilon)
+        }
+    }
+    
     fn ambient(&self) -> Vector3 {
         self.ambient_rf  
     }
@@ -523,14 +523,7 @@ impl ConductorMaterial {
         fresnel.f_r =  0.5 * (r_s + r_p); // Reflection ratio
         fresnel.f_t = 0.;
     }
-}
 
-impl Material for ConductorMaterial {
-
-    fn get_type(&self) -> &str {
-        "conductor"
-    }
-    
     fn reflect(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float) -> Option<(Ray, Vector3)> {
         // TODO: This should be the same reflection logic with dielectric, right? Only fresnel is different?
         // Also it seems like we don't need FresnelData at all for conductor, since we only need F_r?
@@ -552,9 +545,26 @@ impl Material for ConductorMaterial {
         }
     }
 
-    fn refract(&self, _: &Ray, _: &HitRecord, _: Float) -> Option<(Ray, Vector3)> {
-        None // F_t = 0 (see slides 02, p.21)
+    //fn refract(&self, _: &Ray, _: &HitRecord, _: Float) -> Option<(Ray, Vector3)> {
+    //    None // F_t = 0 (see slides 02, p.21)
+    //}
+}
+
+impl Material for ConductorMaterial {
+
+    fn get_type(&self) -> &str {
+        "conductor"
     }
+    
+    fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)> {
+        if does_reflect {
+            self.reflect(ray_in, hit_record, epsilon)
+        } 
+        else {
+            None // No refraction for conductor
+        }
+        
+    }    
 
     fn ambient(&self) -> Vector3 {
         self.ambient_rf  

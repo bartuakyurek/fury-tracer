@@ -83,7 +83,7 @@ pub fn shade_diffuse(scene: &Scene, shapes: &ShapeList, vertex_cache: &HeapAlloc
     color
 }
 
-pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: &HeapAllocatedVerts, depth: usize) -> Vector3 { // TODO: add depth & check depth > scene.max_recursion_depth
+pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: &HeapAllocatedVerts, depth: usize) -> Vector3 { 
    // TODO: Shouldn't we box the scene or even Rc<scene> here? otherwise it lives on the stack
    // and it's a huge struct, isn't it?
    if depth >= scene.max_recursion_depth {
@@ -102,7 +102,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: 
                 shade_diffuse(scene, shapes, vertex_cache, &hit_record, &ray_in, mat)
             },
             "mirror" => {
-                    if let Some((reflected_ray, attenuation)) = mat.reflect(ray_in, &hit_record, epsilon) {
+                    if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
                         shade_diffuse(scene, shapes, vertex_cache, &hit_record, &ray_in, mat) + attenuation * get_color(&reflected_ray, scene, shapes, vertex_cache, depth + 1) 
                     }
                     else {
@@ -121,13 +121,13 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: 
  
                 // Reflected 
                 //TODO: there could be a single scatter( ) taking parameter is_reflect to decide which one to call...
-                if let Some((reflected_ray, attenuation)) = mat.reflect(ray_in, &hit_record, epsilon) {
+                if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
                         tot_radiance += attenuation * get_color(&reflected_ray, scene, shapes, vertex_cache, depth + 1);
                 }
         
                 // Refracted 
                 // TODO: Should we check !is_front_face here? 
-                if let Some((refracted_ray, attenuation)) = mat.refract(ray_in, &hit_record, epsilon) {
+                if let Some((refracted_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, false) {
                         tot_radiance += attenuation * get_color(&refracted_ray, scene, shapes, vertex_cache, depth + 1);
                 }
                 tot_radiance
