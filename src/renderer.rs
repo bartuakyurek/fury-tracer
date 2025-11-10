@@ -24,14 +24,15 @@ use crate::shapes::{ShapeList};
 use crate::geometry::{HeapAllocatedVerts};
 use crate::prelude::*;
 
-pub fn hit(ray: &Ray, t_interval: &Interval, shapes: &ShapeList, vertex_cache: &HeapAllocatedVerts, return_any: bool) -> Option<HitRecord>{
+/// Iterate over all shapes to find the closest hit
+pub fn hit_naive(ray: &Ray, t_interval: &Interval, shapes: &ShapeList, vertex_cache: &HeapAllocatedVerts, early_break: bool) -> Option<HitRecord>{
     // Refers to p.91 of slide 01_b, lines 3-7
     let mut rec = None;
     let mut t_min = FloatConst::INF;
-    for shape in shapes.iter() { // TODO: later we'll use acceleration structures instead of checking *all* objects like this
+    for shape in shapes.iter() { 
        if let Some(hit_record) = shape.intersects_with(ray, &t_interval, vertex_cache){
 
-           if return_any { // Early break 
+           if early_break { 
             return Some(hit_record);
            }
 
@@ -45,8 +46,10 @@ pub fn hit(ray: &Ray, t_interval: &Interval, shapes: &ShapeList, vertex_cache: &
    rec
 }
 
-pub fn get_shadow_ray(point_light: &PointLight, hit_record: &HitRecord, epsilon: Float) -> (Ray, Interval) { // TODO: Should we box hitrecord here?
-    
+/// Returns a tuple of ray from hit point (epsilon shifted) towards the point light
+/// and interval [0, distance]. 
+pub fn get_shadow_ray(point_light: &PointLight, hit_record: &HitRecord, epsilon: Float) -> (Ray, Interval) { 
+        
     debug_assert!(hit_record.normal.is_normalized());
     let ray_origin = hit_record.hit_point + (hit_record.normal * epsilon);
     let distance_vec = point_light.position - ray_origin;
@@ -65,7 +68,7 @@ pub fn shade_diffuse(scene: &Scene, shapes: &ShapeList, vertex_cache: &HeapAlloc
     for point_light in scene.lights.point_lights.all() {
             
             let (shadow_ray, interval) = get_shadow_ray(&point_light, hit_record, scene.shadow_ray_epsilon);
-            if hit(&shadow_ray, &interval, shapes, vertex_cache, true).is_none() {
+            if hit_naive(&shadow_ray, &interval, shapes, vertex_cache, true).is_none() {
                 
                 let irradiance = point_light.rgb_intensity / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
                 let n = hit_record.normal;
@@ -86,7 +89,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: 
    }
    
    let t_interval = Interval::positive(scene.intersection_test_epsilon);
-   if let Some(hit_record) = hit(ray_in, &t_interval, shapes, vertex_cache, false) {
+   if let Some(hit_record) = hit_naive(ray_in, &t_interval, shapes, vertex_cache, false) {
         
         let mat: &HeapAllocMaterial = &scene.materials.materials[hit_record.material - 1];
         let mut color = mat.ambient() * scene.lights.ambient_light;
