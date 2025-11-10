@@ -37,6 +37,8 @@ use crate::mesh::Mesh;
 use crate::json_structs::{*};
 use crate::camera::{Cameras};
 use crate::prelude::*;
+use crate::interval::{Interval, FloatConst};
+use crate::ray::{Ray, HitRecord};
 
 pub type HeapAllocatedVerts = Arc<VertexCache>;
 
@@ -108,7 +110,7 @@ pub struct Scene <'a> {
                              // Otherwise it requires serde[skip] annotations for each addition.
 
     pub vertex_cache: HeapAllocatedVerts,
-    // more data here
+    // more data here e.g. BVH
 }
 
 
@@ -121,6 +123,38 @@ impl<'a> Scene<'a> { // Lifetime annotation 'a looks scary but it was needed for
             data: scene_json,
             vertex_cache: Arc::new(cache),
         }
+    }
+
+    /// Iterate over all shapes to find the closest hit
+    pub fn hit_naive(&self, ray: &Ray, t_interval: &Interval, early_break: bool) -> Option<HitRecord>{
+        // Refers to p.91 of slide 01_b, lines 3-7
+        let mut rec = None;
+        let mut t_min = FloatConst::INF;
+        for shape in self.data.objects.all_shapes.iter() { 
+            if let Some(hit_record) = shape.intersects_with(ray, &t_interval, &self.vertex_cache){
+
+                if early_break { 
+                    return Some(hit_record);
+                }
+
+                // Update if new hit is closer 
+                if t_min > hit_record.ray_t { 
+                    t_min = hit_record.ray_t;
+                    rec = Some(hit_record);
+                }
+            }
+        }
+        rec
+    }
+
+    // TODO: Maybe a Trait like Acceleration could be useful to extend other acceleration structs
+    // like KD-Trees, not just BVH. So we'd use a generic T, where T: Acceleration
+    // For now let's assume it is BVH. I'm suggesting it especially if the function signature will
+    // stay the same as hit_naive, we could even impl Acceleration for Vec<Shapes> that simply iterates
+    // shapes. Then hit_naive( ) and hit_bvh( ) and any potential future functions could be reduced to 
+    // hit<T>( ) where T: Acceleration { }
+    pub fn hit_bvh(&self, ray: &Ray, t_interval: &Interval) -> Option<HitRecord> {
+        todo!()
     }
 }
 
@@ -272,6 +306,7 @@ impl SceneObjects {
         }
         info!(">> There are {} vertices in the scene.", verts._data.len());
         self.all_shapes = shapes;
+        info!(">> There are {} shapes in the scene.", self.all_shapes.len());
         let cache = VertexCache::build(&verts, &all_triangles);   
         Ok(cache)
     }
