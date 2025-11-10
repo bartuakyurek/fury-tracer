@@ -12,6 +12,7 @@ use tracing_subscriber;
 
 use fury_tracer::*; // lib.rs mods
 use crate::prelude::*; 
+use crate::scene::Scene;
 
 fn main()  -> Result<(), Box<dyn std::error::Error>> {
 
@@ -22,8 +23,8 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     let json_path: &String = if args.len() == 1 {
         warn!("No arguments were provided, setting default scene path...");
-        //&String::from("./inputs/hw1/scienceTree_glass.json")
-        &String::from("./inputs/hw1/akif_uslu/berserker_smooth.json")
+        &String::from("./inputs/hw1/scienceTree_glass.json")
+        //&String::from("./inputs/hw1/akif_uslu/berserker_smooth.json")
         //&String::from("./inputs/hw2/dragon_metal.json")
     } else if args.len() == 2 {
         &args[1]
@@ -40,12 +41,12 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
     })?;
 
     let json_path = Path::new(json_path).canonicalize()?;
-    root.scene.setup_after_json(&json_path)?; // TODO: This should be done in a different way
-    debug!("Scene is setup successfully.\n {:#?}", root);
-    let root = root; // Shadow mutatability before render
+
+    let scene = Scene::new_from(&mut root.scene, &json_path); // TODO: This should be done in a different way
+    debug!("Scene is setup successfully.\n {:#?}", scene);
 
     // Render images and return array of RGB
-    let images = renderer::render(&root.scene)?;
+    let images = renderer::render(&scene)?;
     
     // Write images to .png files
     for im in images.into_iter() {

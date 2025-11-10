@@ -64,10 +64,10 @@ pub fn get_shadow_ray(point_light: &PointLight, hit_record: &HitRecord, epsilon:
 
 // TODO: Wait why there is both scene and shapes where scene already should contain shapes? Because 
 pub fn shade_diffuse(scene: &Scene, shapes: &ShapeList, vertex_cache: &HeapAllocatedVerts, hit_record: &HitRecord, ray_in: &Ray, mat: &HeapAllocMaterial) -> Vector3 {
-    let mut color = mat.ambient() * scene.lights.ambient_light; 
-    for point_light in scene.lights.point_lights.all() {
+    let mut color = mat.ambient() * scene.data.lights.ambient_light; 
+    for point_light in scene.data.lights.point_lights.all() {
             
-            let (shadow_ray, interval) = get_shadow_ray(&point_light, hit_record, scene.shadow_ray_epsilon);
+            let (shadow_ray, interval) = get_shadow_ray(&point_light, hit_record, scene.data.shadow_ray_epsilon);
             if hit_naive(&shadow_ray, &interval, shapes, vertex_cache, true).is_none() {
                 
                 let irradiance = point_light.rgb_intensity / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
@@ -83,17 +83,17 @@ pub fn shade_diffuse(scene: &Scene, shapes: &ShapeList, vertex_cache: &HeapAlloc
 
 pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: &HeapAllocatedVerts, depth: usize) -> Vector3 { 
   
-   if depth >= scene.max_recursion_depth {
-        return scene.background_color;
+   if depth >= scene.data.max_recursion_depth {
+        return scene.data.background_color;
    }
    
-   let t_interval = Interval::positive(scene.intersection_test_epsilon);
+   let t_interval = Interval::positive(scene.data.intersection_test_epsilon);
    if let Some(hit_record) = hit_naive(ray_in, &t_interval, shapes, vertex_cache, false) {
         
-        let mat: &HeapAllocMaterial = &scene.materials.materials[hit_record.material - 1];
+        let mat: &HeapAllocMaterial = &scene.data.materials.materials[hit_record.material - 1];
         let mut color = Vector3::ZERO;
         let mat_type = mat.get_type();
-        let epsilon = scene.intersection_test_epsilon;  
+        let epsilon = scene.data.intersection_test_epsilon;  
         color += match mat_type{ 
             "diffuse" => {
                 shade_diffuse(scene, shapes, vertex_cache, &hit_record, &ray_in, mat)
@@ -135,7 +135,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: 
         color
    }
    else {
-        scene.background_color // no hit
+        scene.data.background_color // no hit
    }
 }
 
@@ -143,7 +143,7 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
 {
     let mut images: Vec<ImageData> = Vec::new();
 
-    for mut cam in scene.cameras.all() {
+    for mut cam in scene.data.cameras.all() {
         // TODO: Could setup() be integrated to deserialization? Because it's easy to forget calling it
         // but for that to be done in Scene creation (or in setup() of scene), cameras need to be
         // vectorized via .all( ) call, however we don't hold the vec versions (currently they are SingleOrVec) 
@@ -155,7 +155,7 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         let start = Instant::now();
        
         let eye_rays = cam.generate_primary_rays();
-        let shapes: &ShapeList = &scene.objects.all_shapes;
+        let shapes: &ShapeList = &scene.data.objects.all_shapes;
         info!(">> There are {} shapes in the scene.", shapes.len());
         
         let vcache: &HeapAllocatedVerts = &scene.vertex_cache;

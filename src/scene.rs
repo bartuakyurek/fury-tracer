@@ -41,13 +41,13 @@ use crate::prelude::*;
 #[derive(Debug, Deserialize)]
 pub struct RootScene {
     #[serde(rename = "Scene")]
-    pub scene: Scene,
+    pub scene: SceneJSON,
 }
 
 #[derive(Debug, Deserialize, SmartDefault)]
 #[serde(rename_all = "PascalCase")]
 #[serde(default)]
-pub struct Scene {
+pub struct SceneJSON {
     #[default = 5]
     #[serde(deserialize_with = "deser_usize")]
     pub max_recursion_depth: usize,
@@ -66,19 +66,14 @@ pub struct Scene {
     #[serde(deserialize_with = "deser_string_or_struct")]
     pub vertex_data: VertexData, 
 
-    #[serde(skip)]
-    pub vertex_cache: HeapAllocatedVerts,
-
     pub cameras: Cameras,
     pub lights: SceneLights,
     pub materials: SceneMaterials,
     pub objects: SceneObjects,
 }
 
-impl Scene {
-    //pub fn new() {
-    //}
-    pub fn setup_after_json(&mut self, jsonpath: &Path) -> Result<(), Box<dyn Error>>{
+impl SceneJSON {
+    pub fn setup_and_get_cache(&mut self, jsonpath: &Path) -> Result<VertexCache, Box<dyn Error>>{
         // Implement required adjustments after loading from a JSON file
 
         // 1- Convert materials serde_json values to actual structs
@@ -95,13 +90,33 @@ impl Scene {
         self.vertex_data.insert_dummy_at_the_beginning();
         warn!("Inserted a dummy vertex at the beginning to use vertex IDs beginning from 1.");
 
-        // 4- Build cache
-        let cache = self.objects.setup(&mut self.vertex_data,  jsonpath)?; // Appends new vertices if mesh is from PLY
-        self.vertex_cache = Arc::new(cache);
-
-        Ok(())
+        // 4 - Get cache per vertex (objects.setup appends PLY data to vertex_data)
+        let cache = self.objects.setup_and_get_cache(&mut self.vertex_data,  jsonpath)?; 
+        Ok(cache)
     }
+}
 
+#[derive(Debug)]
+pub struct Scene <'a> {
+    pub data: &'a SceneJSON, // I'm figuring out data composition in Rust here
+                             // in order not to clutter deserialized Scene with additional data.
+                             // Otherwise it requires serde[skip] annotations for each addition.
+
+    pub vertex_cache: HeapAllocatedVerts,
+    // more data here
+}
+
+
+impl<'a> Scene<'a> { // Lifetime annotation 'a looks scary but it was needed for storing a pointer to deserialized data
+    pub fn new_from(scene_json: &'a mut SceneJSON, jsonpath: &Path) -> Self {
+
+        let cache = scene_json.setup_and_get_cache(jsonpath).unwrap(); 
+
+        Self {
+            data: scene_json,
+            vertex_cache: Arc::new(cache),
+        }
+    }
 }
 
 
@@ -187,7 +202,7 @@ pub struct SceneObjects {
 
 impl SceneObjects {
 
-    pub fn setup(&mut self, verts: &mut VertexData, jsonpath: &Path) -> Result<VertexCache, Box<dyn Error>> {
+    pub fn setup_and_get_cache(&mut self, verts: &mut VertexData, jsonpath: &Path) -> Result<VertexCache, Box<dyn Error>> {
         // NOTE: Vec::extend( ) pushes a collection of data all at once, 
         // if you have a single object to push, then use Vec::push( )
 
