@@ -111,8 +111,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: 
                 let mut tot_radiance = Vector3::ZERO;
                 
                 // Only add diffuse, specular, and ambient components if front face (see slides 02, p.29)
-                // TODO: is below correct? 
-                if hit_record.is_front_face && depth == 0 { 
+                if hit_record.is_front_face { 
                     tot_radiance += shade_diffuse(scene, shapes, vertex_cache, &hit_record, &ray_in, mat);
                 }
  
