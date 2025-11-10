@@ -78,16 +78,17 @@ impl BVHSubtree {
             Some(node) => {
                 
                 if node.value.intersect(ray) {
-                    let mut rec1: HitRecord::default();
-                    let mut rec2: HitRecord::default();
+                    
+                    let mut rec1 = HitRecord::default();
+                    let mut rec2 = HitRecord::default();
 
                     rec.ray_t = FloatConst::INF;
 
                     let hitleft: bool = node.left.intersect(ray, &mut rec1);
                     let hitright: bool = node.right.intersect(ray, &mut rec2);
 
-                    if hitleft { rec = rec1; }
-                    if hitright { rec = rec2; }
+                    if hitleft { *rec = rec1; }
+                    if hitright { *rec = rec2; }
                     return hitleft || hitright;
                 }
                 else {
@@ -97,6 +98,5 @@ impl BVHSubtree {
             }
         }
 
-        todo!()
     }
 }
