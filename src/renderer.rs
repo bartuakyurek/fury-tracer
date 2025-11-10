@@ -101,16 +101,16 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: 
             "diffuse" => {
                 shade_diffuse(scene, shapes, vertex_cache, &hit_record, &ray_in, mat)
             },
-            "mirror" => {
+            "mirror" | "conductor" => {
                     if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
                         shade_diffuse(scene, shapes, vertex_cache, &hit_record, &ray_in, mat) + attenuation * get_color(&reflected_ray, scene, shapes, vertex_cache, depth + 1) 
                     }
                     else {
-                        warn!("Mirror reflection is missing in 'mirror' arm in renderer.rs .");
+                        warn!("Material not reflecting...");
                         Vector3::ZERO // Perfect mirror always reflects so this hopefully is not triggered
                     }
             }, 
-           "dielectric" | "conductor" => {
+           "dielectric"  => {
                 let mut tot_radiance = Vector3::ZERO;
                 
                 // Only add diffuse, specular, and ambient components if front face (see slides 02, p.29)
@@ -120,7 +120,6 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, shapes: &ShapeList, vertex_cache: 
                 }
  
                 // Reflected 
-                //TODO: there could be a single scatter( ) taking parameter is_reflect to decide which one to call...
                 if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
                         tot_radiance += attenuation * get_color(&reflected_ray, scene, shapes, vertex_cache, depth + 1);
                 }
