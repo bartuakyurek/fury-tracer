@@ -46,7 +46,20 @@ impl BBox {
     }
 
     fn intersect(&self, ray: &Ray) -> bool {
-        todo!()
+        // See slides 03, p.5-6
+        
+        debug_assert!(ray.direction.is_normalized());
+        
+        // X slabs
+        let mut t1 = (self.xmin - ray.origin.x) / ray.direction.x;
+        let mut t2 = (self.xmax - ray.origin.x) / ray.direction.x;
+        if t2 < t1 {
+            std::mem::swap(&mut t1, &mut t2);
+        }
+        // Y slabs
+
+        // Z slabs
+        false
     }
 }
 
