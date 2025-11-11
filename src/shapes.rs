@@ -27,7 +27,6 @@ pub type ShapeList = Vec<HeapAllocatedShape>;
 // Shape Trait
 // =======================================================================================================
 pub trait Shape : Debug + Send + Sync  {
-    fn indices(&self) -> Vec<usize>;
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord>;
 }
 
@@ -56,9 +55,7 @@ pub struct Triangle {
 }
 
 impl Shape for Triangle {
-    fn indices(&self) -> Vec<usize> {
-        self.indices.to_vec()
-    }
+    
 
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
         
@@ -131,9 +128,7 @@ pub struct Sphere {
 
 impl Shape for Sphere {
 
-    fn indices(&self) -> Vec<usize> {
-        [self.center_idx].to_vec()
-    }
+   
 
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
         
@@ -204,10 +199,6 @@ pub struct Plane {
 
 impl Shape for Plane {
 
-    fn indices(&self) -> Vec<usize> {
-        [self.point_idx].to_vec()
-    }
-    
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
        // Based on Slides 01_B, p.9, Ray-Plane Intersection 
         let verts = &vertex_cache.vertex_data;

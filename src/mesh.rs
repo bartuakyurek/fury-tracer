@@ -73,10 +73,7 @@ impl Mesh {
 }
 
 impl Shape for Mesh {
-    fn indices(&self) -> Vec<usize> {
-        self.faces._data.clone()
-    }
-
+    
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
         // Delegate intersection test to per-mesh Triangle objects 
         // by iterating over all the triangles (hence naive, accelerated intersection function is to be added soon)
