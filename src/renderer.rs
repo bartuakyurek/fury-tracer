@@ -101,7 +101,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
                         tot_radiance += attenuation * get_color(&refracted_ray, scene, depth + 1);
                 }
                 tot_radiance
-            }
+            },
             _ => {
                 // WARNING: Below does not panic when json has unknown material because parser defaults it to Diffuse (however it does panic if you make a typo or not implement shading function)
                 panic!(">> Unknown material type '{}'! Shading function for this material is missing.", mat_type); 
