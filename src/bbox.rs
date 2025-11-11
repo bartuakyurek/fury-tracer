@@ -81,8 +81,7 @@ pub trait BBoxable {
 // ====================================================================================================
 // Bounding Volume Hierarchy
 // ====================================================================================================
-// Intersection logic follows Slides 03_acceleration_structures p.64
-// and the binary tree creation is inspired by:
+// Binary tree creation is inspired by:
 // https://google.github.io/comprehensive-rust/smart-pointers/exercise.html
 
 
@@ -94,8 +93,9 @@ struct Node<T> {
     right: Subtree<T>,
 }
 
-pub type BVHSubtree = Subtree<BBox>;
-pub type BVHNode = Node<BBox>;
+pub type HeapBBoxable = Arc<dyn BBoxable>;
+pub type BVHSubtree = Subtree<HeapBBoxable>;
+pub type BVHNode = Node<HeapBBoxable>;
 
 impl BVHSubtree {
 
@@ -114,7 +114,7 @@ impl BVHSubtree {
     }
 
     pub fn intersect(&self, ray: &Ray, rec: &mut HitRecord) -> bool {
-        
+        // Refers Slides 03_acceleration_structures p.64
         match &self.0 {
             None => { return false; }
             Some(node) => {
