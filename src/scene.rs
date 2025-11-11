@@ -128,8 +128,8 @@ impl<'a> Scene<'a> { // Lifetime annotation 'a looks scary but it was needed for
     /// Iterate over all shapes to find the closest hit
     pub fn hit_naive(&self, ray: &Ray, t_interval: &Interval, early_break: bool) -> Option<HitRecord>{
         // Refers to p.91 of slide 01_b, lines 3-7
-        let mut rec = None;
-        let mut t_min = FloatConst::INF;
+        let mut rec: Option<HitRecord> = None;
+        let mut t_min: Float = FloatConst::INF;
         for shape in self.data.objects.all_shapes.iter() { 
             if let Some(hit_record) = shape.intersects_with(ray, &t_interval, &self.vertex_cache){
 
@@ -153,8 +153,14 @@ impl<'a> Scene<'a> { // Lifetime annotation 'a looks scary but it was needed for
     // stay the same as hit_naive, we could even impl Acceleration for Vec<Shapes> that simply iterates
     // shapes. Then hit_naive( ) and hit_bvh( ) and any potential future functions could be reduced to 
     // hit<T>( ) where T: Acceleration { }
+    // TODO: Is it better hitrecord a mutable input parameter rather than returning Option<HitRecord>?  
     pub fn hit_bvh(&self, ray: &Ray, t_interval: &Interval, early_break: bool) -> Option<HitRecord> {
-        todo!()
+        let mut rec: Option<HitRecord> = None;
+        let t_min: Float = FloatConst::INF;
+
+        // self.bvh.intersect(ray, &mut rec);
+        // then call intersect( ) for actual objects
+        todo!() 
     }
 }
 

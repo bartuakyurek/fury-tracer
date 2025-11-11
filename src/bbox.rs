@@ -98,6 +98,21 @@ pub type BVHSubtree = Subtree<BBox>;
 pub type BVHNode = Node<BBox>;
 
 impl BVHSubtree {
+
+    /// Construct BVH binary tree given a list of bounding-boxable
+    // NOTE: BBoxable has get_bbox( ) though I'm not sure why I wanted use
+    // generics here, instead of plain Vec<BBox>. Perhaps it'd be useful for
+    // other non-AABB bounding boxes yet it's just an overkill at the moment?
+    // just doing it for the sake of Rust practice
+    // Actually it is useful for Scene to not call .getbbox( ) rather it just
+    // holds scene objects in which some are bboxable, making this function flexible.
+    pub fn build<T>(bbox_list: &Vec<T>) -> Self 
+    where 
+        T: BBoxable,
+    {
+        todo!()
+    }
+
     pub fn intersect(&self, ray: &Ray, rec: &mut HitRecord) -> bool {
         
         match &self.0 {
