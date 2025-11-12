@@ -1,5 +1,6 @@
 
 pub mod ray;
+pub mod acceleration;
 pub mod bbox;
 pub mod mesh;
 pub mod image;
