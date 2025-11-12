@@ -20,14 +20,16 @@ use crate::scene::{HeapAllocatedVerts};
 #[derive(Debug)]
 pub struct BVHNode {
     pub bbox: BBox,
-    pub left: Option<Arc<BVHNode>>,
-    pub right: Option<Arc<BVHNode>>,
+    pub left: OptionalBVHNodePtr,
+    pub right: OptionalBVHNodePtr,
     pub objects: Vec<HeapAllocatedShape>,
 }
 
 /// BVHSubtree is a wrapper around an optional root node.
 #[derive(Debug, Clone)]
-pub struct BVHSubtree(pub Option<Arc<BVHNode>>);
+pub struct BVHSubtree(pub OptionalBVHNodePtr);
+
+pub type OptionalBVHNodePtr = Option<Arc<BVHNode>>;
 
 impl BVHSubtree {
     /// Build a BVH from a list of shapes using their bounding boxes.
@@ -50,7 +52,11 @@ impl BVHSubtree {
             items.push((s.clone(), bbox, center)); // clone the pointer, *s doesn't work because "s is behind a shared reference" as rustc states
         }
 
-        todo!()
+        fn build_node(mut items: Vec<(T, BBox, Vector3)>) -> OptionalBVHNodePtr {
+            todo!()
+        }
+        
+        BVHSubtree(build_node(items))
     }
 
     /// Intersect a ray with the BVH. 
