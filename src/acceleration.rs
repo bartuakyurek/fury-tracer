@@ -33,7 +33,7 @@ impl BVHSubtree {
     /// Build a BVH from a list of shapes using their bounding boxes.
     /// verts needed for get_bbox( ) called inside, since shapes only store indices, 
     /// not the actual verts. 
-    pub fn build<T>(shapes: &Vec<Arc<T>>, verts: &VertexData) -> Self 
+    pub fn build<T>(shapes: &Vec<Arc<T>>, verts: &VertexData) -> Self // shapes is a vector of pointers because cloning the whole shape would be costly, it's like HeapAllocatedShape type in shapes.rs but now with generics 
         where 
             T: Shape + BBoxable,
     {
@@ -43,11 +43,11 @@ impl BVHSubtree {
         }
 
         // Precompute for sorting: (shape pointer, its bbox, bbox centroid)
-        let mut items: Vec<(T, BBox, Vector3)> = Vec::with_capacity(shapes.len());
+        let mut items: Vec<(Arc<T>, BBox, Vector3)> = Vec::with_capacity(shapes.len());
         for s in shapes.iter() {
             let bbox = s.get_bbox(verts);
             let center = bbox.get_center();
-            items.push((s, bbox, center));
+            items.push((s.clone(), bbox, center)); // clone the pointer, *s doesn't work because "s is behind a shared reference" as rustc states
         }
 
         todo!()
