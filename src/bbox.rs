@@ -13,7 +13,7 @@ use crate::ray::{Ray};
 use crate::interval::{Interval};
 use crate::json_structs::{VertexData};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BBox {
     pub xmin: Float, 
     pub xmax: Float,

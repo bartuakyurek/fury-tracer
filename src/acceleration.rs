@@ -37,7 +37,15 @@ impl BVHSubtree {
     /// TODO: it was meant to be inside build( ) function but inner functions cannot use generics from the outer
     /// as rustc told, so I'm moving it here.
     fn build_nodes<T>(mut items: Vec<(Arc<T>, BBox, Vector3)>) -> OptionalBVHNodePtr {
-            todo!()
+            
+        if items.is_empty() { return None; } // Base case
+
+        let mut unified_bbox = items[0].1.clone(); // Get the first bounding box, skip it in the following iter, clone because cannot muve this index out of our input Vec 
+        for (_, other_bbox, _) in items.iter().skip(1) {
+            unified_bbox = unified_bbox.merge(other_bbox);
+        }
+    
+        todo!()
     }
 
     /// Build a BVH from a list of shapes using their bounding boxes.
