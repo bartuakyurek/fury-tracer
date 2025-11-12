@@ -46,7 +46,11 @@ impl BBox {
         }
     }
 
-    fn intersect(&self, ray: &Ray) -> bool {
+    pub fn get_center(&self) -> Vector3 {
+         Vector3::new((self.xmin + self.xmax) * 0.5, (self.ymin + self.ymax) * 0.5, (self.zmin + self.zmax) * 0.5)
+    }
+    
+    pub fn intersect(&self, ray: &Ray) -> bool {
         // See slides 03, p.5-6
         
         debug_assert!(ray.direction.is_normalized());
