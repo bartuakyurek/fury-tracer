@@ -32,6 +32,14 @@ pub struct BVHSubtree(pub OptionalBVHNodePtr);
 pub type OptionalBVHNodePtr = Option<Arc<BVHNode>>;
 
 impl BVHSubtree {
+
+    /// Recursively builds nodes in BVH tree
+    /// TODO: it was meant to be inside build( ) function but inner functions cannot use generics from the outer
+    /// as rustc told, so I'm moving it here.
+    fn build_nodes<T>(mut items: Vec<(Arc<T>, BBox, Vector3)>) -> OptionalBVHNodePtr {
+            todo!()
+    }
+
     /// Build a BVH from a list of shapes using their bounding boxes.
     /// verts needed for get_bbox( ) called inside, since shapes only store indices, 
     /// not the actual verts. 
@@ -51,12 +59,9 @@ impl BVHSubtree {
             let center = bbox.get_center();
             items.push((s.clone(), bbox, center)); // clone the pointer, *s doesn't work because "s is behind a shared reference" as rustc states
         }
-
-        fn build_node(mut items: Vec<(T, BBox, Vector3)>) -> OptionalBVHNodePtr {
-            todo!()
-        }
         
-        BVHSubtree(build_node(items))
+        // Recursively create nodes 
+        BVHSubtree(Self::build_nodes::<T>(items))
     }
 
     /// Intersect a ray with the BVH. 
