@@ -53,11 +53,12 @@ impl<T: Shape + BBoxable + 'static> BVHSubtree<T> {
             return Some(Arc::new(BVHNode { bbox: unified_bbox, left: None, right: None, objects: node_objects }));
         }
 
-        let bboxes: Vec<BBox> = items.into_iter().map(|(_, b, _)| b).collect();
+        //let bboxes: Vec<BBox> = items.iter().map(|(_, b, _)| b).collect();
+        let bboxes: Vec<&BBox> = items.iter().map(|(_, b, _)| b).collect();
         let (extent_x, extent_y, extent_z) = BBox::get_largest_extents(&bboxes);
     
         if (extent_x >= extent_y) && (extent_x >= extent_z) {
-            todo!()
+            items.sort_by(|a, b| a.2.x.partial_cmp(&b.2.x).unwrap());
         } else if extent_y >= extent_z {
                 todo!()
         } else {

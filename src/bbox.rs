@@ -86,7 +86,7 @@ impl BBox {
         )
     }
 
-    pub fn get_largest_extents(bboxes: &[BBox]) -> (Float, Float, Float) {
+    pub fn get_largest_extents(bboxes: &Vec<&Self>) -> (Float, Float, Float) {
 
         let merged: Self = bboxes.iter().fold(Self::empty(), |acc, b| acc.merge(&b));
         (
