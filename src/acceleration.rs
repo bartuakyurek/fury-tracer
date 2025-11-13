@@ -50,7 +50,7 @@ impl<T: Shape + BBoxable + 'static> BVHSubtree<T> {
         if items.len() <= LEAF_SIZE {
             let node_objects: Vec<Arc<T>> = items.into_iter().map(|(s, _, _)| s).collect(); // NOTE: This is called *consuming*, ownership of items is moved to node_objects but this is fine because we are about to return
     
-            return Some(BVHNodePtr::new(
+            return Some(Arc::new(
                                    BVHNode { 
                                         bbox: unified_bbox, 
                                         left: None, 
@@ -69,7 +69,7 @@ impl<T: Shape + BBoxable + 'static> BVHSubtree<T> {
     /// Build a BVH from a list of shapes using their bounding boxes.
     /// verts needed for get_bbox( ) called inside, since shapes only store indices, 
     /// not the actual verts. 
-    pub fn build<T>(shapes: &Vec<Arc<T>>, verts: &VertexData) -> Self // shapes is a vector of pointers because cloning the whole shape would be costly, it's like HeapAllocatedShape type in shapes.rs but now with generics 
+    pub fn build(shapes: &Vec<Arc<T>>, verts: &VertexData) -> Self // shapes is a vector of pointers because cloning the whole shape would be costly, it's like HeapAllocatedShape type in shapes.rs but now with generics 
         where 
             T: Shape + BBoxable + 'static, // 'static needed because T may not live long enough (thanks, rustc)
     {
@@ -87,7 +87,33 @@ impl<T: Shape + BBoxable + 'static> BVHSubtree<T> {
         }
         
         // Recursively create nodes 
-        BVHSubtree(Self::build_nodes::<T>(items))
+        BVHSubtree(Self::build_nodes(items))
+    }
+
+    // Introduce helper function to recursively traverse the tree 
+    // Because calling intersect( ) directly 
+    fn walk(node: &Arc<BVHNode<T>>, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts, closest: &mut Option<HitRecord>) {
+        if !node.bbox.intersect(ray) { return; }  // This is the base case return for recursive helper, not the outer intersect( )!
+                                                  
+        if node.objects.is_empty() {
+            if let Some(l) = &node.left { Self::walk(l, ray, t_interval, vertex_cache, closest); }
+            if let Some(r) = &node.right { Self::walk(r, ray, t_interval, vertex_cache, closest); }
+        } else {
+            // Reached to leaf node (remember only leaf nodes have objects) 
+            // TODO: This is the same as what we did in HW1, iterating all the shapes, it could have been called hit_naive()
+            // or with a better name, perhaps inside Shape trait with this default implementation. 
+            for obj in &node.objects {
+                if let Some(hit) = obj.intersects_with(ray, t_interval, vertex_cache) {
+                    if let Some(existing) = &closest {
+                        if hit.ray_t < existing.ray_t {
+                            *closest = Some(hit);
+                        }
+                    } else {
+                        *closest = Some(hit);
+                    }
+                }
+            }
+        } 
     }
 
     /// Intersect a ray with the BVH. 
@@ -103,36 +129,10 @@ impl<T: Shape + BBoxable + 'static> BVHSubtree<T> {
                 
                 rec.ray_t = FloatConst::INF; // For BVH, we shoot to infinity, right? Well yes that's also true for bbox intersections
                 
-                // Introduce helper function to recursively traverse the tree 
-                // Because calling intersect( ) directly 
-                fn walk(node: &Arc<BVHNode>, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts, closest: &mut Option<HitRecord>) {
-                    if !node.bbox.intersect(ray) { return; }  // This is the base case return for recursive helper, not the outer intersect( )!
-                                                              
-                    if node.objects.is_empty() {
-                        if let Some(l) = &node.left { walk(l, ray, t_interval, vertex_cache, closest); }
-                        if let Some(r) = &node.right { walk(r, ray, t_interval, vertex_cache, closest); }
-                    } else {
-                        // Reached to leaf node (remember only leaf nodes have objects) 
-                        // TODO: This is the same as what we did in HW1, iterating all the shapes, it could have been called hit_naive()
-                        // or with a better name, perhaps inside Shape trait with this default implementation. 
-                        for obj in &node.objects {
-                            if let Some(hit) = obj.intersects_with(ray, t_interval, vertex_cache) {
-                                if let Some(existing) = &closest {
-                                    if hit.ray_t < existing.ray_t {
-                                        *closest = Some(hit);
-                                    }
-                                } else {
-                                    *closest = Some(hit);
-                                }
-                            }
-                        }
-                    } 
-                }
-
                 // TODO: Could we avoid this deeply nested statements if intersect( ) allowed mut HitRecord inside instead of returning Option<HitRecord>?
                 // Because currently it is totally unreadable with all the if let if let if let expressions.
                 let mut closest: Option<HitRecord> = None;
-                walk(root, ray, t_interval, vertex_cache, &mut closest);
+                Self::walk(root, ray, t_interval, vertex_cache, &mut closest);
                 if let Some(h) = closest {
                     *rec = h;
                     true
