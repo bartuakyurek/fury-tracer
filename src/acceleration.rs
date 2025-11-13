@@ -18,25 +18,26 @@ use crate::scene::{HeapAllocatedVerts};
 
 /// BVH node storing a bounding box, optional children, and a list of objects for leaves.
 #[derive(Debug)]
-pub struct BVHNode {
+pub struct BVHNode<T: Shape + BBoxable + 'static> {
     pub bbox: BBox,
-    pub left: Option<BVHNodePtr>,
-    pub right: Option<BVHNodePtr>,
-    pub objects: Vec<HeapAllocatedShape>,
+    pub left: Option<Arc<BVHNode<T>>>,
+    pub right: Option<Arc<BVHNode<T>>>,
+    pub objects: Vec<Arc<T>>,
 }
 
 /// BVHSubtree is a wrapper around an optional root node.
 #[derive(Debug, Clone)]
-pub struct BVHSubtree(pub Option<BVHNodePtr>);
+pub struct BVHSubtree<T: Shape + BBoxable + 'static>(pub Option<Arc<BVHNode<T>>>);
 
-pub type BVHNodePtr = Arc<BVHNode>;
-
-impl BVHSubtree {
+impl<T: Shape + BBoxable + 'static> BVHSubtree<T> {
 
     /// Recursively builds nodes in BVH tree
     /// TODO: it was meant to be inside build( ) function but inner functions cannot use generics from the outer
     /// as rustc told, so I'm moving it here.
-    fn build_nodes<T>(mut items: Vec<(Arc<T>, BBox, Vector3)>) -> Option<BVHNodePtr> {
+    fn build_nodes(mut items: Vec<(Arc<T>, BBox, Vector3)>) -> Option<Arc<BVHNode<T>>>
+        where 
+            T: Shape + BBoxable + 'static
+    {
             
         if items.is_empty() { return None; } // Base case
 
@@ -48,10 +49,19 @@ impl BVHSubtree {
         const LEAF_SIZE: usize = 4; // TODO: should we move it inside subtree struct so that it's not a magic constant to set here?
         if items.len() <= LEAF_SIZE {
             let node_objects: Vec<Arc<T>> = items.into_iter().map(|(s, _, _)| s).collect(); // NOTE: This is called *consuming*, ownership of items is moved to node_objects but this is fine because we are about to return
-            //return OptionalBVHNodePtr::Some() ok this is where declaring a new type is not really useful... I still need to use Arc::new or declare another type and nest the type declarations which is... ugly.
-            return Some(BVHNodePtr::new(BVHNode { bbox: unified_bbox, left: None, right: None, objects: node_objects }));
+    
+            return Some(BVHNodePtr::new(
+                                   BVHNode { 
+                                        bbox: unified_bbox, 
+                                        left: None, 
+                                        right: None, 
+                                        objects: node_objects, 
+                                        }
+                                    ));
 
         }
+
+        
     
         todo!()
     }
@@ -61,7 +71,7 @@ impl BVHSubtree {
     /// not the actual verts. 
     pub fn build<T>(shapes: &Vec<Arc<T>>, verts: &VertexData) -> Self // shapes is a vector of pointers because cloning the whole shape would be costly, it's like HeapAllocatedShape type in shapes.rs but now with generics 
         where 
-            T: Shape + BBoxable,
+            T: Shape + BBoxable + 'static, // 'static needed because T may not live long enough (thanks, rustc)
     {
         
         if shapes.is_empty() {
