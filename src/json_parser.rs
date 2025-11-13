@@ -38,6 +38,7 @@ use crate::scene::{RootScene};
 use crate::camera::{NearPlane};
 use crate::material::*;
 use crate::numeric::{Int, Float, Vector3};
+use crate::json_structs::{Transformations};
 
 pub fn parse_json795(path: &str) -> Result<RootScene, Box<dyn std::error::Error>> {
     /*
@@ -488,3 +489,46 @@ pub fn parse_material(value: serde_json::Value) -> Vec<HeapAllocMaterial> {
     }
 }
 
+pub fn parse_transform_expression(
+    expr: &str,
+    global_transforms: &Transformations
+) -> Arc<Transformations> {
+
+    let mut out = Transformations::default();
+
+    for token in expr.split_whitespace() {
+        if token.len() < 2 {
+            continue;
+        }
+
+        let (kind, id_str) = token.split_at(1);
+        let id: usize = match id_str.parse() {
+            Ok(n) => n,
+            Err(_) => {
+                warn!("Invalid transformation id in '{}'", token);
+                continue;
+            }
+        };
+
+        match kind {
+            "t" | "T" => {
+                if let Some(tf) = global_transforms.find_translation(id) {
+                    out.translation.push(tf.clone());
+                }
+            }
+            "s" | "S" => {
+                if let Some(sf) = global_transforms.find_scaling(id) {
+                    out.scaling.push(sf.clone());
+                }
+            }
+            "r" | "R" => {
+                if let Some(rf) = global_transforms.find_rotation(id) {
+                    out.rotation.push(rf.clone());
+                }
+            }
+            _ => warn!("Unknown transform token '{}'", kind),
+        }
+    }
+
+    Arc::new(out)
+}
