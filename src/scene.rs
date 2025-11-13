@@ -227,7 +227,13 @@ impl SceneMaterials {
     }
 }
 
+#[derive(Debug, Deserialize)] // TODO : Smart default or impl default to set some to eye? or empty vec?
+pub struct Transformations {
 
+    pub(crate) translations: SingleOrVec<TransformField>,
+    pub(crate) rotations: SingleOrVec<TransformField>,
+    pub(crate) scalings: SingleOrVec<TransformField>,
+}
 
 
 #[derive(Debug, Deserialize, Default)]
