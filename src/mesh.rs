@@ -13,6 +13,8 @@ use crate::ray::{Ray, HitRecord};
 use crate::interval::Interval;
 use crate::bbox::{BBoxable, BBox};
 use crate::scene::{HeapAllocatedVerts};
+use crate::acceleration::BVHSubtree;
+use crate::shapes::ShapeList;
 
 use crate::prelude::*;
 
@@ -32,7 +34,9 @@ pub struct Mesh {
     #[default = "flat"]
     pub _shading_mode: String,
     #[serde(skip)]
-    pub triangles: Vec<Triangle>,
+    pub triangles: ShapeList,
+    #[serde(skip)]
+    pub bvh: Option<BVHSubtree>,
 }
 
 impl Mesh {
@@ -42,9 +46,18 @@ impl Mesh {
     /// return the vector of the created triangles.
     pub fn setup_triangles_vec(&mut self, verts: &VertexData, id_offset: usize) -> Vec<Triangle> {
         let triangles: Vec<Triangle> = self.to_triangles(verts, id_offset);
-        self.triangles = triangles.clone();
+        
+        self.triangles = triangles.clone()
+                                  .into_iter()
+                                  .map(|tri| Arc::new(tri) as Arc<dyn Shape>)
+                                  .collect();
+
+        // Build BVH for acceleration
+        self.bvh = Some(BVHSubtree::build(&self.triangles, verts));
+
         triangles
     }
+
 
     /// Helper function to convert a Mesh into individual Triangles
     fn to_triangles(&self, verts: &VertexData, id_offset: usize) -> Vec<Triangle> {
@@ -70,11 +83,8 @@ impl Mesh {
         
         triangles
     }
-}
 
-impl Shape for Mesh {
-    
-    fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
+    fn intersect_naive(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
         // Delegate intersection test to per-mesh Triangle objects 
         // by iterating over all the triangles (hence naive, accelerated intersection function is to be added soon)
         let mut closest: Option<HitRecord> = None;
@@ -89,6 +99,25 @@ impl Shape for Mesh {
             }
         }
         closest
+    }
+
+}
+
+impl Shape for Mesh {
+    
+    fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
+        if let Some(bvh) = &self.bvh {
+            let mut closest = HitRecord::default();    
+            if bvh.intersect(ray, t_interval, &vertex_cache, &mut closest) {
+                Some(closest)
+            }
+            else {
+                None
+            }
+        } 
+        else {
+            self.intersect_naive(ray, t_interval, vertex_cache)
+        }
     }
 }
 
