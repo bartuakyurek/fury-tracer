@@ -195,6 +195,20 @@ impl<T: Clone> SingleOrVec<T>  {
             SingleOrVec::Multiple(vs) => vs.iter().collect(),
         }
     }
+    
+    pub fn push(&mut self, item: T) {
+        match self {
+            SingleOrVec::Empty => {
+                *self = SingleOrVec::Single(item);
+            }
+            SingleOrVec::Single(v) => {
+                let old = std::mem::replace(v, item);
+                *self = SingleOrVec::Multiple(vec![old, v.clone()]);
+            }
+            SingleOrVec::Multiple(vs) => vs.push(item),
+        }
+    }
+    
 }
 
 impl<T: Default> Default for SingleOrVec<T> {
