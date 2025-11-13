@@ -179,7 +179,7 @@ impl<'a> Scene <'a>  // Lifetime annotation 'a looks scary but it was needed for
                 return Some(rec);
             }
         }
-        warn!("No BVH found, using naive hit( ). You shouldn't be seeing this message though.");
+        //warn!("No BVH found, using naive hit( ). You shouldn't be seeing this message though.");
         self.hit_naive(ray, t_interval, early_break)
     }
 }
