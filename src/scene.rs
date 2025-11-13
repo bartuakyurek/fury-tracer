@@ -227,33 +227,6 @@ impl SceneMaterials {
     }
 }
 
-#[derive(Debug, Deserialize)] // TODO : Smart default or impl default to set some to eye? or empty vec?
-#[serde(rename = "PascalCase")]
- #[serde(default)]
-pub struct Transformations {
-    pub(crate) translation: SingleOrVec<TransformField>,
-    pub(crate) rotation: SingleOrVec<TransformField>,
-    pub(crate) scaling: SingleOrVec<TransformField>,
-}
-
-impl Default for Transformations {
-    fn default() -> Self {
-        Self {
-            translation: SingleOrVec::Single(TransformField {
-                _data: vec![0.0, 0.0, 0.0], // no translation
-                _id: 0,
-            }),
-            rotation: SingleOrVec::Single(TransformField {
-                _data: vec![0.0, 0.0, 0.0, 1.0], // no rotation 
-                _id: 0,
-            }),
-            scaling: SingleOrVec::Single(TransformField {
-                _data: vec![1.0, 1.0, 1.0], // no scale
-                _id: 0,
-            }),
-        }
-    }
-}
 
 #[derive(Debug, Deserialize, Default)]
 #[serde(default)] // If any of the fields below is missing in the JSON, use default (empty vector, hopefully)

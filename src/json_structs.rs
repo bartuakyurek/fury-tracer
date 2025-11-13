@@ -18,6 +18,51 @@ use void::Void;
 use crate::json_parser::{deser_vertex_data, deser_usize_vec, parse_string_vecvec3};
 use crate::prelude::*;
 
+
+
+#[derive(Debug, Deserialize, Clone)] // TODO : Smart default or impl default to set some to eye? or empty vec?
+#[serde(rename = "PascalCase")]
+ #[serde(default)]
+pub struct Transformations {
+    pub(crate) translation: SingleOrVec<TransformField>,
+    pub(crate) rotation: SingleOrVec<TransformField>,
+    pub(crate) scaling: SingleOrVec<TransformField>,
+}
+
+impl Default for Transformations {
+    fn default() -> Self {
+        Self {
+            translation: SingleOrVec::Single(TransformField {
+                _data: vec![0.0, 0.0, 0.0], // no translation
+                _id: 0,
+            }),
+            rotation: SingleOrVec::Single(TransformField {
+                _data: vec![0.0, 0.0, 0.0, 1.0], // no rotation 
+                _id: 0,
+            }),
+            scaling: SingleOrVec::Single(TransformField {
+                _data: vec![1.0, 1.0, 1.0], // no scale
+                _id: 0,
+            }),
+        }
+    }
+}
+
+impl Transformations {
+    pub fn find_translation(&self, id: usize) -> Option<&TransformField> {
+        self.translation.iter().find(|t| t._id == id )
+    }
+
+    pub fn find_scaling(&self, id: usize) -> Option<&TransformField> {
+        self.scaling.iter().find(|s| s._id == id )
+    }
+
+    pub fn find_rotation(&self, id: usize) -> Option<&TransformField> {
+        self.rotation.iter().find(|r| r._id == id )
+    }
+}
+
+
 // To be used by Translation, Rotation, Scaling
 #[derive(Debug)]
 pub struct TransformField {
