@@ -44,7 +44,7 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, mat: &
     for point_light in scene.data.lights.point_lights.all() {
             
             let (shadow_ray, interval) = get_shadow_ray(&point_light, hit_record, scene.data.shadow_ray_epsilon);
-            if scene.hit_naive(&shadow_ray, &interval, true).is_none() {
+            if scene.hit_bvh(&shadow_ray, &interval, true).is_none() {
                 
                 let irradiance = point_light.rgb_intensity / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
                 let n = hit_record.normal;
@@ -64,7 +64,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
    }
    
    let t_interval = Interval::positive(scene.data.intersection_test_epsilon);
-   if let Some(hit_record) = scene.hit_naive(ray_in, &t_interval, false) {
+   if let Some(hit_record) = scene.hit_bvh(ray_in, &t_interval, false) {
         
         let mat: &HeapAllocMaterial = &scene.data.materials.materials[hit_record.material - 1];
         let mut color = Vector3::ZERO;
