@@ -258,6 +258,16 @@ where
     Ok(numbers)
 }
 
+
+// Wrapper for deser_numeric_vec<Float>
+pub fn deser_float_vec<'de, D>(deserializer: D) -> Result<Vec<Float>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    deser_numeric_vec::<D, Float>(deserializer)
+}
+
+
 // Wrapper for deser_numeric_vec<usize>
 pub fn deser_usize_vec<'de, D>(deserializer: D) -> Result<Vec<usize>, D::Error>
 where
@@ -378,6 +388,7 @@ where
 pub fn parse_string_vecvec3(s: &str) -> Result<Vec<Vector3>, String> {
     parse_string_vec(s, 3, |chunk| Ok(Vector3::new(chunk[0], chunk[1], chunk[2])))
 }
+
 
 fn parse_string_vec<T, F>(s: &str, chunk_len: usize, mut f: F) -> Result<Vec<T>, String>
 where
