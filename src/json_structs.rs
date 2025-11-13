@@ -221,6 +221,17 @@ impl<T: Clone> SingleOrVec<T>  {
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.as_slice().iter()
     }
+
+    /// create mutable iterator
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        match self {
+            SingleOrVec::Empty => [].iter_mut(),
+            SingleOrVec::Single(v) => std::slice::from_mut(v).iter_mut(),
+            SingleOrVec::Multiple(vec) => vec.iter_mut(),
+        }
+    }
+
+    
 }
 
 impl<T: Default> Default for SingleOrVec<T> {
