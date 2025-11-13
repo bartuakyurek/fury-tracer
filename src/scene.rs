@@ -304,7 +304,7 @@ impl SceneObjects {
             // For vertex cache, get the triangles in a single mesh 
             // TODO: this is done because we have global vertex_data
             let offset = verts._data.len();
-            let triangles: Vec<Triangle> = mesh.setup_triangles_vec(verts, offset);
+            let triangles: Vec<Triangle> = mesh.setup(verts, offset);
             all_triangles.extend(triangles.into_iter());
 
             // Push mesh to shapes (previously I was deconstructing it into individual triangles)

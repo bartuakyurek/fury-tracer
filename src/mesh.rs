@@ -7,7 +7,7 @@ UPDATE: Acceleration structure added Mesh::bvh
 
 */
 
-use crate::json_structs::{FaceType, VertexData};
+use crate::json_structs::{FaceType, VertexData, Transformations};
 use crate::geometry::{get_tri_normal};
 use crate::shapes::{Shape, Triangle};
 use crate::ray::{Ray, HitRecord};
@@ -38,7 +38,10 @@ pub struct Mesh {
     pub _shading_mode: String,
 
     #[serde(rename = "Transformations", default)]
-    pub transformations: Option<String>,
+    pub transformation_names: Option<String>,
+
+    #[serde(skip)]
+    pub transform: Arc<Transformations>,
 
     #[serde(skip)]
     pub triangles: ShapeList,
@@ -51,7 +54,15 @@ impl Mesh {
     /// Given global vertex data and id_offset, 
     /// Populate self.triangles with a vector, and
     /// return the vector of the created triangles.
-    pub fn setup_triangles_vec(&mut self, verts: &VertexData, id_offset: usize) -> Vec<Triangle> {
+    pub fn setup(&mut self, global_transforms: &Transformations, verts: &VertexData, id_offset: usize) -> Vec<Triangle> {
+
+
+        // Inside Mesh setup
+        self.transform = parse_transform_expression(
+            self.transformation_names.as_deref().unwrap_or(""),
+            &global_transforms
+        );
+
         let triangles: Vec<Triangle> = self.to_triangles(verts, id_offset);
         
         self.triangles = triangles.clone()
@@ -85,6 +96,9 @@ impl Mesh {
                 material_idx: self.material_idx,
                 is_smooth: self._shading_mode.to_ascii_lowercase() == "smooth",
                 normal: get_tri_normal(&v1, &v2, &v3),
+
+                transformation_names: self.transformation_names.clone(),
+                transform: Some(self.transform.clone()), // NOTE: here it is ok to .clone( ) because it just increases Arc's counter, not cloning the whole data
             });
         }
         
