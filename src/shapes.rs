@@ -15,7 +15,7 @@ use crate::geometry::{get_tri_normal, moller_trumbore_intersection};
 use crate::bbox::{BBox, BBoxable};
 use crate::ray::{Ray, HitRecord}; // TODO: Can we create a small crate for gathering shapes.rs, ray.rs?
 use crate::interval::{Interval};
-use crate::json_structs::{VertexData};
+use crate::json_structs::{VertexData, Transformations};
 use crate::scene::HeapAllocatedVerts;
 use crate::prelude::*;
 
@@ -47,7 +47,10 @@ pub struct Triangle {
     pub material_idx: usize,
 
     #[serde(rename = "Transformations", default)]
-    pub transformations: Option<String>,
+    pub transformation_names: Option<String>,
+
+    #[serde(skip)]
+    pub transform: Option<Arc<Transformations>>, // Arc here to share Transformations with Mesh, I didn't want to clone the same transform while creating triangles for mesh
 
     #[serde(skip)]
     #[default = false]
