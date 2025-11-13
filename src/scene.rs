@@ -173,11 +173,7 @@ where
     // hit<T>( ) where T: Acceleration { }
     // TODO: Is it better hitrecord a mutable input parameter rather than returning Option<HitRecord>?  
     pub fn hit_bvh(&self, ray: &Ray, t_interval: &Interval, early_break: bool) -> Option<HitRecord> {
-        let mut rec: Option<HitRecord> = None;
-        let t_min: Float = FloatConst::INF;
-
-        // self.bvh.intersect(ray, &mut rec);
-        // then call intersect( ) for actual objects
+        let mut rec: HitRecord = HitRecord::default();
         if let Some(bvh) = &self.bvh {
             if bvh.intersect(ray, t_interval, &self.vertex_cache, &mut rec) {
                 return Some(rec);
