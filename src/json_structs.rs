@@ -209,6 +209,18 @@ impl<T: Clone> SingleOrVec<T>  {
         }
     }
     
+     pub fn as_slice(&self) -> &[T] {
+        match self {
+            SingleOrVec::Empty => &[],
+            SingleOrVec::Single(v) => std::slice::from_ref(v),
+            SingleOrVec::Multiple(vec) => vec.as_slice(),
+        }
+    }
+
+    /// create iterator (borrows, read-only access)
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        self.as_slice().iter()
+    }
 }
 
 impl<T: Default> Default for SingleOrVec<T> {
