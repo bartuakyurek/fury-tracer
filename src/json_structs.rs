@@ -64,7 +64,7 @@ impl Transformations {
 
 
 // To be used by Translation, Rotation, Scaling
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TransformField {
     pub(crate) _data: Vec<Float>,
     pub(crate) _id: usize,
