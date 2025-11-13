@@ -31,6 +31,7 @@
 use std::{path::Path, io::BufReader, error::Error, fs::File};
 use bevy_math::NormedVectorSpace; // traits needed for norm_squared( ) 
 
+use crate::bbox::BBoxable;
 use crate::material::{*};
 use crate::shapes::{*};
 use crate::mesh::Mesh;
@@ -39,6 +40,7 @@ use crate::camera::{Cameras};
 use crate::prelude::*;
 use crate::interval::{Interval, FloatConst};
 use crate::ray::{Ray, HitRecord};
+use crate::acceleration::BVHSubtree;
 
 pub type HeapAllocatedVerts = Arc<VertexCache>;
 
@@ -104,25 +106,41 @@ impl SceneJSON {
 }
 
 #[derive(Debug)]
-pub struct Scene <'a> {
+pub struct Scene <'a, T> 
+where 
+    T: Shape + BBoxable + 'static,
+{
     pub data: &'a SceneJSON, // I'm figuring out data composition in Rust here
                              // in order not to clutter deserialized Scene with additional data.
                              // Otherwise it requires serde[skip] annotations for each addition.
 
     pub vertex_cache: HeapAllocatedVerts,
-    // more data here e.g. BVH
+    pub bvh: Option<Arc<BVHSubtree<T>>>,
 }
 
 
-impl<'a> Scene<'a> { // Lifetime annotation 'a looks scary but it was needed for storing a pointer to deserialized data
+impl<'a, T> Scene <'a, T>  // Lifetime annotation 'a looks scary but it was needed for storing a pointer to deserialized data
+where 
+    T: Shape + BBoxable + 'static,
+    { 
     pub fn new_from(scene_json: &'a mut SceneJSON, jsonpath: &Path) -> Self {
 
         let cache = scene_json.setup_and_get_cache(jsonpath).unwrap(); 
 
-        Self {
+        let mut scene = Self {
             data: scene_json,
             vertex_cache: Arc::new(cache),
-        }
+            bvh: None,
+        };
+        scene.build_bvh();
+        scene
+    }
+
+    /// Build top-tevel BVH for scene
+    pub fn build_bvh(&mut self) {
+        let shapes = &self.data.objects.all_shapes;
+        let verts = &self.vertex_cache.vertex_data;
+        self.bvh = Some(BVHSubtree::build(shapes, verts));
     }
 
     /// Iterate over all shapes to find the closest hit
@@ -160,7 +178,13 @@ impl<'a> Scene<'a> { // Lifetime annotation 'a looks scary but it was needed for
 
         // self.bvh.intersect(ray, &mut rec);
         // then call intersect( ) for actual objects
-        todo!() 
+        if let Some(bvh) = &self.bvh {
+            if bvh.intersect(ray, t_interval, &self.vertex_cache, &mut rec) {
+                return Some(rec);
+            }
+        }
+        warn!("No BVH found, using naive hit( ). You shouldn't be seeing this message though.");
+        self.hit_naive(ray, t_interval, early_break)
     }
 }
 
