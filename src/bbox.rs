@@ -22,9 +22,9 @@ pub struct BBox {
     pub zmin: Float, 
     pub zmax: Float,
     
-    pub width: Float, // TODO: Are these actually needed? 
-    pub height: Float,
-    pub depth: Float,
+   // pub width: Float, // TODO: Are these actually needed? 
+   // pub height: Float,
+   // pub depth: Float,
 }
 
 // TODO: Ideally, BBox should impl Shape but since intersect( ) signatures are different
@@ -43,9 +43,9 @@ impl BBox {
             ymax,
             zmin,
             zmax,
-            width: xmax - xmin,
-            height: ymax - ymin,
-            depth: zmax - zmin,
+          //  width: xmax - xmin,
+          //  height: ymax - ymin,
+          //  depth: zmax - zmin,
         }
     }
 
@@ -62,6 +62,17 @@ impl BBox {
         )
     }
 
+    pub fn empty() -> Self {
+        Self {
+            xmin: Float::INFINITY,
+            xmax: Float::NEG_INFINITY,
+            ymin: Float::INFINITY,
+            ymax: Float::NEG_INFINITY,
+            zmin: Float::INFINITY,
+            zmax: Float::NEG_INFINITY,
+        }
+    }
+
     /// Merge two bboxes into a single one by
     /// comparing their extents
     pub fn merge(&self, other: &Self) -> Self {
@@ -74,6 +85,17 @@ impl BBox {
             self.zmax.max(other.zmax),
         )
     }
+
+    pub fn get_largest_extents(bboxes: &[BBox]) -> (Float, Float, Float) {
+
+        let merged: Self = bboxes.iter().fold(Self::empty(), |acc, b| acc.merge(&b));
+        (
+            merged.xmax - merged.xmin,
+            merged.ymax - merged.ymin,
+            merged.zmax - merged.zmin,
+        )
+    }
+
 
     pub fn get_center(&self) -> Vector3 {
          Vector3::new((self.xmin + self.xmax) * 0.5, (self.ymin + self.ymax) * 0.5, (self.zmin + self.zmax) * 0.5)
