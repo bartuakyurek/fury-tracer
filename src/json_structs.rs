@@ -171,7 +171,8 @@ pub enum SingleOrVec<T> {
 }
 
 impl<T: Clone> SingleOrVec<T>  {
-    pub fn all(&self) -> Vec<T> {
+
+    pub fn all(&self) -> Vec<T> { // WARNING: It clones data to create vecs
         match &self {
             SingleOrVec::Empty => vec![],
             SingleOrVec::Single(t) => vec![t.clone()],
@@ -184,6 +185,14 @@ impl<T: Clone> SingleOrVec<T>  {
             SingleOrVec::Empty => vec![],
             SingleOrVec::Single(t) => vec![t],
             SingleOrVec::Multiple(vec) => vec.iter_mut().collect(),
+        }
+    }
+
+    pub fn all_ref(&self) -> Vec<&T> {
+        match self {
+            SingleOrVec::Empty => vec![],
+            SingleOrVec::Single(t) => vec![t],
+            SingleOrVec::Multiple(vs) => vs.iter().collect(),
         }
     }
 }
