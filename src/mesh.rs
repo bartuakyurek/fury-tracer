@@ -1,5 +1,6 @@
 /*
 
+UPDATE: Acceleration structure added Mesh::bvh
 
 @date: Oct-Nov 2025
 @author: Bartu
