@@ -18,25 +18,23 @@ use crate::scene::{HeapAllocatedVerts};
 
 /// BVH node storing a bounding box, optional children, and a list of objects for leaves.
 #[derive(Debug)]
-pub struct BVHNode<T: Shape + BBoxable + 'static> {
+pub struct BVHNode{
     pub bbox: BBox,
-    pub left: Option<Arc<BVHNode<T>>>,
-    pub right: Option<Arc<BVHNode<T>>>,
-    pub objects: Vec<Arc<T>>,
+    pub left: Option<Arc<BVHNode>>,
+    pub right: Option<Arc<BVHNode>>,
+    pub objects: Vec<HeapAllocatedShape>,
 }
 
 /// BVHSubtree is a wrapper around an optional root node.
 #[derive(Debug, Clone)]
-pub struct BVHSubtree<T: Shape + BBoxable + 'static>(pub Option<Arc<BVHNode<T>>>);
+pub struct BVHSubtree(pub Option<Arc<BVHNode>>);
 
-impl<T: Shape + BBoxable + 'static> BVHSubtree<T> {
+impl BVHSubtree {
 
     /// Recursively builds nodes in BVH tree
     /// TODO: it was meant to be inside build( ) function but inner functions cannot use generics from the outer
     /// as rustc told, so I'm moving it here.
-    fn build_nodes(mut items: Vec<(Arc<T>, BBox, Vector3)>) -> Option<Arc<BVHNode<T>>>
-        where 
-            T: Shape + BBoxable + 'static
+    fn build_nodes(mut items: Vec<(HeapAllocatedShape, BBox, Vector3)>) -> Option<Arc<BVHNode>>
     {
             
         if items.is_empty() { return None; } // Base case
@@ -48,7 +46,7 @@ impl<T: Shape + BBoxable + 'static> BVHSubtree<T> {
 
         const LEAF_SIZE: usize = 4; // TODO: should we move it inside subtree struct so that it's not a magic constant to set here?
         if items.len() <= LEAF_SIZE {
-            let node_objects: Vec<Arc<T>> = items.into_iter().map(|(s, _, _)| s).collect(); // NOTE: This is called *consuming*, ownership of items is moved to node_objects but this is fine because we are about to return
+            let node_objects = items.into_iter().map(|(s, _, _)| s).collect(); // NOTE: This is called *consuming*, ownership of items is moved to node_objects but this is fine because we are about to return
     
             return Some(Arc::new(BVHNode { bbox: unified_bbox, left: None, right: None, objects: node_objects }));
         }
@@ -82,9 +80,9 @@ impl<T: Shape + BBoxable + 'static> BVHSubtree<T> {
     /// Build a BVH from a list of shapes using their bounding boxes.
     /// verts needed for get_bbox( ) called inside, since shapes only store indices, 
     /// not the actual verts. 
-    pub fn build(shapes: &Vec<Arc<T>>, verts: &VertexData) -> Self // shapes is a vector of pointers because cloning the whole shape would be costly, it's like HeapAllocatedShape type in shapes.rs but now with generics 
-        where 
-            T: Shape + BBoxable + 'static, // 'static needed because T may not live long enough (thanks, rustc)
+    pub fn build(shapes: &Vec<HeapAllocatedShape>, verts: &VertexData) -> Self // shapes is a vector of pointers because cloning the whole shape would be costly, it's like HeapAllocatedShape type in shapes.rs but now with generics 
+        //where 
+        //    T: Shape + BBoxable + 'static, // 'static needed because T may not live long enough (thanks, rustc)
     {
         
         if shapes.is_empty() {
@@ -92,7 +90,7 @@ impl<T: Shape + BBoxable + 'static> BVHSubtree<T> {
         }
 
         // Precompute for sorting: (shape pointer, its bbox, bbox centroid)
-        let mut items: Vec<(Arc<T>, BBox, Vector3)> = Vec::with_capacity(shapes.len());
+        let mut items: Vec<(HeapAllocatedShape, BBox, Vector3)> = Vec::with_capacity(shapes.len());
         for s in shapes.iter() {
             let bbox = s.get_bbox(verts);
             let center = bbox.get_center();
@@ -105,7 +103,7 @@ impl<T: Shape + BBoxable + 'static> BVHSubtree<T> {
 
     // Introduce helper function to recursively traverse the tree 
     // Because calling intersect( ) directly 
-    fn walk(node: &Arc<BVHNode<T>>, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts, closest: &mut Option<HitRecord>) {
+    fn walk(node: &Arc<BVHNode>, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts, closest: &mut Option<HitRecord>) {
         if !node.bbox.intersect(ray) { return; }  // This is the base case return for recursive helper, not the outer intersect( )!
                                                   
         if node.objects.is_empty() {
