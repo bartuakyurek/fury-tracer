@@ -16,7 +16,35 @@ use tracing::{warn};
 use void::Void;
 
 use crate::json_parser::{deser_vertex_data, deser_usize_vec, parse_string_vecvec3};
-use crate::numeric::{Vector3};
+use crate::prelude::*;
+
+// To be used by Translation, Rotation, Scaling
+#[derive(Debug)]
+pub struct TransformField {
+    pub(crate) _data: Vec<Float>,
+    pub(crate) _id: usize,
+}
+
+
+impl<'de> Deserialize<'de> for TransformField {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct Helper {
+            #[serde(deserialize_with = "deser_float_vec")]
+            _data: Vec<Float>,
+            _id: usize,
+        }
+
+        let helper = Helper::deserialize(deserializer)?;
+        Ok(TransformField {
+            _data: helper._data,
+            _id: helper._id,
+        })
+    }
+}
 
 // To be used for VertexData and Faces in JSON files
 #[derive(Debug, Clone, Default)]
