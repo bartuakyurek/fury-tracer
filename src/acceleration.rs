@@ -1,7 +1,7 @@
 
 
 
-use crate::prelude::*;
+use crate::{bbox, prelude::*};
 use crate::json_structs::VertexData;
 use crate::shapes::{Shape, HeapAllocatedShape};
 use crate::ray::{Ray, HitRecord};
@@ -38,11 +38,7 @@ impl BVHSubtree {
     {
             
         if items.is_empty() { return None; } // Base case
-
-        let mut unified_bbox = items[0].1.clone(); // Get the first bounding box, skip it in the following iter, clone because cannot muve this index out of our input Vec 
-        for (_, other_bbox, _) in items.iter().skip(1) {
-            unified_bbox = unified_bbox.merge(other_bbox);
-        }
+        let unified_bbox = items.iter().fold(BBox::empty(), |acc, b| acc.merge(&b.1));
 
         const LEAF_SIZE: usize = 4; // TODO: should we move it inside subtree struct so that it's not a magic constant to set here?
         if items.len() <= LEAF_SIZE {
@@ -80,11 +76,8 @@ impl BVHSubtree {
     /// Build a BVH from a list of shapes using their bounding boxes.
     /// verts needed for get_bbox( ) called inside, since shapes only store indices, 
     /// not the actual verts. 
-    pub fn build(shapes: &Vec<HeapAllocatedShape>, verts: &VertexData) -> Self // shapes is a vector of pointers because cloning the whole shape would be costly, it's like HeapAllocatedShape type in shapes.rs but now with generics 
-        //where 
-        //    T: Shape + BBoxable + 'static, // 'static needed because T may not live long enough (thanks, rustc)
+    pub fn build(shapes: &Vec<HeapAllocatedShape>, verts: &VertexData) -> Self 
     {
-        
         if shapes.is_empty() {
             return BVHSubtree(None);
         }
@@ -111,8 +104,6 @@ impl BVHSubtree {
             if let Some(r) = &node.right { Self::walk(r, ray, t_interval, vertex_cache, closest); }
         } else {
             // Reached to leaf node (remember only leaf nodes have objects) 
-            // TODO: This is the same as what we did in HW1, iterating all the shapes, it could have been called hit_naive()
-            // or with a better name, perhaps inside Shape trait with this default implementation. 
             for obj in &node.objects {
                 if let Some(hit) = obj.intersects_with(ray, t_interval, vertex_cache) {
                     if let Some(existing) = &closest {
@@ -137,11 +128,7 @@ impl BVHSubtree {
         match &self.0 {
             None => false,
             Some(root) => { 
-                
-                rec.ray_t = FloatConst::INF; // For BVH, we shoot to infinity, right? Well yes that's also true for bbox intersections
-                
-                // TODO: Could we avoid this deeply nested statements if intersect( ) allowed mut HitRecord inside instead of returning Option<HitRecord>?
-                // Because currently it is totally unreadable with all the if let if let if let expressions.
+                rec.ray_t = FloatConst::INF; 
                 let mut closest: Option<HitRecord> = None;
                 Self::walk(root, ray, t_interval, vertex_cache, &mut closest);
                 if let Some(h) = closest {
