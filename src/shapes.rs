@@ -46,6 +46,9 @@ pub struct Triangle {
     #[serde(rename = "Material", deserialize_with = "deser_usize")]
     pub material_idx: usize,
 
+    #[serde(rename = "Transformations", default)]
+    pub transformations: Option<String>,
+
     #[serde(skip)]
     #[default = false]
     pub is_smooth: bool,
@@ -124,6 +127,10 @@ pub struct Sphere {
     pub radius: Float,
     #[serde(rename = "Material", deserialize_with = "deser_usize")]
     pub material_idx: usize,
+
+    #[serde(rename = "Transformations", default)]
+    pub transformations: Option<String>,
+
 }
 
 impl Shape for Sphere {
@@ -195,6 +202,10 @@ pub struct Plane {
     pub normal: Vector3,
     #[serde(rename = "Material", deserialize_with = "deser_usize")]
     pub material_idx: usize,
+
+    #[serde(rename = "Transformations", default)]
+    pub transformations: Option<String>,
+
 }
 
 impl Shape for Plane {

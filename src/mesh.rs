@@ -26,14 +26,20 @@ use crate::prelude::*;
 pub struct Mesh {
     #[serde(deserialize_with = "deser_usize")]
     pub _id: usize,
+    
     #[serde(rename = "Material", deserialize_with = "deser_usize")]
     pub material_idx: usize,
+
     #[serde(rename = "Faces")]
     pub faces: FaceType,
 
     #[serde(rename = "_shadingMode")]
     #[default = "flat"]
     pub _shading_mode: String,
+
+    #[serde(rename = "Transformations", default)]
+    pub transformations: Option<String>,
+
     #[serde(skip)]
     pub triangles: ShapeList,
     #[serde(skip)]
