@@ -53,18 +53,23 @@ impl<T: Shape + BBoxable + 'static> BVHSubtree<T> {
             return Some(Arc::new(BVHNode { bbox: unified_bbox, left: None, right: None, objects: node_objects }));
         }
 
-        //let bboxes: Vec<BBox> = items.iter().map(|(_, b, _)| b).collect();
         let bboxes: Vec<&BBox> = items.iter().map(|(_, b, _)| b).collect();
         let (extent_x, extent_y, extent_z) = BBox::get_largest_extents(&bboxes);
     
+        // Sort items wrt bounding box centroids of the largest extent coordinate 
+        // partial_cmp returns Ordering which is used by sort_by( )
+        // at first I thought it compares two items but no, it returns Option<Ordering> enum and .unwrap( ) 
+        // extracts Ordering, and sort_by( ) decides which Ordering to use, i.e. for ascending order < 
+        // see also its signature https://doc.rust-lang.org/std/vec/struct.Vec.html#method.sort_by
         if (extent_x >= extent_y) && (extent_x >= extent_z) {
-            items.sort_by(|a, b| a.2.x.partial_cmp(&b.2.x).unwrap());
+            items.sort_by(|a, b| a.2.x.partial_cmp(&b.2.x).unwrap()); // Sort by bounding box centroids x coordinate
         } else if extent_y >= extent_z {
-                todo!()
+            items.sort_by(|a, b| a.2.y.partial_cmp(&b.2.y).unwrap()); // Sort by y coordinate
         } else {
-                todo!()
+            items.sort_by(|a, b| a.2.z.partial_cmp(&b.2.z).unwrap()); // Sort by z coordinate
         }
 
+        // Split items into two
         let middle = items.len() / 2;
         let right_items = items.split_off(middle); // Split Vec at middle
         let left_items = items; // Remaining items are left_items
