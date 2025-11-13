@@ -106,22 +106,22 @@ impl SceneJSON {
 }
 
 #[derive(Debug)]
-pub struct Scene <'a, T> 
-where 
-    T: Shape + BBoxable + 'static,
+pub struct Scene <'a> 
+//where 
+//   T: Shape + BBoxable + 'static,
 {
     pub data: &'a SceneJSON, // I'm figuring out data composition in Rust here
                              // in order not to clutter deserialized Scene with additional data.
                              // Otherwise it requires serde[skip] annotations for each addition.
 
     pub vertex_cache: HeapAllocatedVerts,
-    pub bvh: Option<Arc<BVHSubtree<T>>>,
+    pub bvh: Option<BVHSubtree>,
 }
 
 
-impl<'a, T> Scene <'a, T>  // Lifetime annotation 'a looks scary but it was needed for storing a pointer to deserialized data
-where 
-    T: Shape + BBoxable + 'static,
+impl<'a> Scene <'a>  // Lifetime annotation 'a looks scary but it was needed for storing a pointer to deserialized data
+//where 
+//    T: Shape + BBoxable + 'static,
     { 
     pub fn new_from(scene_json: &'a mut SceneJSON, jsonpath: &Path) -> Self {
 
