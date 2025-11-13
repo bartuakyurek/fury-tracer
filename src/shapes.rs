@@ -26,7 +26,7 @@ pub type ShapeList = Vec<HeapAllocatedShape>;
 // =======================================================================================================
 // Shape Trait
 // =======================================================================================================
-pub trait Shape : Debug + Send + Sync  {
+pub trait Shape : Debug + Send + Sync + BBoxable {
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord>;
 }
 
@@ -215,5 +215,16 @@ impl Shape for Plane {
         else {
             None // t is not within the limits
         }
+    }
+}
+
+impl BBoxable for Plane {
+    /// Dummy bbox with no volume
+     fn get_bbox(&self, verts: &VertexData) -> BBox {
+        let p = verts[self.point_idx];
+        let xint = Interval::new(p.x, p.x);
+        let yint = Interval::new(p.y, p.y);
+        let zint = Interval::new(p.z, p.z);
+        BBox::new_from(&xint, &yint, &zint)
     }
 }
