@@ -50,20 +50,27 @@ impl<T: Shape + BBoxable + 'static> BVHSubtree<T> {
         if items.len() <= LEAF_SIZE {
             let node_objects: Vec<Arc<T>> = items.into_iter().map(|(s, _, _)| s).collect(); // NOTE: This is called *consuming*, ownership of items is moved to node_objects but this is fine because we are about to return
     
-            return Some(Arc::new(
-                                   BVHNode { 
-                                        bbox: unified_bbox, 
-                                        left: None, 
-                                        right: None, 
-                                        objects: node_objects, 
-                                        }
-                                    ));
-
+            return Some(Arc::new(BVHNode { bbox: unified_bbox, left: None, right: None, objects: node_objects }));
         }
 
-        
+        let bboxes: Vec<BBox> = items.into_iter().map(|(_, b, _)| b).collect();
+        let (extent_x, extent_y, extent_z) = BBox::get_largest_extents(&bboxes);
     
-        todo!()
+        if (extent_x >= extent_y) && (extent_x >= extent_z) {
+            todo!()
+        } else if extent_y >= extent_z {
+                todo!()
+        } else {
+                todo!()
+        }
+
+        let middle = items.len() / 2;
+        let right_items = items.split_off(middle); // Split Vec at middle
+        let left_items = items; // Remaining items are left_items
+        let left = Self::build_nodes(left_items);
+        let right = Self::build_nodes(right_items);
+
+        Some(Arc::new(BVHNode { bbox: unified_bbox, left, right, objects: Vec::new() }))
     }
 
     /// Build a BVH from a list of shapes using their bounding boxes.
