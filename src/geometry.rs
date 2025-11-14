@@ -22,6 +22,7 @@ use crate::prelude::*;
 // it does not directly apply in our case but might be handy in future.
 pub fn rodrigues_rotation(axis: &Vector3, angle: Float) -> Matrix3 {
     
+    let angle = -angle; // TODO: WARNING: This is not how handedness problem was supposed to be solved...
     let k = axis.normalize();
     let x = k.x;
     let y = k.y;
