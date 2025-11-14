@@ -119,6 +119,40 @@ impl<'de> Deserialize<'de> for TransformField {
     }
 }
 
+impl TransformField {
+    pub fn get_mat4(&self, kind: TransformKind) -> Matrix4 {
+        match kind {
+            TransformKind::Translation => {
+                let v = &self._data;
+                Matrix4::from_translation(Vector3::new(v[0], v[1], v[2]))
+            }
+
+            TransformKind::Scaling => {
+                let v = &self._data;
+                Matrix4::from_scale(Vector3::new(v[0], v[1], v[2]))
+            }
+
+            TransformKind::Rotation => {
+                let d = &self._data;
+                let angle = d[0].to_radians();
+                let axis = Vector3::new(d[1], d[2], d[3]);
+                rodrigues_rotation(axis, angle)
+            }
+
+            TransformKind::Composite => {
+                let d = &self._data;
+                Matrix4::from_cols_array(&[
+                    d[0], d[4], d[8],  d[12],
+                    d[1], d[5], d[9],  d[13],
+                    d[2], d[6], d[10], d[14],
+                    d[3], d[7], d[11], d[15],
+                ])
+            }
+        }
+    }
+}
+
+
 // To be used for VertexData and Faces in JSON files
 #[derive(Debug, Clone, Default)]
 pub struct DataField<T> {
