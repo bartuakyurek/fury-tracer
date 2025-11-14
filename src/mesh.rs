@@ -186,6 +186,7 @@ impl BBoxable for Mesh {
         // Transform bounding box for top-level BVH
         let local_box = BBox::new_from(&xint, &yint, &zint);
         if apply_t {
+            info!("Applying transform for TLAS {}", self.matrix);
            local_box.transform(&self.matrix)
         } else {
             local_box

@@ -83,11 +83,11 @@ impl SceneJSON {
         self.vertex_data.insert_dummy_at_the_beginning();
         warn!("Inserted a dummy vertex at the beginning to use vertex IDs beginning from 1.");
 
-        // 4 - Get cache per vertex (objects.setup appends PLY data to vertex_data)
-        let cache = self.objects.setup_and_get_cache(&mut self.vertex_data,  jsonpath)?; 
-
-        // 5 - Setup object transformations
+        // 4 - Setup object transformations BEFORE populating all_shapes
         self.objects.setup_transforms(&self.transformations);
+
+        // 5 - Get cache per vertex (objects.setup appends PLY data to vertex_data)
+        let cache = self.objects.setup_and_get_cache(&mut self.vertex_data,  jsonpath)?;
 
         Ok(cache)
     }
