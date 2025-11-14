@@ -380,6 +380,12 @@ impl SceneObjects {
             // Push mesh to shapes (previously I was deconstructing it into individual triangles)
             shapes.push(Arc::new(mesh) as HeapAllocatedShape);
         }
+
+        // Add mesh instances to shapes
+        for mint in self.mesh_instances.all() {
+            shapes.push(Arc::new(mint) as HeapAllocatedShape);
+        }
+
         info!(">> There are {} vertices in the scene.", verts._data.len());
         self.all_shapes = shapes;
         info!(">> There are {} shapes in the scene.", self.all_shapes.len());
