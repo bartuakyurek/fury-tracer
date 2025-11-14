@@ -183,10 +183,13 @@ impl BBoxable for Mesh {
             zint.expand(v.z);
         }
 
-        let local_box = BBox::new_from(&xint, &yint, &zint);
-
         // Transform bounding box for top-level BVH
-        todo!()
+        let local_box = BBox::new_from(&xint, &yint, &zint);
+        if apply_t {
+           local_box.transform(&self.matrix)
+        } else {
+            local_box
+        }
     }
 }
 
