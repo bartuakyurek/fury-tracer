@@ -566,28 +566,28 @@ pub fn parse_transform_expression(
             "t" | "T" => {
                 if let Some(tf) = global_transforms.find_translation(id) {
                     debug!("Found translation: {:?}", tf);
-                    out = out * tf.get_mat4(TransformKind::Translation);
+                    out = tf.get_mat4(TransformKind::Translation) * out; 
                     debug!("After translation: {}", out);
                 }
             }
             "s" | "S" => {
                 if let Some(sf) = global_transforms.find_scaling(id) {
                     debug!("Found scaling: {:?}", sf);
-                    out = out * sf.get_mat4(TransformKind::Scaling);
+                    out = sf.get_mat4(TransformKind::Scaling) * out;
                     debug!("After scaling: {}", out);
                 }
             }
             "r" | "R" => {
                 if let Some(rf) = global_transforms.find_rotation(id) {
                     debug!("Found rotation: {:?}", rf);
-                    out = out * rf.get_mat4(TransformKind::Rotation);
+                    out = rf.get_mat4(TransformKind::Rotation) * out;
                     debug!("After rotation: {}", out);
                 }
             }
             "c" | "C" => {
                 if let Some(cf) = global_transforms.find_composite(id) {
                     debug!("Found composite: {:?}", cf);
-                    out = out * cf.get_mat4(TransformKind::Composite);
+                    out = cf.get_mat4(TransformKind::Composite) * out;
                     debug!("After composite: {}", out);
                 }
             }
