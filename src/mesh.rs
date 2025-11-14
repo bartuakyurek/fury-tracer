@@ -42,8 +42,8 @@ pub struct MeshInstanceField {
     #[serde(skip)]
     pub(crate) matrix: Arc<Matrix4>, // WARNING: This should apply its M_instance on M_base
 
-    #[serde(skip)]
-    pub inv_matrix: Arc<Matrix4>,
+    //#[serde(skip)]
+    //pub inv_matrix: Arc<Matrix4>,
 }
 
 
@@ -70,8 +70,8 @@ pub struct Mesh {
     #[serde(skip)]
     pub matrix: Arc<Matrix4>,
 
-    #[serde(skip)]
-    pub inv_matrix: Arc<Matrix4>,
+    //#[serde(skip)]
+    //pub inv_matrix: Arc<Matrix4>,
 
     #[serde(skip)]
     pub triangles: ShapeList,
@@ -169,7 +169,12 @@ impl Shape for Mesh {
         // See slides 04, p.51
         if let Some(mut hit) = rec {
             hit.hit_point = transform_point(&self.matrix, &hit.hit_point);
-            hit.normal = transform_point(&self.inv_matrix, &hit.normal);
+
+            // WARNING: only use upper 3x3, see p.53 
+            // TODO: cache it?
+            let mat3 = Matrix3::from_mat4(*self.matrix);
+            let inv = mat3.inverse().transpose();
+            hit.normal = inv * hit.normal; 
             Some(hit)
              // WARNING: How about entry_point, should we inverse transform it? it's used for dielectric
         } 

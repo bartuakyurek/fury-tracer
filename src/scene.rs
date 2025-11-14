@@ -264,7 +264,7 @@ impl SceneObjects {
                     mesh.transformation_names.as_deref().unwrap_or(""),
                     &transforms,  
             );
-            mesh.inv_matrix = Arc::new(mesh.matrix.inverse());
+            //mesh.inv_matrix = Arc::new(mesh.matrix.inverse());
             info!("Composite transform for mesh '{}' is {}", mesh._id, mesh.matrix);
         }
 
@@ -274,7 +274,7 @@ impl SceneObjects {
                     mint.transformation_names.as_str(),
                     &transforms,  
             );
-            mint.inv_matrix = Arc::new(mint.matrix.inverse());
+            //mint.inv_matrix = Arc::new(mint.matrix.inverse());
             info!("Composite transform for mesh '{}' is {}", mint._id, mint.matrix);
         }
 
