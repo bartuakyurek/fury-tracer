@@ -7,6 +7,8 @@ UPDATE: Acceleration structure added Mesh::bvh
 
 */
 
+use core::error;
+
 use crate::json_structs::{FaceType, SingleOrVec, VertexData};
 use crate::geometry::{get_tri_normal};
 use crate::shapes::{Shape, Triangle};
@@ -50,11 +52,16 @@ pub struct MeshInstanceField {
 impl  MeshInstanceField {
     pub fn setup_mesh_pointers(&mut self, base_meshes: &SingleOrVec<Mesh>) {
         let base_meshes = base_meshes.all();
+        let mut flag = false;
         for mesh in base_meshes.iter() { // TODO: this for loop could be converted to iter().map() 
             if mesh._id == self._base_mesh_id {
-                debug!("Found base mesh pointer...");
+                flag = true;
                 self.base_mesh = Arc::new(mesh.clone()); //TODO: iirc Arc is smart enough to not clone the whole Mesh but not sure??
+                break;
             }
+        }
+        if !flag {
+            error!("Couldn't find base mesh id {} in base_meshes of length {}", self._base_mesh_id, base_meshes.len());
         }
     }
 }
@@ -64,6 +71,7 @@ impl  MeshInstanceField {
 #[serde(default)]
 pub struct Mesh {
     #[serde(deserialize_with = "deser_usize")]
+    #[default = 999999] // To see if I'm defaulting Mesh 
     pub _id: usize,
     
     #[serde(rename = "Material", deserialize_with = "deser_usize")]
@@ -240,8 +248,8 @@ impl Shape for MeshInstanceField {
 
 impl BBoxable for MeshInstanceField {
     fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
-    
-        self.base_mesh.get_bbox(verts, apply_t)
+        info!("Retrieving bounding box for base mesh '{}' of instance '{}'", self.base_mesh._id, self._id);
+        self.base_mesh.get_bbox(verts, false)
     }
 }
 
