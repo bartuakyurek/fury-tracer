@@ -14,11 +14,12 @@
     @author: Bartu
 */
 
-use bevy_math::{DMat3, DVec3};
+use bevy_math::{DMat3, DVec3, DMat4};
 pub type Int = i32;
 pub type Float = f64; // WARNING: If you want to change it to f32, don't forget to update Vector3 and Matrix3 types
 pub type Vector3 = DVec3; 
 pub type Matrix3 = DMat3;
+pub type Matrix4 = DMat4;
 
 //#[derive(Clone, Copy, Debug, Default)]
 //pub struct Vector3(pub DVec3); // To declare a type and use impl traits on this type
