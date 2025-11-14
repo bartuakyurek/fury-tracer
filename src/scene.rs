@@ -128,7 +128,7 @@ impl<'a> Scene <'a>  // Lifetime annotation 'a looks scary but it was needed for
     pub fn build_bvh(&mut self) {
         let shapes = &self.data.objects.all_shapes;
         let verts = &self.vertex_cache.vertex_data;
-        self.bvh = Some(BVHSubtree::build(shapes, verts));
+        self.bvh = Some(BVHSubtree::build(shapes, verts, true)); // Apply object's transformation for top-level BVH
     }
 
     /// Iterate over all shapes to find the closest hit

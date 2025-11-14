@@ -77,7 +77,7 @@ impl BVHSubtree {
     /// Build a BVH from a list of shapes using their bounding boxes.
     /// verts needed for get_bbox( ) called inside, since shapes only store indices, 
     /// not the actual verts. 
-    pub fn build(shapes: &Vec<HeapAllocatedShape>, verts: &VertexData) -> Self 
+    pub fn build(shapes: &Vec<HeapAllocatedShape>, verts: &VertexData, apply_t: bool) -> Self 
     {
         if shapes.is_empty() {
             return BVHSubtree(None);
@@ -86,7 +86,7 @@ impl BVHSubtree {
         // Precompute for sorting: (shape pointer, its bbox, bbox centroid)
         let mut items: Vec<(HeapAllocatedShape, BBox, Vector3)> = Vec::with_capacity(shapes.len());
         for s in shapes.iter() {
-            let bbox = s.get_bbox(verts);
+            let bbox = s.get_bbox(verts, apply_t);
             let center = bbox.get_center();
             items.push((s.clone(), bbox, center)); // clone the pointer, *s doesn't work because "s is behind a shared reference" as rustc states
         }

@@ -88,7 +88,7 @@ impl Mesh {
                                   .collect();
 
         // Build BVH for acceleration
-        self.bvh = Some(BVHSubtree::build(&self.triangles, verts));
+        self.bvh = Some(BVHSubtree::build(&self.triangles, verts,false));
 
         triangles
     }
