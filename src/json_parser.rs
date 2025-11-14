@@ -543,12 +543,13 @@ pub fn parse_material(value: serde_json::Value) -> Vec<HeapAllocMaterial> {
 pub fn parse_transform_expression(
     expr: &str,
     global_transforms: &Transformations
-) -> Arc<Transformations> {
+) -> Arc<Matrix4> {
 
-    let mut out = Transformations::default();
+    let mut out = Matrix4::IDENTITY;
 
     for token in expr.split_whitespace() {
         if token.len() < 2 {
+            warn!("Found token.len( ) < 2, skipping...");
             continue;
         }
 
@@ -564,23 +565,23 @@ pub fn parse_transform_expression(
         match kind {
             "t" | "T" => {
                 if let Some(tf) = global_transforms.find_translation(id) {
-                    out.translation.push(tf.clone());
+                    out * tf;
                 }
             }
             "s" | "S" => {
                 if let Some(sf) = global_transforms.find_scaling(id) {
-                    out.scaling.push(sf.clone());
+                    out * sf;
                 }
             }
             "r" | "R" => {
                 if let Some(rf) = global_transforms.find_rotation(id) {
-                    out.rotation.push(rf.clone());
+                    out * rf;
                 }
             }
             "c" | "C" => {
                 info!("Found composite transform!");
                 if let Some(cf) = global_transforms.find_composite(id) {
-                    out.composite.push(cf.clone());
+                    out * cf;
                 }
             }
             _ => warn!("Unknown transform token '{}'", kind),
