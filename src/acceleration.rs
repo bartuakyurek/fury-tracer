@@ -34,6 +34,7 @@ impl BVHSubtree {
     /// Recursively builds nodes in BVH tree
     /// TODO: it was meant to be inside build( ) function but inner functions cannot use generics from the outer
     /// as rustc told, so I'm moving it here.
+    #[inline]
     fn build_nodes(mut items: Vec<(HeapAllocatedShape, BBox, Vector3)>) -> Option<Arc<BVHNode>>
     {
             
@@ -96,6 +97,7 @@ impl BVHSubtree {
 
     // Introduce helper function to recursively traverse the tree 
     // Because calling intersect( ) directly 
+    #[inline]
     fn walk(node: &Arc<BVHNode>, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts, closest: &mut Option<HitRecord>) {
         if !node.bbox.intersect(ray) { return; }  // This is the base case return for recursive helper, not the outer intersect( )!
                                                   
