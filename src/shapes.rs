@@ -206,7 +206,7 @@ impl BBoxable for Sphere {
                 transformed_bbox
             } else {
                 warn!("No transformation matrix found for Sphere. Returning local bounding box.");
-                BBox::new_from(&xint, &yint, &zint)
+                local_box
             }
         }
         else {
