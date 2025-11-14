@@ -168,6 +168,22 @@ impl Mesh {
         closest
     }
 
+    fn intersect_bvh(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
+         if let Some(bvh) = &self.bvh {
+                let mut closest = HitRecord::default();    
+                if bvh.intersect(&ray, t_interval, &vertex_cache, &mut closest) {
+                    Some(closest)
+                }
+                else {
+                    None
+                }
+            } 
+            else {
+                warn!("Intersecting naively.... this shouldn't happen.");
+                self.intersect_naive(&ray, t_interval, vertex_cache)
+            }
+    }
+
 }
 
 
@@ -180,20 +196,7 @@ impl Shape for Mesh {
         let local_ray = ray.inverse_transform(&inv_matrix);
 
         // Intersect in local space
-        let rec = {
-            if let Some(bvh) = &self.bvh {
-                let mut closest = HitRecord::default();    
-                if bvh.intersect(&local_ray, t_interval, &vertex_cache, &mut closest) {
-                    Some(closest)
-                }
-                else {
-                    None
-                }
-            } 
-            else {
-                self.intersect_naive(&local_ray, t_interval, vertex_cache)
-            }
-        };
+        let rec = self.intersect_bvh(&local_ray, t_interval, vertex_cache);
 
         rec.map(|mut r| {
             r.to_world(&self.matrix);
@@ -253,7 +256,7 @@ impl Shape for MeshInstanceField {
             // Do not apply base mesh's transform on the instance mesh (see hw2 descriptions)
             let local_ray = ray.inverse_transform(&inv_instance);
 
-            if let Some(mut hit) = base_mesh.intersects_with(&local_ray, t_interval, vertex_cache) {
+            if let Some(mut hit) = base_mesh.intersect_bvh(&local_ray, t_interval, vertex_cache) {
                 hit.material = self.material_id;
                 hit.to_world(&self.matrix);
                 Some(hit)
