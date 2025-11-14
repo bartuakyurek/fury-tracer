@@ -243,12 +243,28 @@ impl BBoxable for Mesh {
 // =======================================================================================================
 
 impl Shape for MeshInstanceField {
-    fn intersects_with(&self, _ray: &Ray, _t_interval: &Interval, _vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
+    fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
         
-        let base_mesh = self.base_mesh.as_ref().unwrap(); // panic if base mesh is none
+        let base_mesh = self.base_mesh.as_deref().unwrap(); // panic if base mesh is none
+        
+        let inv_instance = self.matrix.inverse();
 
+        if self.reset_transform {
+            // Do not apply base mesh's transform on the instance mesh (see hw2 descriptions)
+            let local_ray = ray.inverse_transform(&inv_instance);
 
-        todo!()
+            if let Some(mut hit) = base_mesh.intersects_with(&local_ray, t_interval, vertex_cache) {
+                hit.material = self.material_id;
+                hit.to_world(&self.matrix);
+                Some(hit)
+            } else {
+                None
+            }
+        } 
+        else {
+            
+            todo!()
+        }
     }
 }
 
