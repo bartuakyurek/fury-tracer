@@ -50,7 +50,7 @@ pub struct Triangle {
     pub transformation_names: Option<String>,
 
     #[serde(skip)]
-    pub transform: Option<Arc<Transformations>>, // Arc here to share Transformations with Mesh, I didn't want to clone the same transform while creating triangles for mesh
+    pub matrix: Option<Arc<Matrix4>>, // Arc here to share Transformations with Mesh, I didn't want to clone the same transform while creating triangles for mesh
 
     #[serde(skip)]
     #[default = false]
@@ -135,7 +135,7 @@ pub struct Sphere {
     pub transformation_names: Option<String>,
 
     #[serde(skip)]
-    pub transform: Option<Arc<Transformations>>, // Arc here to share Transformations with Mesh, I didn't want to clone the same transform while creating triangles for mesh
+    pub matrix: Option<Arc<Matrix4>>, // Arc here to share Transformations with Mesh, I didn't want to clone the same transform while creating triangles for mesh
 
 }
 
@@ -213,7 +213,7 @@ pub struct Plane {
     pub transformation_names: Option<String>,
 
     #[serde(skip)]
-    pub transform: Option<Arc<Transformations>>, // Arc here to share Transformations with Mesh, I didn't want to clone the same transform while creating triangles for mesh
+    pub matrix: Option<Arc<Matrix4>>, // Arc here to share Transformations with Mesh, I didn't want to clone the same transform while creating triangles for mesh
 
 
 }

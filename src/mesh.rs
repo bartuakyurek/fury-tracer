@@ -23,10 +23,16 @@ use crate::prelude::*;
 #[derive(Debug, Deserialize, Clone)]
 #[derive(SmartDefault)]
 pub struct MeshInstanceField {
+    
     #[serde(deserialize_with = "deser_usize")]
     pub(crate) _id: usize,
+    
     #[serde(rename = "_baseMeshId", deserialize_with = "deser_usize")]
     pub(crate) _base_mesh_id: usize,
+
+    #[serde(rename = "_resetTransform", deserialize_with = "deser_bool")]
+    pub(crate) _reset_transform: bool,
+
     #[serde(rename = "Material", deserialize_with = "deser_usize")]
     pub(crate) material_id: usize,
     
@@ -34,7 +40,7 @@ pub struct MeshInstanceField {
     pub(crate) transformation_names: String,
 
     #[serde(skip)]
-    pub(crate) transform: Arc<Transformations>,
+    pub(crate) matrix: Arc<Matrix4>, // WARNING: This should apply its M_instance on M_base
 }
 
 
@@ -59,7 +65,7 @@ pub struct Mesh {
     pub transformation_names: Option<String>,
 
     #[serde(skip)]
-    pub transform: Arc<Transformations>,
+    pub matrix: Arc<Matrix4>,
 
     #[serde(skip)]
     pub triangles: ShapeList,
@@ -109,7 +115,7 @@ impl Mesh {
                 normal: get_tri_normal(&v1, &v2, &v3),
 
                 transformation_names: self.transformation_names.clone(),
-                transform: Some(self.transform.clone()), // NOTE: here it is ok to .clone( ) because it just increases Arc's counter, not cloning the whole data
+                matrix: Some(self.matrix.clone()), // NOTE: here it is ok to .clone( ) because it just increases Arc's counter, not cloning the whole data
             });
         }
         
