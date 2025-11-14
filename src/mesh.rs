@@ -154,6 +154,21 @@ fn inverse_transform_ray(ray: &Ray, inv_matrix: &Matrix4) -> Ray {
     let local_direction = (mat3 * ray.direction).normalize();
     Ray::new(local_origin, local_direction)
 }
+
+#[inline]
+fn transform_hitrecord_to_world(rec: &mut Option<HitRecord>, mat4: &Matrix4) {
+    // Slides 04, p.51
+    if let Some(hit) = rec {
+        // Transform hit point to world space
+        hit.hit_point = transform_point(mat4, &hit.hit_point);
+
+        // Transform normal to world space
+        let mat3 = Matrix3::from_mat4(*mat4); 
+        let inv_transpose = mat3.inverse().transpose();
+        hit.normal = (inv_transpose * hit.normal).normalize();
+    }
+}
+
 impl Shape for Mesh {
     
     // Transform the local intersection point and normal
@@ -168,7 +183,7 @@ impl Shape for Mesh {
         let local_ray = inverse_transform_ray(ray, &inv_matrix);
 
         // Intersect in local space
-        let rec = {
+        let mut rec = {
             if let Some(bvh) = &self.bvh {
                 let mut closest = HitRecord::default();    
                 if bvh.intersect(&local_ray, t_interval, &vertex_cache, &mut closest) {
@@ -183,21 +198,8 @@ impl Shape for Mesh {
             }
         };
 
-        // Transform the local intersection back to world space
-        if let Some(mut hit) = rec {
-            // Transform hit point to world space
-            hit.hit_point = transform_point(&self.matrix, &hit.hit_point);
-
-            // Transform normal to world space (use inverse transpose for normals)
-            let mat3 = Matrix3::from_mat4(*self.matrix);
-            let inv_transpose = mat3.inverse().transpose();
-            hit.normal = (inv_transpose * hit.normal).normalize();
-            
-            Some(hit)
-        } 
-        else {
-            None
-        }
+        transform_hitrecord_to_world(&mut rec, &self.matrix);
+        rec
     }
 }
 
