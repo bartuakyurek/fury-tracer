@@ -6,7 +6,7 @@
 
 use bevy_math::NormedVectorSpace;
 
-use crate::numeric::{Vector3, Float};
+use crate::prelude::*;
 
 
 #[derive(Debug)]
@@ -44,6 +44,14 @@ impl Ray {
     pub fn is_front_face(&self, normal: Vector3) -> bool {
          self.direction.dot(normal) <= 0.0 
     }
+
+    #[inline]
+    pub fn inverse_transform(&self, inv_matrix: &Matrix4) -> Ray {
+        let local_origin = transform_point(inv_matrix, &self.origin);
+        let mat3 = Matrix3::from_mat4(*inv_matrix);
+        let local_direction = (mat3 * self.direction).normalize();
+        Ray::new(local_origin, local_direction)
+    }
 }
 
 
@@ -74,5 +82,24 @@ impl HitRecord {
             is_front_face,
         }
     }
+
+    
+    #[inline]
+    pub fn to_world(&mut self, mat4: &Matrix4) {
+        // WARNING: What about entry point??? <-------------------------
+        self.entry_point = transform_point(mat4, &self.entry_point);
+
+        // Slides 04, p.51
+        // Transform hit point to world space
+        self.hit_point = transform_point(mat4, &self.hit_point);
+        // Transform normal to world space
+        // WARNING: for normal only use upper 3x3, see p.53 
+        // TODO: Cache?
+        let mat3 = Matrix3::from_mat4(*mat4); 
+        let inv_transpose = mat3.inverse().transpose();
+        self.normal = (inv_transpose * self.normal).normalize();
+    }
 }
+
+
 

@@ -147,40 +147,14 @@ impl Mesh {
 
 }
 
-#[inline]
-fn inverse_transform_ray(ray: &Ray, inv_matrix: &Matrix4) -> Ray {
-    let local_origin = transform_point(inv_matrix, &ray.origin);
-    let mat3 = Matrix3::from_mat4(*inv_matrix);
-    let local_direction = (mat3 * ray.direction).normalize();
-    Ray::new(local_origin, local_direction)
-}
-
-#[inline]
-fn transform_hitrecord_to_world(rec: &mut Option<HitRecord>, mat4: &Matrix4) {
-    // Slides 04, p.51
-    if let Some(hit) = rec {
-        // Transform hit point to world space
-        hit.hit_point = transform_point(mat4, &hit.hit_point);
-
-        // Transform normal to world space
-        let mat3 = Matrix3::from_mat4(*mat4); 
-        let inv_transpose = mat3.inverse().transpose();
-        hit.normal = (inv_transpose * hit.normal).normalize();
-    }
-}
 
 impl Shape for Mesh {
     
-    // Transform the local intersection point and normal
-    // See slides 04, p.51
-    // WARNING: for normal only use upper 3x3, see p.53 
-    // TODO: cache inverse?
-    // WARNING: How about entry_point, should we inverse transform it? it's used for dielectric
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
         
         // Transform ray to local space
         let inv_matrix = self.matrix.inverse();
-        let local_ray = inverse_transform_ray(ray, &inv_matrix);
+        let local_ray = ray.inverse_transform(&inv_matrix);
 
         // Intersect in local space
         let mut rec = {
@@ -198,7 +172,10 @@ impl Shape for Mesh {
             }
         };
 
-        transform_hitrecord_to_world(&mut rec, &self.matrix);
+        if let Some(mut rec) = rec {// TODO: .... there are so many unnecessary if lets 
+            rec.to_world(&self.matrix);
+            return Some(rec);
+        }
         rec
     }
 }
