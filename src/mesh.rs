@@ -214,3 +214,21 @@ impl BBoxable for Mesh {
     }
 }
 
+
+// =======================================================================================================
+// MeshInstanceField: Shape + BBoxable
+// =======================================================================================================
+
+impl Shape for MeshInstanceField {
+    fn intersects_with(&self, _ray: &Ray, _t_interval: &Interval, _vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
+        
+        todo!()
+    }
+}
+
+impl BBoxable for MeshInstanceField {
+    fn get_bbox(&self, _verts: &VertexData, _apply_t: bool) -> BBox {
+        todo!()
+    }
+}
+
