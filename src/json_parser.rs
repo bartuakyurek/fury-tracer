@@ -38,7 +38,7 @@ use crate::scene::{RootScene};
 use crate::camera::{NearPlane};
 use crate::material::*;
 use crate::numeric::{Int, Float, Vector3};
-use crate::json_structs::{Transformations};
+use crate::json_structs::{Transformations, TransformKind};
 
 pub fn parse_json795(path: &str) -> Result<RootScene, Box<dyn std::error::Error>> {
     /*
@@ -539,7 +539,6 @@ pub fn parse_material(value: serde_json::Value) -> Vec<HeapAllocMaterial> {
         }
     }
 }
-
 pub fn parse_transform_expression(
     expr: &str,
     global_transforms: &Transformations
@@ -549,7 +548,7 @@ pub fn parse_transform_expression(
 
     for token in expr.split_whitespace() {
         if token.len() < 2 {
-            warn!("Found token.len( ) < 2, skipping...");
+            warn!("Found token.len() < 2, skipping...");
             continue;
         }
 
@@ -565,23 +564,22 @@ pub fn parse_transform_expression(
         match kind {
             "t" | "T" => {
                 if let Some(tf) = global_transforms.find_translation(id) {
-                    out * tf;
+                    out = out * tf.get_mat4(TransformKind::Translation);
                 }
             }
             "s" | "S" => {
                 if let Some(sf) = global_transforms.find_scaling(id) {
-                    out * sf;
+                    out = out * sf.get_mat4(TransformKind::Scaling);
                 }
             }
             "r" | "R" => {
                 if let Some(rf) = global_transforms.find_rotation(id) {
-                    out * rf;
+                    out = out * rf.get_mat4(TransformKind::Rotation);
                 }
             }
             "c" | "C" => {
-                info!("Found composite transform!");
                 if let Some(cf) = global_transforms.find_composite(id) {
-                    out * cf;
+                    out = out * cf.get_mat4(TransformKind::Composite);
                 }
             }
             _ => warn!("Unknown transform token '{}'", kind),

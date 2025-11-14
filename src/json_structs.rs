@@ -18,6 +18,13 @@ use void::Void;
 use crate::json_parser::{deser_vertex_data, deser_usize_vec, parse_string_vecvec3};
 use crate::prelude::*;
 
+#[derive(Copy, Clone)]
+pub enum TransformKind {
+    Translation,
+    Rotation,
+    Scaling,
+    Composite,
+}
 
 
 #[derive(Debug, Deserialize, Clone)] // TODO : Smart default or impl default to set some to eye? or empty vec?
