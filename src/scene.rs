@@ -382,8 +382,9 @@ impl SceneObjects {
 
         // Setup and add mesh instances to shapes
         //let base_meshes = self.meshes.all();
+        let instances_borrow_ref = &self.mesh_instances; // iter_mut( ) borrows mutable reference that becomes a problem for the next function call that I shoudln't have implemented anyway..
         for mint in self.mesh_instances.iter_mut() {
-                mint.setup_mesh_pointers(&self.meshes);
+                mint.setup_mesh_pointers(&self.meshes, instances_borrow_ref);
                 debug!("Mesh instance {} referes base mesh {} ", mint._id, mint.base_mesh.clone().unwrap()._id);
         }
 
