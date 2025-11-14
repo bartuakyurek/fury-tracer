@@ -54,14 +54,7 @@ impl Mesh {
     /// Given global vertex data and id_offset, 
     /// Populate self.triangles with a vector, and
     /// return the vector of the created triangles.
-    pub fn setup(&mut self, global_transforms: &Transformations, verts: &VertexData, id_offset: usize) -> Vec<Triangle> {
-
-
-        // Inside Mesh setup
-        self.transform = parse_transform_expression(
-            self.transformation_names.as_deref().unwrap_or(""),
-            &global_transforms
-        );
+    pub fn setup(&mut self, verts: &VertexData, id_offset: usize) -> Vec<Triangle> {
 
         let triangles: Vec<Triangle> = self.to_triangles(verts, id_offset);
         

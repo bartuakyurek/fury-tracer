@@ -57,6 +57,10 @@ pub struct SceneJSON {
     #[serde(deserialize_with = "deser_string_or_struct")]
     pub vertex_data: VertexData, 
 
+
+    #[serde(skip)]
+    pub transformations: Transformations,
+
     pub cameras: Cameras,
     pub lights: SceneLights,
     pub materials: SceneMaterials,
@@ -83,6 +87,15 @@ impl SceneJSON {
 
         // 4 - Get cache per vertex (objects.setup appends PLY data to vertex_data)
         let cache = self.objects.setup_and_get_cache(&mut self.vertex_data,  jsonpath)?; 
+
+        // 5 - Setup mesh transformations
+        for mesh in self.objects.meshes.iter_mut() {
+            info!("Setting up transforms for mesh._id '{}'", mesh._id.clone());
+            mesh.transform = parse_transform_expression(
+                    mesh.transformation_names.as_deref().unwrap_or(""),
+                    &self.transformations,  
+            );
+        }
         Ok(cache)
     }
 }
@@ -261,6 +274,9 @@ impl SceneObjects {
         // Convert meshes: UPDATE: do not convert it into individual triangles
         for mesh in self.meshes.all() {
             let mut mesh = mesh;
+
+             
+
             if !mesh.faces._ply_file.is_empty() {
 
                 // Get path containing the JSON (_plyFile in json is relative to that json)
