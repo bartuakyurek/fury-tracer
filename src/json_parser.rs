@@ -526,6 +526,12 @@ pub fn parse_transform_expression(
                     out.rotation.push(rf.clone());
                 }
             }
+            "c" | "C" => {
+                info!("Found composite transform!");
+                if let Some(cf) = global_transforms.find_composite(id) {
+                    out.composite.push(cf.clone());
+                }
+            }
             _ => warn!("Unknown transform token '{}'", kind),
         }
     }

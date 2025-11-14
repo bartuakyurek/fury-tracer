@@ -27,6 +27,7 @@ pub struct Transformations {
     pub(crate) translation: SingleOrVec<TransformField>,
     pub(crate) rotation: SingleOrVec<TransformField>,
     pub(crate) scaling: SingleOrVec<TransformField>,
+    pub(crate) composite: SingleOrVec<TransformField>
 }
 
 impl Default for Transformations {
@@ -44,6 +45,13 @@ impl Default for Transformations {
                 _data: vec![1.0, 1.0, 1.0], // no scale
                 _id: 0,
             }),
+            composite: SingleOrVec::Single(TransformField {
+                _data: vec![1., 0., 0., 0., 
+                            0., 1., 0., 0.,
+                            0., 0., 1., 0.,
+                            0., 0., 0., 1.], // identity matrix
+                _id: 0,
+            }),
         }
     }
 }
@@ -59,6 +67,10 @@ impl Transformations {
 
     pub fn find_rotation(&self, id: usize) -> Option<&TransformField> {
         self.rotation.iter().find(|r| r._id == id )
+    }
+
+    pub fn find_composite(&self, id: usize) -> Option<&TransformField> {
+        self.composite.iter().find(|c| c._id == id )
     }
 }
 
@@ -195,7 +207,7 @@ impl<T: Clone> SingleOrVec<T>  {
             SingleOrVec::Multiple(vs) => vs.iter().collect(),
         }
     }
-    
+
     pub fn push(&mut self, item: T) {
         match self {
             SingleOrVec::Empty => {
