@@ -32,7 +32,8 @@ pub struct MeshInstanceField {
     #[serde(rename = "_baseMeshId", deserialize_with = "deser_usize")]
     pub(crate) base_mesh_id: usize,
 
-    #[serde(rename = "_resetTransform", deserialize_with = "deser_bool")]
+    #[serde(rename = "_resetTransform", deserialize_with = "deser_bool", default)]
+    #[default = false]
     pub(crate) reset_transform: bool,
 
     #[serde(rename = "Material", deserialize_with = "deser_usize")]
