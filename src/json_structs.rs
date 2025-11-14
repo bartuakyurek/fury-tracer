@@ -16,6 +16,7 @@ use tracing::{warn};
 use void::Void;
 
 use crate::json_parser::{deser_vertex_data, deser_usize_vec, parse_string_vecvec3};
+use crate::geometry::rodrigues_rotation;
 use crate::prelude::*;
 
 #[derive(Copy, Clone)]
@@ -134,9 +135,15 @@ impl TransformField {
 
             TransformKind::Rotation => {
                 let d = &self._data;
-                let angle = d[0].to_radians();
+                let angle = d[0].to_radians(); // WARNING: Assumes first item in Rotation was in degrees
                 let axis = Vector3::new(d[1], d[2], d[3]);
-                rodrigues_rotation(axis, angle)
+                let rot3 = rodrigues_rotation(&axis, angle);
+                Matrix4::from_cols(
+                    rot3.col(0).extend(0.0),
+                    rot3.col(1).extend(0.0),
+                    rot3.col(2).extend(0.0),
+                    Vector3::ZERO.extend(1.0),
+                )
             }
 
             TransformKind::Composite => {
