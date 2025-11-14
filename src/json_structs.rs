@@ -270,6 +270,14 @@ impl<T: Clone> SingleOrVec<T>  {
         }
     }
 
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        match self {
+            SingleOrVec::Empty => &mut [],
+            SingleOrVec::Single(v) => std::slice::from_mut(v),
+            SingleOrVec::Multiple(vs) => vs.as_mut_slice(),
+        }
+    }
+    
     /// create iterator (borrows, read-only access)
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.as_slice().iter()
@@ -282,6 +290,18 @@ impl<T: Clone> SingleOrVec<T>  {
             SingleOrVec::Single(v) => std::slice::from_mut(v).iter_mut(),
             SingleOrVec::Multiple(vec) => vec.iter_mut(),
         }
+    }
+
+     pub fn len(&self) -> usize {
+        match self {
+            SingleOrVec::Empty => 0,
+            SingleOrVec::Single(_) => 1,
+            SingleOrVec::Multiple(vs) => vs.len(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     
