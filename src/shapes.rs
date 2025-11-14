@@ -15,7 +15,7 @@ use crate::geometry::{get_tri_normal, moller_trumbore_intersection};
 use crate::bbox::{BBox, BBoxable};
 use crate::ray::{Ray, HitRecord}; // TODO: Can we create a small crate for gathering shapes.rs, ray.rs?
 use crate::interval::{Interval};
-use crate::json_structs::{VertexData, Transformations};
+use crate::json_structs::{VertexData};
 use crate::scene::HeapAllocatedVerts;
 use crate::prelude::*;
 
@@ -113,11 +113,16 @@ impl BBoxable for Triangle {
             zint.expand(v.z);
         }
 
+        let local_box = BBox::new_from(&xint, &yint, &zint);
         if apply_t {
-            BBox::new_from(&xint, &yint, &zint)
-        }
-        else {
-            todo!()
+            if let Some(matrix) = &self.matrix {
+                local_box.transform(matrix)
+            } else {
+                warn!("No transformation matrix found for Triangle. Returning local bounding box.");
+                local_box
+            }
+        } else {
+            local_box
         }
     }
 }
@@ -194,11 +199,18 @@ impl BBoxable for Sphere {
         let yint = Interval::new(center.y - self.radius, center.y + self.radius);
         let zint = Interval::new(center.z - self.radius, center.z + self.radius);
 
+        let local_box = BBox::new_from(&xint, &yint, &zint);
         if apply_t {
-            BBox::new_from(&xint, &yint, &zint)
+            if let Some(matrix) = &self.matrix {
+                let transformed_bbox = local_box.transform(matrix);
+                transformed_bbox
+            } else {
+                warn!("No transformation matrix found for Sphere. Returning local bounding box.");
+                BBox::new_from(&xint, &yint, &zint)
+            }
         }
         else {
-            todo!()
+            local_box
         }
     }
 }
@@ -257,11 +269,18 @@ impl BBoxable for Plane {
         let yint = Interval::new(p.y, p.y);
         let zint = Interval::new(p.z, p.z);
 
+        let local_box = BBox::new_from(&xint, &yint, &zint);
         if apply_t {
-            BBox::new_from(&xint, &yint, &zint)
+            if let Some(matrix) = &self.matrix {
+                let transformed_bbox = local_box.transform(matrix);
+                transformed_bbox
+            } else {
+                warn!("No transformation matrix found for Plane. Returning local bounding box.");
+                BBox::new_from(&xint, &yint, &zint)
+            }
         }
         else {
-            todo!()
+            local_box
         }
     }
 }
