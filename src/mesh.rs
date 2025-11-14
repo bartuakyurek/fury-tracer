@@ -45,7 +45,8 @@ pub struct MeshInstanceField {
     pub(crate) matrix: Arc<Matrix4>, // WARNING: This should apply its M_instance on M_base
 
     #[serde(skip)]
-    pub base_mesh: Arc<Mesh>, // pointer to base mesh because trait impls need to access the actual mesh
+    pub base_mesh: Option<Arc<Mesh>>, // wrapped around Option to prevent default mesh construction
+    // pointer to base mesh because trait impls need to access the actual mesh
     //pub inv_matrix: Arc<Matrix4>,
 }
 
@@ -57,8 +58,8 @@ impl MeshInstanceField {
             debug!("Mesh of id {}", mesh._id);
             if mesh._id == self.base_mesh_id {
                 flag = true;
-                self.base_mesh = Arc::new(mesh.clone()); //TODO: iirc Arc is smart enough to not clone the whole Mesh but not sure??
-                debug!("Set base_mesh {} ", self.base_mesh._id);
+                self.base_mesh = Some(Arc::new(mesh.clone())); //TODO: iirc Arc is smart enough to not clone the whole Mesh but not sure??
+                debug!("Set base_mesh {} ", self.base_mesh.clone().unwrap()._id);
                 break;
             }
         }
@@ -250,15 +251,23 @@ impl Shape for MeshInstanceField {
 
 impl BBoxable for MeshInstanceField {
     fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
-        info!("Retrieving bounding box for base mesh '{}' of instance '{}'", self.base_mesh._id, self._id);
-        let local_box = self.base_mesh.get_bbox(verts, false);
+        
+        if let Some(base_mesh) = self.base_mesh.as_deref() { // deref resolved cannot move, behind shared reference error, ig it's because Arc is a shared pointer
+             info!("Retrieving bounding box for base mesh '{}' of instance '{}'", base_mesh._id, self._id);
+        
+            let local_box = base_mesh.get_bbox(verts, false);
 
-        if apply_t {
-             local_box.transform(&self.matrix)
+            if apply_t {
+                local_box.transform(&self.matrix)
+            }
+            else {
+                local_box
+            }
         }
         else {
-            local_box
+            panic!("Mesh instance {} is missing base mesh (Option set to None)", self._id);
         }
+       
     }
 }
 
