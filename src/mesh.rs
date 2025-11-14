@@ -149,11 +149,25 @@ impl Mesh {
 
 impl Shape for Mesh {
     
+    // Transform the local intersection point and normal
+    // See slides 04, p.51
+    // WARNING: for normal only use upper 3x3, see p.53 
+    // TODO: cache inverse?
+    // WARNING: How about entry_point, should we inverse transform it? it's used for dielectric
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
+        
+        // Transform ray to local space
+        let inv_matrix = self.matrix.inverse();
+        let local_origin = transform_point(&inv_matrix, &ray.origin);
+        let mat3 = Matrix3::from_mat4(inv_matrix);
+        let local_direction = (mat3 * ray.direction).normalize();
+        let local_ray = Ray::new(local_origin, local_direction);
+        
+        // Intersect in local space
         let rec = {
             if let Some(bvh) = &self.bvh {
                 let mut closest = HitRecord::default();    
-                if bvh.intersect(ray, t_interval, &vertex_cache, &mut closest) {
+                if bvh.intersect(&local_ray, t_interval, &vertex_cache, &mut closest) {
                     Some(closest)
                 }
                 else {
@@ -161,28 +175,25 @@ impl Shape for Mesh {
                 }
             } 
             else {
-                self.intersect_naive(ray, t_interval, vertex_cache)
+                self.intersect_naive(&local_ray, t_interval, vertex_cache)
             }
         };
 
-        // Transform the local intersection point and normal
-        // See slides 04, p.51
+        // Transform the local intersection back to world space
         if let Some(mut hit) = rec {
+            // Transform hit point to world space
             hit.hit_point = transform_point(&self.matrix, &hit.hit_point);
 
-            // WARNING: only use upper 3x3, see p.53 
-            // TODO: cache it?
+            // Transform normal to world space (use inverse transpose for normals)
             let mat3 = Matrix3::from_mat4(*self.matrix);
-            let inv = mat3.inverse().transpose();
-            hit.normal = inv * hit.normal; 
+            let inv_transpose = mat3.inverse().transpose();
+            hit.normal = (inv_transpose * hit.normal).normalize();
+            
             Some(hit)
-             // WARNING: How about entry_point, should we inverse transform it? it's used for dielectric
         } 
         else {
             None
         }
-        
-       
     }
 }
 
