@@ -132,7 +132,10 @@ pub struct Sphere {
     pub material_idx: usize,
 
     #[serde(rename = "Transformations", default)]
-    pub transformations: Option<String>,
+    pub transformation_names: Option<String>,
+
+    #[serde(skip)]
+    pub transform: Option<Arc<Transformations>>, // Arc here to share Transformations with Mesh, I didn't want to clone the same transform while creating triangles for mesh
 
 }
 
@@ -207,7 +210,11 @@ pub struct Plane {
     pub material_idx: usize,
 
     #[serde(rename = "Transformations", default)]
-    pub transformations: Option<String>,
+    pub transformation_names: Option<String>,
+
+    #[serde(skip)]
+    pub transform: Option<Arc<Transformations>>, // Arc here to share Transformations with Mesh, I didn't want to clone the same transform while creating triangles for mesh
+
 
 }
 
