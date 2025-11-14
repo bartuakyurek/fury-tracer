@@ -263,15 +263,15 @@ impl SceneObjects {
         
         for mesh in self.meshes.iter_mut() {
             info!("Setting up transforms for mesh._id '{}'", mesh._id.clone());
-            mesh.transform = parse_transform_expression(
+            mesh.matrix = parse_transform_expression(
                     mesh.transformation_names.as_deref().unwrap_or(""),
                     &transforms,  
             );
         }
 
          for mint in self.mesh_instances.iter_mut() {
-            info!("Setting up transforms for mesh_instance._id '{}'", mint._id.clone());
-            mint.transform = parse_transform_expression(
+            info!("Setting up transforms for mesh_instance {:#?}", mint);
+            mint.matrix = parse_transform_expression(
                     mint.transformation_names.as_str(),
                     &transforms,  
             );
@@ -280,14 +280,14 @@ impl SceneObjects {
 
         for tri in self.triangles.iter_mut() {
             info!("Setting up transforms for mesh._id '{}'", tri._id.clone());
-            tri.transform = Some(parse_transform_expression(
+            tri.matrix = Some(parse_transform_expression(
                     tri.transformation_names.as_deref().unwrap_or(""),
                     &transforms,  
             ));
         }
 
         for sphere in self.spheres.iter_mut() {
-            sphere.transform = Some(parse_transform_expression(
+            sphere.matrix = Some(parse_transform_expression(
                 sphere.transformation_names.as_deref().unwrap_or(""), 
                 &transforms));
         }
@@ -295,7 +295,7 @@ impl SceneObjects {
         
         for plane in self.planes.iter_mut() {
             info!("Setting up transforms for mesh._id '{}'", plane._id.clone());
-            plane.transform = Some(parse_transform_expression(
+            plane.matrix = Some(parse_transform_expression(
                     plane.transformation_names.as_deref().unwrap_or(""),
                     &transforms,  
             ));
