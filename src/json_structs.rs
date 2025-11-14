@@ -31,14 +31,11 @@ pub enum TransformKind {
 #[derive(Debug, Deserialize, Clone)] // TODO : Smart default or impl default to set some to eye? or empty vec?
 #[serde(rename = "PascalCase")]
 #[serde(default)]
-pub struct Transformations {
+pub struct Transformations { // To store global transformation in the scene
     pub(crate) translation: SingleOrVec<TransformField>,
     pub(crate) rotation: SingleOrVec<TransformField>,
     pub(crate) scaling: SingleOrVec<TransformField>,
     pub(crate) composite: SingleOrVec<TransformField>,
-
-    #[serde(skip)]
-    pub(crate) cache_composite: Option<Matrix4>,
 }
 
 impl Default for Transformations {
@@ -63,16 +60,11 @@ impl Default for Transformations {
                             0., 0., 0., 1.], // identity matrix
                 _id: 0,
             }),
-            cache_composite: None,
         }
     }
 }
 
 impl Transformations {
-
-    pub fn setup_cache( ) {
-        todo!()
-    }
 
     pub fn find_translation(&self, id: usize) -> Option<&TransformField> {
         self.translation.iter().find(|t| t._id == id )
