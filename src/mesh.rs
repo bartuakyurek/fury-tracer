@@ -157,7 +157,7 @@ impl Shape for Mesh {
         let local_ray = ray.inverse_transform(&inv_matrix);
 
         // Intersect in local space
-        let mut rec = {
+        let rec = {
             if let Some(bvh) = &self.bvh {
                 let mut closest = HitRecord::default();    
                 if bvh.intersect(&local_ray, t_interval, &vertex_cache, &mut closest) {
@@ -172,11 +172,10 @@ impl Shape for Mesh {
             }
         };
 
-        if let Some(mut rec) = rec {// TODO: .... there are so many unnecessary if lets 
-            rec.to_world(&self.matrix);
-            return Some(rec);
-        }
-        rec
+        rec.map(|mut r| {
+            r.to_world(&self.matrix);
+            r
+        }) // Added to reduce if let verbosity but it didn't reduce nesting above...
     }
 }
 
