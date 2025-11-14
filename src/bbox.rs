@@ -96,7 +96,6 @@ impl BBox {
         )
     }
 
-
     pub fn get_center(&self) -> Vector3 {
          Vector3::new((self.xmin + self.xmax) * 0.5, (self.ymin + self.ymax) * 0.5, (self.zmin + self.zmax) * 0.5)
     }
@@ -127,6 +126,42 @@ impl BBox {
 
         // WARNING: It does not save enterance and exit points atm, just bool returned
         t1 <= t2 
+    }
+
+    /// Transform the bounding box given a 4x4 matrix
+    pub fn transform(&self, matrix: &Matrix4) -> Self {
+        // TODO: reduce verbosity
+        let corners = [
+            Vector3::new(self.xmin, self.ymin, self.zmin),
+            Vector3::new(self.xmin, self.ymin, self.zmax),
+            Vector3::new(self.xmin, self.ymax, self.zmin),
+            Vector3::new(self.xmin, self.ymax, self.zmax),
+            Vector3::new(self.xmax, self.ymin, self.zmin),
+            Vector3::new(self.xmax, self.ymin, self.zmax),
+            Vector3::new(self.xmax, self.ymax, self.zmin),
+            Vector3::new(self.xmax, self.ymax, self.zmax),
+        ];
+
+        let transformed_corners: Vec<Vector3> = corners
+            .iter()
+            .map(|corner| matrix.transform_point3(*corner))
+            .collect();
+
+        // Find transformed xmin xmax ymin etc.
+        let (mut xmin, mut xmax) = (Float::INFINITY, Float::NEG_INFINITY);
+        let (mut ymin, mut ymax) = (Float::INFINITY, Float::NEG_INFINITY);
+        let (mut zmin, mut zmax) = (Float::INFINITY, Float::NEG_INFINITY);
+
+        for corner in transformed_corners {
+            xmin = xmin.min(corner.x);
+            xmax = xmax.max(corner.x);
+            ymin = ymin.min(corner.y);
+            ymax = ymax.max(corner.y);
+            zmin = zmin.min(corner.z);
+            zmax = zmax.max(corner.z);
+        }
+
+        Self::new(xmin, xmax, ymin, ymax, zmin, zmax)
     }
 }
 
