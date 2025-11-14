@@ -119,6 +119,57 @@ where
     }
 }
 
+pub fn deser_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct BoolVisitor;
+
+    impl<'de> serde::de::Visitor<'de> for BoolVisitor {
+        type Value = bool;
+
+        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            write!(f, "a boolean or a string containing true/false")
+        }
+
+        fn visit_bool<E>(self, v: bool) -> Result<bool, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(v)
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<bool, E>
+        where
+            E: serde::de::Error,
+        {
+            match v.to_lowercase().as_str() {
+                "true" => Ok(true),
+                "false" => Ok(false),
+                "1" => Ok(true),
+                "0" => Ok(false),
+                _ => Err(E::custom(format!("invalid bool '{}'", v))),
+            }
+        }
+
+        fn visit_string<E>(self, v: String) -> Result<bool, E>
+        where
+            E: serde::de::Error,
+        {
+            self.visit_str(&v)
+        }
+
+        fn visit_u64<E>(self, v: u64) -> Result<bool, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(v != 0)
+        }
+    }
+
+    deserializer.deserialize_any(BoolVisitor)
+}
+
 pub trait From3<T>: Sized {
     fn new(x: T, y: T, z: T) -> Self;
 }
