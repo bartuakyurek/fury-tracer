@@ -43,22 +43,22 @@ impl Default for Transformations {
         Self {
             translation: SingleOrVec::Single(TransformField {
                 _data: vec![0.0, 0.0, 0.0], // no translation
-                _id: 0,
+                _id: 99,
             }),
             rotation: SingleOrVec::Single(TransformField {
                 _data: vec![0.0, 0.0, 0.0, 1.0], // no rotation 
-                _id: 0,
+                _id: 99,
             }),
             scaling: SingleOrVec::Single(TransformField {
                 _data: vec![1.0, 1.0, 1.0], // no scale
-                _id: 0,
+                _id: 99,
             }),
             composite: SingleOrVec::Single(TransformField {
                 _data: vec![1., 0., 0., 0., 
                             0., 1., 0., 0.,
                             0., 0., 1., 0.,
                             0., 0., 0., 1.], // identity matrix
-                _id: 0,
+                _id: 99,
             }),
         }
     }
@@ -109,6 +109,7 @@ impl<'de> Deserialize<'de> for TransformField {
         struct Helper {
             #[serde(deserialize_with = "deser_float_vec")]
             _data: Vec<Float>,
+            #[serde(deserialize_with = "deser_usize")]
             _id: usize,
         }
 
