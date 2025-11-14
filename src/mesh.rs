@@ -7,7 +7,7 @@ UPDATE: Acceleration structure added Mesh::bvh
 
 */
 
-use crate::json_structs::{FaceType, VertexData, Transformations};
+use crate::json_structs::{FaceType, VertexData};
 use crate::geometry::{get_tri_normal};
 use crate::shapes::{Shape, Triangle};
 use crate::ray::{Ray, HitRecord};
@@ -41,6 +41,9 @@ pub struct MeshInstanceField {
 
     #[serde(skip)]
     pub(crate) matrix: Arc<Matrix4>, // WARNING: This should apply its M_instance on M_base
+
+    #[serde(skip)]
+    pub inv_matrix: Arc<Matrix4>,
 }
 
 
@@ -66,6 +69,9 @@ pub struct Mesh {
 
     #[serde(skip)]
     pub matrix: Arc<Matrix4>,
+
+    #[serde(skip)]
+    pub inv_matrix: Arc<Matrix4>,
 
     #[serde(skip)]
     pub triangles: ShapeList,
@@ -144,18 +150,34 @@ impl Mesh {
 impl Shape for Mesh {
     
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
-        if let Some(bvh) = &self.bvh {
-            let mut closest = HitRecord::default();    
-            if bvh.intersect(ray, t_interval, &vertex_cache, &mut closest) {
-                Some(closest)
-            }
+        let rec = {
+            if let Some(bvh) = &self.bvh {
+                let mut closest = HitRecord::default();    
+                if bvh.intersect(ray, t_interval, &vertex_cache, &mut closest) {
+                    Some(closest)
+                }
+                else {
+                    None
+                }
+            } 
             else {
-                None
+                self.intersect_naive(ray, t_interval, vertex_cache)
             }
+        };
+
+        // Transform the local intersection point and normal
+        // See slides 04, p.51
+        if let Some(mut hit) = rec {
+            hit.hit_point = transform_point(&self.matrix, &hit.hit_point);
+            hit.normal = transform_point(&self.inv_matrix, &hit.normal);
+            Some(hit)
+             // WARNING: How about entry_point, should we inverse transform it? it's used for dielectric
         } 
         else {
-            self.intersect_naive(ray, t_interval, vertex_cache)
+            None
         }
+        
+       
     }
 }
 
