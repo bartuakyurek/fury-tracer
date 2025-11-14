@@ -24,13 +24,17 @@ use crate::prelude::*;
 #[derive(SmartDefault)]
 pub struct MeshInstanceField {
     #[serde(deserialize_with = "deser_usize")]
-    _id: usize,
+    pub(crate) _id: usize,
     #[serde(rename = "_baseMeshId", deserialize_with = "deser_usize")]
-    _base_mesh_id: usize,
+    pub(crate) _base_mesh_id: usize,
     #[serde(rename = "Material", deserialize_with = "deser_usize")]
-    material_id: usize,
+    pub(crate) material_id: usize,
+    
     #[serde(rename = "Transformations")]
-    transformation_name: String,
+    pub(crate) transformation_names: String,
+
+    #[serde(skip)]
+    pub(crate) transform: Arc<Transformations>,
 }
 
 
