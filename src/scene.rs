@@ -262,19 +262,20 @@ impl SceneObjects {
 
         
         for mesh in self.meshes.iter_mut() {
-            info!("Setting up transforms for mesh._id '{}'", mesh._id.clone());
             mesh.matrix = parse_transform_expression(
                     mesh.transformation_names.as_deref().unwrap_or(""),
                     &transforms,  
             );
+            info!("Composite transform for mesh '{}' is {}", mesh._id, mesh.matrix);
         }
 
          for mint in self.mesh_instances.iter_mut() {
-            info!("Setting up transforms for mesh_instance {:#?}", mint);
+            
             mint.matrix = parse_transform_expression(
                     mint.transformation_names.as_str(),
                     &transforms,  
             );
+            info!("Composite transform for mesh '{}' is {}", mint._id, mint.matrix);
         }
 
 

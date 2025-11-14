@@ -547,6 +547,7 @@ pub fn parse_transform_expression(
     let mut out = Matrix4::IDENTITY;
 
     for token in expr.split_whitespace() {
+        debug!("Parsing token {}", token);
         if token.len() < 2 {
             warn!("Found token.len() < 2, skipping...");
             continue;
