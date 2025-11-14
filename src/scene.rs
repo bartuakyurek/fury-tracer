@@ -371,6 +371,7 @@ impl SceneObjects {
                 }
             }
 
+        
             // For vertex cache, get the triangles in a single mesh 
             // TODO: this is done because we have global vertex_data
             let offset = verts._data.len();
@@ -381,7 +382,12 @@ impl SceneObjects {
             shapes.push(Arc::new(mesh) as HeapAllocatedShape);
         }
 
-        // Add mesh instances to shapes
+        // Setup and add mesh instances to shapes
+        //let base_meshes = self.meshes.all();
+        for mint in self.mesh_instances.all().iter_mut() {
+                mint.setup_mesh_pointers(&self.meshes);
+        }
+
         for mint in self.mesh_instances.all() {
             shapes.push(Arc::new(mint) as HeapAllocatedShape);
         }

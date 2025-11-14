@@ -7,7 +7,7 @@ UPDATE: Acceleration structure added Mesh::bvh
 
 */
 
-use crate::json_structs::{FaceType, VertexData};
+use crate::json_structs::{FaceType, SingleOrVec, VertexData};
 use crate::geometry::{get_tri_normal};
 use crate::shapes::{Shape, Triangle};
 use crate::ray::{Ray, HitRecord};
@@ -42,10 +42,22 @@ pub struct MeshInstanceField {
     #[serde(skip)]
     pub(crate) matrix: Arc<Matrix4>, // WARNING: This should apply its M_instance on M_base
 
-    //#[serde(skip)]
+    #[serde(skip)]
+    pub base_mesh: Arc<Mesh>, // pointer to base mesh because trait impls need to access the actual mesh
     //pub inv_matrix: Arc<Matrix4>,
 }
 
+impl  MeshInstanceField {
+    pub fn setup_mesh_pointers(&mut self, base_meshes: &SingleOrVec<Mesh>) {
+        let base_meshes = base_meshes.all();
+        for mesh in base_meshes.iter() { // TODO: this for loop could be converted to iter().map() 
+            if mesh._id == self._base_mesh_id {
+                debug!("Found base mesh pointer...");
+                self.base_mesh = Arc::new(mesh.clone()); //TODO: iirc Arc is smart enough to not clone the whole Mesh but not sure??
+            }
+        }
+    }
+}
 
 #[derive(Debug, Deserialize, Clone)]
 #[derive(SmartDefault)]
@@ -227,8 +239,9 @@ impl Shape for MeshInstanceField {
 }
 
 impl BBoxable for MeshInstanceField {
-    fn get_bbox(&self, _verts: &VertexData, _apply_t: bool) -> BBox {
-        todo!()
+    fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
+    
+        self.base_mesh.get_bbox(verts, apply_t)
     }
 }
 
