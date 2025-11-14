@@ -19,7 +19,8 @@ json_files=(
     #"raven/rt_utahteapot_mug_ceng.json"
     "/simple_transform.json"
     "/dragon_metal.json"
-    
+    "/spheres.json"
+    "/ellipsoids.json"
 )
 
 for json_file in "${json_files[@]}"; do
