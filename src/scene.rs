@@ -254,6 +254,41 @@ pub struct SceneObjects {
     pub all_shapes: ShapeList, 
 }
 
+fn resolve_all_mesh_instances(
+    mesh_instances: &mut SingleOrVec<MeshInstanceField>,
+    meshes: &SingleOrVec<Mesh>,
+) {
+    let slice = mesh_instances.as_mut_slice();
+    let n = slice.len();
+
+    for i in 0..n {
+        // Split slice into the current element and the rest
+        let (left, right) = slice.split_at_mut(i);
+        let (mint, rest) = right.split_first_mut().unwrap();
+
+        // First check "Mesh" objects
+        if let Some(mesh) = meshes.iter().find(|m| m._id == mint.base_mesh_id) {
+            mint.base_mesh = Some(Arc::new(mesh.clone()));
+            debug!("Mesh instance {} refers base mesh {} ", mint._id, mint.base_mesh.clone().unwrap()._id);
+            continue;
+        }
+
+        // Then try other "MeshInstance" objects
+        for other in left.iter().chain(rest.iter()) {
+            if other._id == mint.base_mesh_id {
+                mint.base_mesh = other.base_mesh.clone();
+                debug!("Mesh instance {} refers base mesh instance {} ", mint._id, mint.base_mesh.clone().unwrap()._id);
+                break;
+            }
+        }
+
+        // If still None, panic
+        if mint.base_mesh.is_none() {
+            panic!("Could not resolve base mesh id {}", mint.base_mesh_id);
+        }
+    }
+}
+
 impl SceneObjects {
 
     fn setup_transforms(&mut self, transforms: &Transformations) {
@@ -380,14 +415,12 @@ impl SceneObjects {
             shapes.push(Arc::new(mesh.clone()) as HeapAllocatedShape);
         }
 
-        // Setup and add mesh instances to shapes
-        //let base_meshes = self.meshes.all();
-        let instances_borrow_ref = &self.mesh_instances; // iter_mut( ) borrows mutable reference that becomes a problem for the next function call that I shoudln't have implemented anyway..
-        for mint in self.mesh_instances.iter_mut() {
-                mint.setup_mesh_pointers(&self.meshes, instances_borrow_ref);
-                debug!("Mesh instance {} referes base mesh {} ", mint._id, mint.base_mesh.clone().unwrap()._id);
-        }
+        // Find which meshes the mesh refers to
+        let mesh_instances = &mut self.mesh_instances;
+        let meshes = &self.meshes;
+        resolve_all_mesh_instances(mesh_instances, meshes);
 
+        // Push all mesh instances to scene shapes -----------------
         for mint in self.mesh_instances.iter() { 
             debug!("Before pushing into all_shapes, Mesh instance {} referes base mesh {} ", mint._id, mint.base_mesh.clone().unwrap()._id);
             shapes.push(Arc::new(mint.clone()) as HeapAllocatedShape);

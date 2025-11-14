@@ -7,7 +7,6 @@ UPDATE: Acceleration structure added Mesh::bvh
 
 */
 
-use core::error;
 
 use crate::json_structs::{FaceType, SingleOrVec, VertexData};
 use crate::geometry::{get_tri_normal};
@@ -52,7 +51,7 @@ pub struct MeshInstanceField {
 }
 
 impl MeshInstanceField {
-    pub fn setup_mesh_pointers(&mut self, base_meshes: &SingleOrVec<Mesh>, other_mesh_instances: &SingleOrVec<MeshInstanceField>) {
+    pub fn setup_mesh_pointers(&mut self, base_meshes: &SingleOrVec<Mesh>) {
     
         let mut flag = false;
         debug!(">> Searching for mesh with id {} for instancing...", self.base_mesh_id);
@@ -66,18 +65,8 @@ impl MeshInstanceField {
             }
         }
 
-        for mesh_instance in other_mesh_instances.iter() {
-            debug!("Mesh instance of id {}", mesh_instance._id);
-            if mesh_instance._id == self.base_mesh_id {
-                flag = true;
-                self.base_mesh = mesh_instance.base_mesh.clone();
-                debug!("Set base_mesh {} ", self.base_mesh.clone().unwrap()._id);
-                break;
-            }
-        }
-
         if !flag {
-            error!("Couldn't find base mesh id {} ", self.base_mesh_id);
+            warn!("Couldn't find base mesh id {} ", self.base_mesh_id);
         }
     }
 }
