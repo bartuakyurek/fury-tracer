@@ -57,10 +57,7 @@ pub struct SceneJSON {
     #[serde(deserialize_with = "deser_string_or_struct")]
     pub vertex_data: VertexData, 
 
-
-    #[serde(skip)]
     pub transformations: Transformations,
-
     pub cameras: Cameras,
     pub lights: SceneLights,
     pub materials: SceneMaterials,
