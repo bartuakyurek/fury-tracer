@@ -131,5 +131,5 @@ impl BBox {
 }
 
 pub trait BBoxable {
-    fn get_bbox(&self, verts: &VertexData) -> BBox;
+    fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox;
 }

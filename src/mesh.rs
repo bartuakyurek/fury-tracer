@@ -160,7 +160,7 @@ impl Shape for Mesh {
 }
 
 impl BBoxable for Mesh {
-    fn get_bbox(&self, verts: &VertexData) -> BBox {
+    fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
         let (mut xint, mut yint, mut zint) = (Interval::EMPTY, Interval::EMPTY, Interval::EMPTY);
 
         // TODO: This is not an optimal way to get bbox, as it uses faces
@@ -183,6 +183,10 @@ impl BBoxable for Mesh {
             zint.expand(v.z);
         }
 
-        BBox::new_from(&xint, &yint, &zint)
+        let local_box = BBox::new_from(&xint, &yint, &zint);
+
+        // Transform bounding box for top-level BVH
+        todo!()
     }
 }
+

@@ -103,7 +103,7 @@ impl Shape for Triangle {
 
 
 impl BBoxable for Triangle {
-    fn get_bbox(&self, verts: &VertexData) -> BBox {
+    fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
         let (mut xint, mut yint, mut zint) = (Interval::EMPTY, Interval::EMPTY, Interval::EMPTY);
         for &i in &self.indices { // using & to borrow instead of move
             let v = verts[i];
@@ -113,7 +113,12 @@ impl BBoxable for Triangle {
             zint.expand(v.z);
         }
 
-        BBox::new_from(&xint, &yint, &zint)
+        if apply_t {
+            BBox::new_from(&xint, &yint, &zint)
+        }
+        else {
+            todo!()
+        }
     }
 }
 
@@ -181,7 +186,7 @@ impl Shape for Sphere {
 }
 
 impl BBoxable for Sphere {
-    fn get_bbox(&self, verts: &VertexData) -> BBox {
+    fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
         
         let center = verts[self.center_idx];
 
@@ -189,7 +194,12 @@ impl BBoxable for Sphere {
         let yint = Interval::new(center.y - self.radius, center.y + self.radius);
         let zint = Interval::new(center.z - self.radius, center.z + self.radius);
 
-        BBox::new_from(&xint, &yint, &zint)
+        if apply_t {
+            BBox::new_from(&xint, &yint, &zint)
+        }
+        else {
+            todo!()
+        }
     }
 }
 
@@ -241,11 +251,17 @@ impl Shape for Plane {
 
 impl BBoxable for Plane {
     /// Dummy bbox with no volume
-     fn get_bbox(&self, verts: &VertexData) -> BBox {
+     fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
         let p = verts[self.point_idx];
         let xint = Interval::new(p.x, p.x);
         let yint = Interval::new(p.y, p.y);
         let zint = Interval::new(p.z, p.z);
-        BBox::new_from(&xint, &yint, &zint)
+
+        if apply_t {
+            BBox::new_from(&xint, &yint, &zint)
+        }
+        else {
+            todo!()
+        }
     }
 }
