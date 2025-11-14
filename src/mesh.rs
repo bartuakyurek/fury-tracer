@@ -267,8 +267,16 @@ impl Shape for MeshInstanceField {
             }
         } 
         else {
-            
-            todo!()
+            // TODO: This part is copy-paste of above only to change the function name..            
+            let local_ray = ray.inverse_transform(&inv_instance);
+
+            if let Some(mut hit) = base_mesh.intersects_with(&local_ray, t_interval, vertex_cache) {
+                hit.material = self.material_id;
+                hit.to_world(&self.matrix);
+                Some(hit)
+            } else {
+                None
+            }
         }
     }
 }
