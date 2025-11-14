@@ -128,6 +128,7 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         if cam.num_samples != 1 { warn!("Found num_samples = '{}' > 1, sampling is not implemented yet...", cam.num_samples); }
         
         // --- Rayon Multithreading ---
+        info!("Starting rayon multithreading...");
         let start = Instant::now();
         let eye_rays: Vec<Ray> = cam.generate_primary_rays();
         let pixel_colors: Vec<_> = eye_rays
