@@ -67,12 +67,13 @@ pub struct SceneJSON {
 impl SceneJSON {
     pub fn setup_and_get_cache(&mut self, jsonpath: &Path) -> Result<VertexCache, Box<dyn Error>>{
         // Implement required adjustments after loading from a JSON file
+        debug!(">> Scene transformations: {:?}", self.transformations);
 
         // 1- Convert materials serde_json values to actual structs
         self.materials.finalize();
-        for m in &self.materials.materials { // TODO: refactor that ambigious call materials.materials( )
-            debug!("Material: {:#?}", m);
-        }
+        //for m in &self.materials.materials { // TODO: refactor that ambigious call materials.materials( )
+        //    debug!("Material: {:#?}", m);
+        //}
 
         // 2- Fix VertexData if _type is not "xyz" 
         let previous_type = self.vertex_data._type.clone();
