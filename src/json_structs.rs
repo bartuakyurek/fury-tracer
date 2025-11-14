@@ -67,19 +67,27 @@ impl Default for Transformations {
 impl Transformations {
 
     pub fn find_translation(&self, id: usize) -> Option<&TransformField> {
-        self.translation.iter().find(|t| t._id == id )
+        debug!("Searching for translation with id: {}", id);
+        debug!("Available translations: {:?}", self.translation);
+        self.translation.iter().find(|t| t._id == id)
     }
 
     pub fn find_scaling(&self, id: usize) -> Option<&TransformField> {
-        self.scaling.iter().find(|s| s._id == id )
+        debug!("Searching for scaling with id: {}", id);
+        debug!("Available scalings: {:?}", self.scaling);
+        self.scaling.iter().find(|s| s._id == id)
     }
 
     pub fn find_rotation(&self, id: usize) -> Option<&TransformField> {
-        self.rotation.iter().find(|r| r._id == id )
+        debug!("Searching for rotation with id: {}", id);
+        debug!("Available rotations: {:?}", self.rotation);
+        self.rotation.iter().find(|r| r._id == id)
     }
 
     pub fn find_composite(&self, id: usize) -> Option<&TransformField> {
-        self.composite.iter().find(|c| c._id == id )
+        debug!("Searching for composite with id: {}", id);
+        debug!("Available composites: {:?}", self.composite);
+        self.composite.iter().find(|c| c._id == id)
     }
 }
 

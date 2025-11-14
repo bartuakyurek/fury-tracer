@@ -552,7 +552,7 @@ pub fn parse_transform_expression(
             warn!("Found token.len() < 2, skipping...");
             continue;
         }
-
+        
         let (kind, id_str) = token.split_at(1);
         let id: usize = match id_str.parse() {
             Ok(n) => n,
@@ -561,26 +561,34 @@ pub fn parse_transform_expression(
                 continue;
             }
         };
-
+        debug!("Searching transformation of id '{}'...", id);
         match kind {
             "t" | "T" => {
                 if let Some(tf) = global_transforms.find_translation(id) {
+                    debug!("Found translation: {:?}", tf);
                     out = out * tf.get_mat4(TransformKind::Translation);
+                    debug!("After translation: {}", out);
                 }
             }
             "s" | "S" => {
                 if let Some(sf) = global_transforms.find_scaling(id) {
+                    debug!("Found scaling: {:?}", sf);
                     out = out * sf.get_mat4(TransformKind::Scaling);
+                    debug!("After scaling: {}", out);
                 }
             }
             "r" | "R" => {
                 if let Some(rf) = global_transforms.find_rotation(id) {
+                    debug!("Found rotation: {:?}", rf);
                     out = out * rf.get_mat4(TransformKind::Rotation);
+                    debug!("After rotation: {}", out);
                 }
             }
             "c" | "C" => {
                 if let Some(cf) = global_transforms.find_composite(id) {
+                    debug!("Found composite: {:?}", cf);
                     out = out * cf.get_mat4(TransformKind::Composite);
+                    debug!("After composite: {}", out);
                 }
             }
             _ => warn!("Unknown transform token '{}'", kind),
