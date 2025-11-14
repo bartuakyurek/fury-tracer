@@ -326,10 +326,8 @@ impl SceneObjects {
         shapes.extend(self.planes.all().into_iter().map(|p| Arc::new(p) as HeapAllocatedShape));
         
         // Convert meshes: UPDATE: do not convert it into individual triangles
-        for mesh in self.meshes.all() {
-            let mut mesh = mesh;
-
-             
+        for mesh in self.meshes.all().iter_mut() {
+            //let mut mesh = mesh;
 
             if !mesh.faces._ply_file.is_empty() {
 
@@ -371,7 +369,6 @@ impl SceneObjects {
                 }
             }
 
-        
             // For vertex cache, get the triangles in a single mesh 
             // TODO: this is done because we have global vertex_data
             let offset = verts._data.len();
@@ -379,7 +376,7 @@ impl SceneObjects {
             all_triangles.extend(triangles.into_iter());
 
             // Push mesh to shapes (previously I was deconstructing it into individual triangles)
-            shapes.push(Arc::new(mesh) as HeapAllocatedShape);
+            shapes.push(Arc::new(mesh.clone()) as HeapAllocatedShape);
         }
 
         // Setup and add mesh instances to shapes
