@@ -293,26 +293,21 @@ impl SceneObjects {
 
     fn setup_transforms(&mut self, transforms: &Transformations) {
 
-        
         for mesh in self.meshes.iter_mut() {
             mesh.matrix = parse_transform_expression(
                     mesh.transformation_names.as_deref().unwrap_or(""),
                     &transforms,  
             );
-            //mesh.inv_matrix = Arc::new(mesh.matrix.inverse());
             info!("Composite transform for mesh '{}' is {}", mesh._id, mesh.matrix);
         }
 
          for mint in self.mesh_instances.iter_mut() {
-            
             mint.matrix = parse_transform_expression(
                     mint.transformation_names.as_str(),
                     &transforms,  
             );
-            //mint.inv_matrix = Arc::new(mint.matrix.inverse());
             info!("Composite transform for mesh '{}' is {}", mint._id, mint.matrix);
         }
-
 
         for tri in self.triangles.iter_mut() {
             info!("Setting up transforms for mesh._id '{}'", tri._id.clone());
@@ -328,7 +323,6 @@ impl SceneObjects {
                 &transforms));
         }
 
-        
         for plane in self.planes.iter_mut() {
             info!("Setting up transforms for mesh._id '{}'", plane._id.clone());
             plane.matrix = Some(parse_transform_expression(
@@ -336,17 +330,6 @@ impl SceneObjects {
                     &transforms,  
             ));
         }
-
-        //if self.all_shapes.len() == 0 {
-        //    error!("You are trying to call setup_transforms( ) before filling SceneObjects::all_shapes, please call setup_and_get_cache( ) first or refactor me.");
-        //}
-        //for shape in self.all_shapes.iter_mut() {
-        //    shape.transform // --> Oh this is where my traits intuition fail, I cannot access data of a trait object! 
-        //  but how do I make sure dyn Trait has certain data? jus tby declaring a struct and using it? like struct ShapeData { transform }
-        //  and then struct Sphere { shape_data: ShapeData .. } but still how do we access ShapeData for Sphere, Mesh, Plane if 
-        // they can also store other fields? 
-        //}
-
     }
 
     pub fn setup_and_get_cache(&mut self, verts: &mut VertexData, jsonpath: &Path) -> Result<VertexCache, Box<dyn Error>> {
