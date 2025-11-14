@@ -21,6 +21,7 @@ use crate::prelude::*;
 
 
 #[derive(Debug, Deserialize, Clone)]
+#[derive(SmartDefault)]
 pub struct MeshInstanceField {
     #[serde(deserialize_with = "deser_usize")]
     _id: usize,

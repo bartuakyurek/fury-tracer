@@ -16,7 +16,7 @@ use bevy_math::NormedVectorSpace; // traits needed for norm_squared( )
 
 use crate::material::{*};
 use crate::shapes::{*};
-use crate::mesh::Mesh;
+use crate::mesh::{Mesh, MeshInstanceField};
 use crate::json_structs::{*};
 use crate::camera::{Cameras};
 use crate::interval::{Interval, FloatConst};
@@ -88,14 +88,9 @@ impl SceneJSON {
         // 4 - Get cache per vertex (objects.setup appends PLY data to vertex_data)
         let cache = self.objects.setup_and_get_cache(&mut self.vertex_data,  jsonpath)?; 
 
-        // 5 - Setup mesh transformations
-        for mesh in self.objects.meshes.iter_mut() {
-            info!("Setting up transforms for mesh._id '{}'", mesh._id.clone());
-            mesh.transform = parse_transform_expression(
-                    mesh.transformation_names.as_deref().unwrap_or(""),
-                    &self.transformations,  
-            );
-        }
+        // 5 - Setup object transformations
+        self.objects.setup_transforms(&self.transformations);
+
         Ok(cache)
     }
 }
@@ -253,6 +248,9 @@ pub struct SceneObjects {
     pub planes: SingleOrVec<Plane>,
     #[serde(rename = "Mesh")]
     pub meshes: SingleOrVec<Mesh>,
+    
+    #[serde(rename = "MeshInstance")]
+    pub mesh_instances: SingleOrVec<MeshInstanceField>,
 
     #[serde(skip)]
     pub all_shapes: ShapeList, 
