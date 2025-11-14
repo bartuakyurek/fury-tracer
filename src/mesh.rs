@@ -147,6 +147,13 @@ impl Mesh {
 
 }
 
+#[inline]
+fn inverse_transform_ray(ray: &Ray, inv_matrix: &Matrix4) -> Ray {
+    let local_origin = transform_point(inv_matrix, &ray.origin);
+    let mat3 = Matrix3::from_mat4(*inv_matrix);
+    let local_direction = (mat3 * ray.direction).normalize();
+    Ray::new(local_origin, local_direction)
+}
 impl Shape for Mesh {
     
     // Transform the local intersection point and normal
@@ -158,11 +165,8 @@ impl Shape for Mesh {
         
         // Transform ray to local space
         let inv_matrix = self.matrix.inverse();
-        let local_origin = transform_point(&inv_matrix, &ray.origin);
-        let mat3 = Matrix3::from_mat4(inv_matrix);
-        let local_direction = (mat3 * ray.direction).normalize();
-        let local_ray = Ray::new(local_origin, local_direction);
-        
+        let local_ray = inverse_transform_ray(ray, &inv_matrix);
+
         // Intersect in local space
         let rec = {
             if let Some(bvh) = &self.bvh {
