@@ -10,7 +10,7 @@
     @author: Bartu
 */
 
-use serde::{Deserialize, de::{Deserializer}};
+use serde::{self, Deserialize, de::{Deserializer}};
 use std::{ops::Index, str::FromStr};
 use tracing::{warn};
 use void::Void;
@@ -28,9 +28,7 @@ pub enum TransformKind {
 }
 
 
-#[derive(Debug, Deserialize, Clone)] // TODO : Smart default or impl default to set some to eye? or empty vec?
-#[serde(rename = "PascalCase")]
-#[serde(default)]
+#[derive(Debug, Clone)]
 pub struct Transformations { // To store global transformation in the scene
     pub(crate) translation: SingleOrVec<TransformField>,
     pub(crate) rotation: SingleOrVec<TransformField>,
@@ -41,25 +39,10 @@ pub struct Transformations { // To store global transformation in the scene
 impl Default for Transformations {
     fn default() -> Self {
         Self {
-            translation: SingleOrVec::Single(TransformField {
-                _data: vec![0.0, 0.0, 0.0], // no translation
-                _id: 99,
-            }),
-            rotation: SingleOrVec::Single(TransformField {
-                _data: vec![0.0, 0.0, 0.0, 1.0], // no rotation 
-                _id: 99,
-            }),
-            scaling: SingleOrVec::Single(TransformField {
-                _data: vec![1.0, 1.0, 1.0], // no scale
-                _id: 99,
-            }),
-            composite: SingleOrVec::Single(TransformField {
-                _data: vec![1., 0., 0., 0., 
-                            0., 1., 0., 0.,
-                            0., 0., 1., 0.,
-                            0., 0., 0., 1.], // identity matrix
-                _id: 99,
-            }),
+            translation: SingleOrVec::Empty,
+            rotation: SingleOrVec::Empty,
+            scaling: SingleOrVec::Empty,
+            composite: SingleOrVec::Empty,
         }
     }
 }
@@ -403,5 +386,36 @@ impl FaceType {
         debug_assert!(self._type == "triangle");
         let start = i * 3;
         [self._data[start], self._data[start + 1], self._data[start + 2]]
+    }
+}
+
+
+// TODO: Debug logs for Transformations deserialization
+impl<'de> Deserialize<'de> for Transformations {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize, Debug)]
+        struct Helper {
+            #[serde(rename = "Translation")]
+            translation: Option<SingleOrVec<TransformField>>,
+            #[serde(rename = "Rotation")]
+            rotation: Option<SingleOrVec<TransformField>>,
+            #[serde(rename = "Scaling")]
+            scaling: Option<SingleOrVec<TransformField>>,
+            #[serde(rename = "Composite")]
+            composite: Option<SingleOrVec<TransformField>>,
+        }
+
+        let helper = Helper::deserialize(deserializer)?;
+        debug!("Deserialized Transformations Helper: {:?}", helper);
+
+        Ok(Transformations {
+            translation: helper.translation.unwrap_or(SingleOrVec::Empty),
+            rotation: helper.rotation.unwrap_or(SingleOrVec::Empty),
+            scaling: helper.scaling.unwrap_or(SingleOrVec::Empty),
+            composite: helper.composite.unwrap_or(SingleOrVec::Empty),
+        })
     }
 }
