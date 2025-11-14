@@ -14,9 +14,29 @@
 
 
 use crate::json_structs::{VertexData};
-use crate::numeric::{Float, Vector3};
 use crate::{ray::Ray, interval::Interval};
+use crate::prelude::*;
 
+// NOTE: There is an article on how to rotate-align without trigonometry
+// https://iquilezles.org/articles/noacos/ 
+// it does not directly apply in our case but might be handy in future.
+pub fn rodrigues_rotation(axis: &Vector3, angle: Float) -> Matrix3 {
+    
+    let k = axis.normalize();
+    let x = k.x;
+    let y = k.y;
+    let z = k.z;
+
+    let si = angle.sin();
+    let co = angle.cos();
+    let ic = 1.0 - co;
+
+    Matrix3::from_cols(
+        Vector3::new(x*x*ic + co,    y*x*ic - si*z,  z*x*ic + si*y),
+        Vector3::new(x*y*ic + si*z,  y*y*ic + co,   z*y*ic - si*x),
+        Vector3::new(x*z*ic - si*y,  y*z*ic + si*x, z*z*ic + co),
+    )
+}
 
 pub fn get_tri_normal(v1: &Vector3, v2: &Vector3, v3: &Vector3) -> Vector3{
     // WARNING: Assumes triangle indices are given in counter clockwise order 
