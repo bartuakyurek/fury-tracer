@@ -245,12 +245,7 @@ impl BBoxable for Mesh {
 impl Shape for MeshInstanceField {
     fn intersects_with(&self, _ray: &Ray, _t_interval: &Interval, _vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
         
-        let base_mesh = match self.base_mesh.as_deref() {
-            Some(m) => m,
-            None => {
-                panic!("Mesh instance {} is missing base mesh (Option set to None)", self._id);
-            }
-        }; 
+        let base_mesh = self.base_mesh.as_ref().unwrap(); // panic if base mesh is none
 
 
         todo!()
