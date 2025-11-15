@@ -65,6 +65,13 @@ impl Shape for Triangle {
 
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
         
+        // ---- Apply transformation --------
+        //TODO: how not to copy paste the same logic for other shapes?
+        let viewmat = self.matrix.clone().unwrap_or(Arc::new(Matrix4::IDENTITY));
+        let inv_matrix = viewmat.inverse(); // TODO: better to cache inverse because of the borrow rules we keep .clone( ) and Arc::new( )
+        let ray = &ray.inverse_transform(&inv_matrix);
+        // ----------------------------------
+
         let verts = &vertex_cache.vertex_data;
         if let Some((u, v, t)) = moller_trumbore_intersection(ray, t_interval, self.indices, verts) {
             
@@ -92,7 +99,12 @@ impl Shape for Triangle {
            
             let front_face = ray.is_front_face(tri_normal);
             let normal = if front_face { tri_normal } else { -tri_normal };
-            Some(HitRecord::new(ray.origin, p, normal, t, self.material_idx, front_face)) 
+
+            // ------ Create hitrecord wrt transform ------------------
+            let mut rec = HitRecord::new(ray.origin, p, normal, t, self.material_idx, front_face);
+            rec.to_world(&viewmat);
+            Some(rec) 
+            // --------------------------------------------------------
         }
         else {
             None
@@ -155,6 +167,13 @@ impl Shape for Sphere {
 
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
         
+        // ---- Apply transformation --------
+        //TODO: how not to copy paste the same logic for other shapes?
+        let viewmat = self.matrix.clone().unwrap_or(Arc::new(Matrix4::IDENTITY));
+        let inv_matrix = viewmat.inverse(); // TODO: better to cache inverse because of the borrow rules we keep .clone( ) and Arc::new( )
+        let ray = &ray.inverse_transform(&inv_matrix);
+        // ----------------------------------
+
         // Based on Slides 01_B, p.11, Ray-Sphere Intersection 
         let verts = &vertex_cache.vertex_data;
         let center = verts[self.center_idx];
@@ -184,8 +203,12 @@ impl Shape for Sphere {
             
             let is_front_face = ray.is_front_face(normal);
             let normal = if is_front_face { normal } else { -normal };
-            Some(HitRecord::new(ray.origin, point, normal, t, self.material_idx, is_front_face))
             
+             // ------ Create hitrecord wrt transform ------------------
+            let mut rec = HitRecord::new(ray.origin, point, normal, t, self.material_idx, is_front_face);
+            rec.to_world(&viewmat);
+            Some(rec) 
+            // --------------------------------------------------------
         }
     }
 }
@@ -243,7 +266,15 @@ pub struct Plane {
 impl Shape for Plane {
 
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
-       // Based on Slides 01_B, p.9, Ray-Plane Intersection 
+        
+        // ---- Apply transformation --------
+        //TODO: how not to copy paste the same logic for other shapes?
+        let viewmat = self.matrix.clone().unwrap_or(Arc::new(Matrix4::IDENTITY));
+        let inv_matrix = viewmat.inverse(); // TODO: better to cache inverse because of the borrow rules we keep .clone( ) and Arc::new( )
+        let ray = &ray.inverse_transform(&inv_matrix);
+        // ----------------------------------
+        
+        // Based on Slides 01_B, p.9, Ray-Plane Intersection 
         let verts = &vertex_cache.vertex_data;
         let a_point_on_plane = verts[self.point_idx];
         let dist = a_point_on_plane - ray.origin;
@@ -253,7 +284,12 @@ impl Shape for Plane {
             // Construct Hit Record
             let front_face = ray.is_front_face(self.normal);
             let normal = if front_face { self.normal } else { -self.normal };
-            Some(HitRecord::new(ray.origin, ray.at(t), normal, t, self.material_idx, front_face))
+
+            // ------ Create hitrecord wrt transform ------------------
+            let mut rec = HitRecord::new(ray.origin, ray.at(t), normal, t, self.material_idx, front_face);
+            rec.to_world(&viewmat);
+            Some(rec) 
+            // --------------------------------------------------------
         }
         else {
             None // t is not within the limits
