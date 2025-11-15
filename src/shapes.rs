@@ -264,38 +264,84 @@ pub struct Plane {
 }
 
 impl Shape for Plane {
+    fn intersects_with(
+        &self,
+        ray: &Ray,
+        t_interval: &Interval,
+        vertex_cache: &HeapAllocatedVerts
+    ) -> Option<HitRecord> {
 
-    fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
-        
-        // ---- Apply transformation --------
-        //TODO: how not to copy paste the same logic for other shapes?
+        // --- Transform ray ---
         let viewmat = self.matrix.clone().unwrap_or(Arc::new(Matrix4::IDENTITY));
-        let inv_matrix = viewmat.inverse(); // TODO: better to cache inverse because of the borrow rules we keep .clone( ) and Arc::new( )
+        let inv_matrix = viewmat.inverse();
         let ray = &ray.inverse_transform(&inv_matrix);
-        // ----------------------------------
-        
-        // Based on Slides 01_B, p.9, Ray-Plane Intersection 
+        // ---------------------
         let verts = &vertex_cache.vertex_data;
-        let a_point_on_plane = verts[self.point_idx];
-        let dist = a_point_on_plane - ray.origin;
-        let  t = dist.dot(self.normal) / ray.direction.dot(self.normal);
+        let p0 = verts[self.point_idx];
+        let n = self.normal;
 
-        if t_interval.contains(t) {
-            // Construct Hit Record
-            let front_face = ray.is_front_face(self.normal);
-            let normal = if front_face { self.normal } else { -self.normal };
+        let denom = ray.direction.dot(n);
 
-            // ------ Create hitrecord wrt transform ------------------
-            let mut rec = HitRecord::new(ray.origin, ray.at(t), normal, t, self.material_idx, front_face);
-            rec.to_world(&viewmat);
-            Some(rec) 
-            // --------------------------------------------------------
+        // ray is parallel to plane ----
+        if denom.abs() < 1e-12 {
+            return None;
         }
-        else {
-            None // t is not within the limits
+
+        let t = (p0 - ray.origin).dot(n) / denom;
+
+        // plane is behind the ray origin ----
+        if t <= 0.0 {
+            return None;
         }
+
+        //  t must be within interval ----
+        if !t_interval.contains(t) {
+            return None;
+        }
+
+        // Construct Hit Record
+        let front_face = ray.is_front_face(n);
+        let normal = if front_face { n } else { -n };
+        let mut rec = HitRecord::new(ray.origin, ray.at(t), normal, t, self.material_idx, front_face);
+
+        // transform hitpoint and normal (04, p.53) -----
+        rec.to_world(&viewmat);
+        Some(rec)
     }
 }
+
+//impl Shape for Plane {
+    //fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
+    //    
+    //    // ---- Apply transformation --------
+    //    //TODO: how not to copy paste the same logic for other shapes?
+    //    let viewmat = self.matrix.clone().unwrap_or(Arc::new(Matrix4::IDENTITY));
+    //    let inv_matrix = viewmat.inverse(); // TODO: better to cache inverse because of the borrow rules we keep .clone( ) and Arc::new( )
+    //    let ray = &ray.inverse_transform(&inv_matrix);
+    //    // ----------------------------------
+    //    
+    //    // Based on Slides 01_B, p.9, Ray-Plane Intersection 
+    //    let verts = &vertex_cache.vertex_data;
+    //    let a_point_on_plane = verts[self.point_idx];
+    //    let dist = a_point_on_plane - ray.origin;
+    //    let  t = dist.dot(self.normal) / ray.direction.dot(self.normal);
+//
+    //    if t_interval.contains(t) {
+    //        // Construct Hit Record
+    //        let front_face = ray.is_front_face(self.normal);
+    //        let normal = if front_face { self.normal } else { -self.normal };
+//
+    //        // ------ Create hitrecord wrt transform ------------------
+    //        let mut rec = HitRecord::new(ray.origin, ray.at(t), normal, t, self.material_idx, front_face);
+    //        rec.to_world(&viewmat);
+    //        Some(rec) 
+    //        // --------------------------------------------------------
+    //    }
+    //    else {
+    //        None // t is not within the limits
+    //    }
+    //}
+//}
 
 impl BBoxable for Plane {
     /// Dummy bbox with no volume -- WARNING: Not to be used in BVH! BBoxable was meant to be separated from Shapes trait
