@@ -1,11 +1,11 @@
 
 
 
-use crate::{bbox, prelude::*};
+use crate::prelude::*;
 use crate::json_structs::VertexData;
-use crate::shapes::{Shape, HeapAllocatedShape};
+use crate::shapes::{HeapAllocatedShape};
 use crate::ray::{Ray, HitRecord};
-use crate::bbox::{BBox, BBoxable};
+use crate::bbox::{BBox};
 use crate::interval::{Interval, FloatConst};
 use crate::scene::{HeapAllocatedVerts};
 
@@ -16,24 +16,21 @@ use crate::scene::{HeapAllocatedVerts};
 // https://google.github.io/comprehensive-rust/smart-pointers/exercise.html
 
 
-/// BVH node storing a bounding box, optional children, and a list of objects for leaves.
 #[derive(Debug)]
 pub struct BVHNode{
     pub bbox: BBox,
     pub left: Option<Arc<BVHNode>>,
     pub right: Option<Arc<BVHNode>>,
-    pub objects: Vec<HeapAllocatedShape>,
+    pub objects: Vec<HeapAllocatedShape>, // Only leaves have object pointers
 }
 
-/// BVHSubtree is a wrapper around an optional root node.
+/// TODO: Here I only use Subtree, forgot to add wrapper as in comprehensive rust's docs 
 #[derive(Debug, Clone)]
 pub struct BVHSubtree(pub Option<Arc<BVHNode>>);
 
 impl BVHSubtree {
 
-    /// Recursively builds nodes in BVH tree
-    /// TODO: it was meant to be inside build( ) function but inner functions cannot use generics from the outer
-    /// as rustc told, so I'm moving it here.
+    /// Recursively build nodes in BVH tree
     #[inline]
     fn build_nodes(mut items: Vec<(HeapAllocatedShape, BBox, Vector3)>) -> Option<Arc<BVHNode>>
     {
@@ -95,8 +92,7 @@ impl BVHSubtree {
         BVHSubtree(Self::build_nodes(items))
     }
 
-    // Introduce helper function to recursively traverse the tree 
-    // Because calling intersect( ) directly 
+    // helper function to recursively traverse the tree 
     #[inline]
     fn walk(node: &Arc<BVHNode>, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts, closest: &mut Option<HitRecord>) {
         if !node.bbox.intersect(ray) { return; }  // This is the base case return for recursive helper, not the outer intersect( )!
