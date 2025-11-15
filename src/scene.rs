@@ -126,7 +126,7 @@ impl<'a> Scene <'a>  // Lifetime annotation 'a looks scary but it was needed for
 
     /// Build top-tevel BVH for scene
     pub fn build_bvh(&mut self) {
-        let shapes = &self.data.objects.all_shapes;
+        let shapes = &self.data.objects.bboxable_shapes;
         let verts = &self.vertex_cache.vertex_data;
         self.bvh = Some(BVHSubtree::build(shapes, verts, true)); // Apply object's transformation for top-level BVH
     }
@@ -136,7 +136,7 @@ impl<'a> Scene <'a>  // Lifetime annotation 'a looks scary but it was needed for
         // Refers to p.91 of slide 01_b, lines 3-7
         let mut rec: Option<HitRecord> = None;
         let mut t_min: Float = FloatConst::INF;
-        for shape in self.data.objects.all_shapes.iter() { 
+        for shape in self.data.objects.bboxable_shapes.iter() { 
             if let Some(hit_record) = shape.intersects_with(ray, &t_interval, &self.vertex_cache){
 
                 if early_break { 
@@ -153,22 +153,40 @@ impl<'a> Scene <'a>  // Lifetime annotation 'a looks scary but it was needed for
         rec
     }
 
-    // TODO: Maybe a Trait like Acceleration could be useful to extend other acceleration structs
-    // like KD-Trees, not just BVH. So we'd use a generic T, where T: Acceleration
-    // For now let's assume it is BVH. I'm suggesting it especially if the function signature will
-    // stay the same as hit_naive, we could even impl Acceleration for Vec<Shapes> that simply iterates
-    // shapes. Then hit_naive( ) and hit_bvh( ) and any potential future functions could be reduced to 
-    // hit<T>( ) where T: Acceleration { }
+
     // TODO: Is it better hitrecord a mutable input parameter rather than returning Option<HitRecord>?  
-    pub fn hit_bvh(&self, ray: &Ray, t_interval: &Interval, early_break: bool) -> Option<HitRecord> {
-        let mut rec: HitRecord = HitRecord::default();
+    pub fn hit_bvh(&self, ray: &Ray, t_interval: &Interval, early_break: bool)
+    -> Option<HitRecord> 
+    {
+        // 1. BVH hit first with bounding boxable shapes
+        let mut best = None;
+        let mut best_t = FloatConst::INF;
+
         if let Some(bvh) = &self.bvh {
+            let mut rec = HitRecord::default();
             if bvh.intersect(ray, t_interval, &self.vertex_cache, &mut rec) {
-                return Some(rec);
+                best_t = rec.ray_t;
+                best = Some(rec);
             }
         }
-        //warn!("No BVH found, using naive hit( ). You shouldn't be seeing this message though.");
-        self.hit_naive(ray, t_interval, early_break)
+        else {
+            best = self.hit_naive(ray, t_interval, early_break);
+        }
+
+        // 2. Test planes (looping over all planes)
+        for plane in &self.data.objects.unbboxable_shapes {
+            if let Some(hit) = plane.intersects_with(ray, t_interval, &self.vertex_cache) {
+                if hit.ray_t < best_t {
+                    if early_break {
+                        return Some(hit);
+                    }
+                    best_t = hit.ray_t;
+                    best = Some(hit);
+                }
+            }
+        }
+
+        best
     }
 }
 
@@ -251,7 +269,9 @@ pub struct SceneObjects {
     pub mesh_instances: SingleOrVec<MeshInstanceField>,
 
     #[serde(skip)]
-    pub all_shapes: ShapeList, 
+    pub bboxable_shapes: ShapeList, 
+    #[serde(skip)]
+    pub unbboxable_shapes: ShapeList, 
 }
 
 fn resolve_all_mesh_instances(
@@ -345,12 +365,13 @@ impl SceneObjects {
         // NOTE: Vec::extend( ) pushes a collection of data all at once, 
         // if you have a single object to push, then use Vec::push( )
 
-        let mut shapes: ShapeList = Vec::new();
+        let mut bboxable_shapes: ShapeList = Vec::new();
+        let mut unbboxable_shapes: ShapeList = Vec::new();
         let mut all_triangles: Vec<Triangle> = self.triangles.all();
 
-        shapes.extend(self.triangles.all().into_iter().map(|t| Arc::new(t) as HeapAllocatedShape));
-        shapes.extend(self.spheres.all().into_iter().map(|s| Arc::new(s) as HeapAllocatedShape));
-        shapes.extend(self.planes.all().into_iter().map(|p| Arc::new(p) as HeapAllocatedShape));
+        bboxable_shapes.extend(self.triangles.all().into_iter().map(|t| Arc::new(t) as HeapAllocatedShape));
+        bboxable_shapes.extend(self.spheres.all().into_iter().map(|s| Arc::new(s) as HeapAllocatedShape));
+        unbboxable_shapes.extend(self.planes.all().into_iter().map(|p| Arc::new(p) as HeapAllocatedShape));
         
         // Convert meshes: UPDATE: do not convert it into individual triangles
         for mesh in self.meshes.iter_mut() {
@@ -404,7 +425,7 @@ impl SceneObjects {
 
             // Push mesh to shapes (previously I was deconstructing it into individual triangles)
             debug!("Pushing mesh {} into all_shapes...", mesh._id);
-            shapes.push(Arc::new(mesh.clone()) as HeapAllocatedShape);
+            bboxable_shapes.push(Arc::new(mesh.clone()) as HeapAllocatedShape);
         }
 
         // Find which meshes the mesh refers to
@@ -415,12 +436,13 @@ impl SceneObjects {
         // Push all mesh instances to scene shapes -----------------
         for mint in self.mesh_instances.iter() { 
             debug!("Before pushing into all_shapes, Mesh instance {} referes base mesh {} ", mint._id, mint.base_mesh.clone().unwrap()._id);
-            shapes.push(Arc::new(mint.clone()) as HeapAllocatedShape);
+            bboxable_shapes.push(Arc::new(mint.clone()) as HeapAllocatedShape);
         }
 
         info!(">> There are {} vertices in the scene.", verts._data.len());
-        self.all_shapes = shapes;
-        info!(">> There are {} shapes in the scene.", self.all_shapes.len());
+        self.bboxable_shapes = bboxable_shapes;
+        self.unbboxable_shapes = unbboxable_shapes;
+        info!(">> There are {} shapes in the scene.", self.bboxable_shapes.len());
         let cache = VertexCache::build(&verts, &all_triangles);   
         Ok(cache)
     }
