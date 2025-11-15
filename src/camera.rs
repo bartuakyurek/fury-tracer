@@ -8,9 +8,11 @@
 
 
 
+use bevy_math::NormedVectorSpace;
+
 use crate::prelude::*;
 use crate::{image, ray::Ray};
-use crate::json_structs::{SingleOrVec};
+use crate::json_structs::{SingleOrVec, Transformations};
 
 #[derive(Debug, Deserialize, Default)]
 pub struct Cameras {
@@ -66,6 +68,12 @@ pub struct Camera {
     #[serde(rename = "NumSamples", deserialize_with = "deser_int")]
     pub num_samples: Int,
 
+    #[serde(rename = "Transformations")]
+    pub(crate) transformation_names: Option<String>,
+
+    #[serde(skip)]
+    pub(crate) composite_mat: Matrix4,
+
     #[serde(skip)]
     w : Vector3,
 
@@ -96,11 +104,21 @@ impl Camera {
     //    cam.setup();
     //    cam
     //}
-    pub fn setup(&mut self) {
+    pub fn setup(&mut self, transforms: &Transformations) {
         // Compute w, v, u vectors
         // assumes Gaze and Up is already provided during creation
         // corrects Up vector if given Up was not perpendicular to
         // Gaze vector.
+
+         self.composite_mat = if self.transformation_names.is_some() {
+                parse_transform_expression(
+                    self.transformation_names.as_deref().unwrap_or(""),
+                    &transforms,  
+                )
+        } else {
+            debug!("No transformation matrix found for camera, defaulting to Identity...");
+            Matrix4::IDENTITY
+        };
 
         if self._type == String::from("lookAt") {
             info!("Found camera _type = lookAt, constructing nearplane...");
@@ -121,6 +139,12 @@ impl Camera {
         self.w = -self.gaze_dir.normalize();
         self.u = self.up.cross(self.w).normalize(); 
         self.v = self.w.cross(self.u).normalize();  // directly use corrected up
+        
+        // Apply transformations
+        self.position = transform_point(&self.composite_mat, &self.position);
+        self.w = transform_dir(&self.composite_mat, &self.w).normalize();
+        self.u = transform_dir(&self.composite_mat, &self.u).normalize();
+        self.v = transform_dir(&self.composite_mat, &self.v).normalize();
         
         debug_assert!(approx_zero(self.u.dot(self.w))); 
         debug_assert!(approx_zero(self.v.dot(self.w))); 

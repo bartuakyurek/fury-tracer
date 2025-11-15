@@ -123,7 +123,7 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         // but for that to be done in Scene creation (or in setup() of scene), cameras need to be
         // vectorized via .all( ) call, however we don't hold the vec versions (currently they are SingleOrVec) 
         //  in actual scene structs, that needs to be changed maybe.
-        cam.setup(); 
+        cam.setup(&scene.data.transformations); 
         
         if cam.num_samples != 1 { warn!("Found num_samples = '{}' > 1, sampling is not implemented yet...", cam.num_samples); }
         
