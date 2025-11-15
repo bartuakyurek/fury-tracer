@@ -81,7 +81,7 @@ impl SceneJSON {
 
         // 3- Add a dummy vertex at index 0 because JSON vertex ids start from 1
         self.vertex_data.insert_dummy_at_the_beginning();
-        warn!("Inserted a dummy vertex at the beginning to use vertex IDs beginning from 1.");
+        debug!("Inserted a dummy vertex at the beginning to use vertex IDs beginning from 1.");
 
         // 4 - Setup object transformations BEFORE populating all_shapes
         self.objects.setup_transforms(&self.transformations);
@@ -322,10 +322,10 @@ impl SceneObjects {
                     &transforms,  
                 )
             } else {
-                warn!("Mesh '{}'s transformation is not given, defaulting to Identity.", mesh._id);
+                debug!("Mesh '{}'s transformation is not given, defaulting to Identity.", mesh._id);
                 Matrix4::IDENTITY  // Default to identity if no transform is given
             };
-            info!("Composite transform for mesh '{}' is {}", mesh._id, mesh.matrix);
+            debug!("Composite transform for mesh '{}' is {}", mesh._id, mesh.matrix);
         }
 
         for mint in self.mesh_instances.iter_mut() {
@@ -333,13 +333,11 @@ impl SceneObjects {
                     mint.transformation_names.as_str(),
                     &transforms,  
             );
-            info!("Composite transform for mesh '{}' is {}", mint._id, mint.matrix);
+            debug!("Composite transform for mesh '{}' is {}", mint._id, mint.matrix);
         }
 
-
-        
         for tri in self.triangles.iter_mut() {
-            info!("Setting up transforms for mesh._id '{}'", tri._id.clone());
+            debug!("Setting up transforms for mesh._id '{}'", tri._id.clone());
             tri.matrix = Some(Arc::new(parse_transform_expression(
                     tri.transformation_names.as_deref().unwrap_or(""),
                     &transforms,  
@@ -353,7 +351,7 @@ impl SceneObjects {
         }
 
         for plane in self.planes.iter_mut() {
-            info!("Setting up transforms for mesh._id '{}'", plane._id.clone());
+            debug!("Setting up transforms for mesh._id '{}'", plane._id.clone());
             plane.matrix = Some(Arc::new(parse_transform_expression(
                     plane.transformation_names.as_deref().unwrap_or(""),
                     &transforms,  
@@ -374,6 +372,7 @@ impl SceneObjects {
         unbboxable_shapes.extend(self.planes.all().into_iter().map(|p| Arc::new(p) as HeapAllocatedShape));
         
         // Convert meshes: UPDATE: do not convert it into individual triangles
+        let mut tot_mesh_faces: usize = 0;
         for mesh in self.meshes.iter_mut() {
             //let mut mesh = mesh;
 
@@ -387,12 +386,12 @@ impl SceneObjects {
                 let ply_path = json_dir.join(ply_file);
 
                 if ply_path.exists() {
-                    info!("PLY file exists: {:?}", ply_path);
+                    debug!("PLY file exists: {:?}", ply_path);
                 } else {
                     error!("PLY file NOT found at: {:?}", ply_path);
                 }
 
-                info!("Loading mesh {} from PLY file path: {:?}", mesh._id, ply_path);
+                debug!("Loading mesh {} from PLY file path: {:?}", mesh._id, ply_path);
 
                 let file = File::open(ply_path)?;
                 let reader = BufReader::new(file);
@@ -410,7 +409,8 @@ impl SceneObjects {
                         .flat_map(|f| f.vertex_indices.clone()) // each face is a list of 3 indices
                         .map(|idx| idx + old_vertex_count)      // shift by existing vertices
                         .collect();
-                    info!(">> Mesh {} has {} faces.", mesh._id, mesh.faces._data.len());
+                    //info!(">> Mesh {} has {} faces.", mesh._id, mesh.faces._data.len());
+                    tot_mesh_faces += mesh.faces._data.len();
                 }
                 else {
                     warn!("PLY mesh {} has no face data!", mesh._id);
@@ -439,10 +439,10 @@ impl SceneObjects {
             bboxable_shapes.push(Arc::new(mint.clone()) as HeapAllocatedShape);
         }
 
-        info!(">> There are {} vertices in the scene.", verts._data.len());
+        info!(">> There are {} vertices in the scene (excluding {} instance mesh). Meshes have {} faces in total.", verts._data.len(), self.mesh_instances.len(), tot_mesh_faces);
         self.bboxable_shapes = bboxable_shapes;
         self.unbboxable_shapes = unbboxable_shapes;
-        info!(">> There are {} shapes in the scene.", self.bboxable_shapes.len());
+        //info!(">> There are {} shapes in the scene.", self.bboxable_shapes.len());
         let cache = VertexCache::build(&verts, &all_triangles);   
         Ok(cache)
     }
