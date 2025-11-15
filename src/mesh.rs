@@ -202,6 +202,7 @@ impl Shape for Mesh {
 
         rec.map(|mut r| {
             r.to_world(&self.matrix);
+            r.ray_t = (r.hit_point - ray.origin).length(); //TODO: it's so easy to forget it, how to refactor?
             r
         }) // Added to reduce if let verbosity but it didn't reduce nesting above...
     }
@@ -261,6 +262,8 @@ impl Shape for MeshInstanceField {
             if let Some(mut hit) = base_mesh.intersect_bvh(&local_ray, t_interval, vertex_cache) {
                 hit.material = self.material_id.unwrap_or(self.base_mesh.clone().unwrap().material_idx);
                 hit.to_world(&self.matrix);  // this transforms normals and hitpoints p.53
+                hit.ray_t = (hit.hit_point - ray.origin).length(); //TODO: it's so easy to forget it, how to refactor?
+
                 Some(hit)
             } else {
                 None
@@ -276,6 +279,8 @@ impl Shape for MeshInstanceField {
             if let Some(mut hit) = base_mesh.intersect_bvh(&local_ray, t_interval, vertex_cache) {
                 hit.material = self.material_id.unwrap_or(self.base_mesh.clone().unwrap().material_idx);
                 hit.to_world(&composite_matrix);  // this transforms normals and hitpoints p.53
+                hit.ray_t = (hit.hit_point - ray.origin).length(); //TODO: it's so easy to forget it, how to refactor?
+
                 Some(hit)
             } else {
                 None
