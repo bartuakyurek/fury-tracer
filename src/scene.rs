@@ -83,11 +83,14 @@ impl SceneJSON {
         self.vertex_data.insert_dummy_at_the_beginning();
         debug!("Inserted a dummy vertex at the beginning to use vertex IDs beginning from 1.");
 
-        // 4 - Setup object transformations BEFORE populating all_shapes
+        // 4 - Setup object transformations WARNING: Order of this is important unfortunately..
         self.objects.setup_transforms(&self.transformations);
 
         // 5 - Get cache per vertex (objects.setup appends PLY data to vertex_data)
         let cache = self.objects.setup_and_get_cache(&mut self.vertex_data,  jsonpath)?;
+
+        // 6 - Setup scene lights transforms
+        self.lights.setup(&self.transformations);
 
         Ok(cache)
     }
@@ -210,6 +213,26 @@ impl Default for SceneLights {
     }
 }
 
+impl SceneLights {
+    pub fn setup(&mut self, transforms: &Transformations) {
+        for plight in self.point_lights.iter_mut() {
+            
+            plight.composite_mat = if plight.transformation_names.is_some() 
+            {
+                parse_transform_expression(
+                    plight.transformation_names.as_deref().unwrap_or(""),
+                    &transforms,  
+                )
+            } else {
+                debug!("No transformation matrix found for camera, defaulting to Identity...");
+                Matrix4::IDENTITY
+            };
+
+            plight.position = transform_point(&plight.composite_mat, &plight.position);
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Clone, Default)]
 pub struct PointLight {
     #[serde(rename = "_id", deserialize_with = "deser_int")]
@@ -220,6 +243,12 @@ pub struct PointLight {
 
     #[serde(rename = "Intensity", deserialize_with = "deser_vec3")]
     pub rgb_intensity: Vector3,
+
+     #[serde(rename = "Transformations")]
+    pub(crate) transformation_names: Option<String>,
+
+    #[serde(skip)]
+    pub(crate) composite_mat: Matrix4,
 }
 
 
