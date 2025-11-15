@@ -160,56 +160,59 @@ pub struct Sphere {
     pub matrix: Option<Arc<Matrix4>>, // Arc here to share Transformations with Mesh, I didn't want to clone the same transform while creating triangles for mesh
 
 }
-
 impl Shape for Sphere {
-
-   
-
-    fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
-        
-        // ---- Apply transformation --------
-        //TODO: how not to copy paste the same logic for other shapes?
+    fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts)
+        -> Option<HitRecord>
+    {
+        // --- Transform ray into local space ---
         let viewmat = self.matrix.clone().unwrap_or(Arc::new(Matrix4::IDENTITY));
-        let inv_matrix = viewmat.inverse(); // TODO: better to cache inverse because of the borrow rules we keep .clone( ) and Arc::new( )
-        let ray = &ray.inverse_transform(&inv_matrix);
-        // ----------------------------------
+        let inv_matrix = viewmat.inverse();
+        let local_ray = &ray.inverse_transform(&inv_matrix);
 
-        // Based on Slides 01_B, p.11, Ray-Sphere Intersection 
+        // --- Sphere intersection in local space ---
         let verts = &vertex_cache.vertex_data;
         let center = verts[self.center_idx];
-        let o_minus_c = ray.origin - center;
-        let d_dot_d: Float = ray.direction.dot(ray.direction);
-        let oc_dot_oc: Float = o_minus_c.dot(o_minus_c);
-        let d_dot_oc: Float = ray.direction.dot(o_minus_c);
-        let discriminant_left: Float = d_dot_oc.powi(2) as Float;
-        let discriminant_right: Float = d_dot_d * (oc_dot_oc - self.radius.powi(2)) as Float; // TODO: cache radius squared?
-        let discriminant: Float = discriminant_left - discriminant_right;
-        if discriminant < 0. { // Negative square root
-            None
+
+        let o_minus_c = local_ray.origin - center;
+        let a: Float = local_ray.direction.dot(local_ray.direction);
+        let b: Float = 2.0 * local_ray.direction.dot(o_minus_c);
+        let c: Float = o_minus_c.dot(o_minus_c) - self.radius * self.radius;
+
+        let discriminant = b*b - 4.0*a*c;
+        if discriminant < 0.0 {
+            return None;
         }
-        else {
-            
-            let discriminant = discriminant.sqrt();
-            let t1 = (-d_dot_oc + discriminant) / d_dot_d;
-            let t2 = (-d_dot_oc - discriminant) / d_dot_d; // t2 < t1 
-            
-            let t= if t2 > 0.0 {t2} else {t1}; // Pick smaller first
-            if !t_interval.contains(t) {
-                return None;  // Invalid intersection
-            };
-            
-            let point = ray.at(t); // Note that this computation is done inside new_from as well
-            let normal = (point - center).normalize(); // TODO: is this correct?
-            
-            let is_front_face = ray.is_front_face(normal);
-            let normal = if is_front_face { normal } else { -normal };
-            
-             // ------ Create hitrecord wrt transform ------------------
-            let mut rec = HitRecord::new(ray.origin, point, normal, t, self.material_idx, is_front_face);
-            rec.to_world(&viewmat);
-            Some(rec) 
-            // --------------------------------------------------------
+        let sqrt_d = discriminant.sqrt();
+        let t1 = (-b - sqrt_d) / (2.0*a); 
+        let t2 = (-b + sqrt_d) / (2.0*a); 
+
+        // Pick the closer t
+        let t_local = if t1 > 0.0 { t1 } else if t2 > 0.0 { t2 } else { return None; };
+
+        // Compute hit in local space and then transform back  to world
+        let p_local = local_ray.at(t_local);
+        let p_world = transform_point(&*viewmat, &p_local); 
+
+        // Update ray t to worlds space
+        let ray_dir_lensqrd = ray.direction.dot(ray.direction);
+        if ray_dir_lensqrd == 0.0 { // Avoid division by zero
+            return None; 
         }
+        let t_world = (p_world - ray.origin).dot(ray.direction) / ray_dir_lensqrd;
+        if !t_interval.contains(t_world) || t_world <= 0.0 {
+            return None;
+        }
+
+        // World space normal
+        let local_normal = (p_local - center).normalize();
+        let mut world_normal = transform_normal(&*viewmat, &local_normal); 
+        if world_normal.norm_squared() > 0.0 { world_normal = world_normal.normalize(); }
+
+        // Check front face and build hitrecord (I was transforming hitrecord::to_world( ) but here it is already transformed.)
+        let front_face = ray.is_front_face(world_normal);
+        let final_normal = if front_face { world_normal } else { -world_normal };
+        let rec = HitRecord::new(ray.origin, p_world, final_normal, t_world, self.material_idx, front_face);
+        Some(rec)
     }
 }
 
@@ -310,38 +313,6 @@ impl Shape for Plane {
     }
 }
 
-//impl Shape for Plane {
-    //fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
-    //    
-    //    // ---- Apply transformation --------
-    //    //TODO: how not to copy paste the same logic for other shapes?
-    //    let viewmat = self.matrix.clone().unwrap_or(Arc::new(Matrix4::IDENTITY));
-    //    let inv_matrix = viewmat.inverse(); // TODO: better to cache inverse because of the borrow rules we keep .clone( ) and Arc::new( )
-    //    let ray = &ray.inverse_transform(&inv_matrix);
-    //    // ----------------------------------
-    //    
-    //    // Based on Slides 01_B, p.9, Ray-Plane Intersection 
-    //    let verts = &vertex_cache.vertex_data;
-    //    let a_point_on_plane = verts[self.point_idx];
-    //    let dist = a_point_on_plane - ray.origin;
-    //    let  t = dist.dot(self.normal) / ray.direction.dot(self.normal);
-//
-    //    if t_interval.contains(t) {
-    //        // Construct Hit Record
-    //        let front_face = ray.is_front_face(self.normal);
-    //        let normal = if front_face { self.normal } else { -self.normal };
-//
-    //        // ------ Create hitrecord wrt transform ------------------
-    //        let mut rec = HitRecord::new(ray.origin, ray.at(t), normal, t, self.material_idx, front_face);
-    //        rec.to_world(&viewmat);
-    //        Some(rec) 
-    //        // --------------------------------------------------------
-    //    }
-    //    else {
-    //        None // t is not within the limits
-    //    }
-    //}
-//}
 
 impl BBoxable for Plane {
     /// Dummy bbox with no volume -- WARNING: Not to be used in BVH! BBoxable was meant to be separated from Shapes trait
