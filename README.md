@@ -83,3 +83,13 @@ it is dyn Material so ... I guess this wouldn't work.
     - impl material::Material for CustomMaterialStruct 
     - Add match arm to scene::parse_single_material( ) using _type value of JSON (TODO: automatize that?)
     - Add match arm to scene::get_color( ) for custom reflect / refract 
+
+    ----
+    ### How to render videos?
+
+    Example usage
+    ```
+    $ RUST_LOG=off cargo run --release ./inputs/hw2/raven/camera_zoom_david/
+    ```
+    this will output under ./outputs/hw2/raven/camera_zoom_david/ 
+    use this path to edit render_video.py and run ``python render_video.py`` (TODO: add args to ease usage)

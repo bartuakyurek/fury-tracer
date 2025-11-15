@@ -142,9 +142,9 @@ impl Camera {
         
         // Apply transformations
         self.position = transform_point(&self.composite_mat, &self.position);
-        self.w = transform_dir(&self.composite_mat, &self.w).normalize();
-        self.u = transform_dir(&self.composite_mat, &self.u).normalize();
-        self.v = transform_dir(&self.composite_mat, &self.v).normalize();
+        self.w = transform_dir(&self.composite_mat, &self.w); //.normalize(); -- this doesn't let camera to zoom in under scaling
+        self.u = transform_dir(&self.composite_mat, &self.u); //.normalize();
+        self.v = transform_dir(&self.composite_mat, &self.v);//.normalize();
         
         debug_assert!(approx_zero(self.u.dot(self.w))); 
         debug_assert!(approx_zero(self.v.dot(self.w))); 
