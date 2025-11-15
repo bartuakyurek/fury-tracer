@@ -41,7 +41,7 @@ impl BVHSubtree {
         if items.is_empty() { return None; } // Base case
         let unified_bbox = items.iter().fold(BBox::empty(), |acc, b| acc.merge(&b.1));
 
-        const LEAF_SIZE: usize = 4; // TODO: should we move it inside subtree struct so that it's not a magic constant to set here?
+        const LEAF_SIZE: usize = 1; // TODO: should we move it inside subtree struct so that it's not a magic constant to set here?
         if items.len() <= LEAF_SIZE {
             let node_objects = items.into_iter().map(|(s, _, _)| s).collect(); // NOTE: This is called *consuming*, ownership of items is moved to node_objects but this is fine because we are about to return
     
