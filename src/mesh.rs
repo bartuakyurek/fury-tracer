@@ -247,31 +247,35 @@ impl BBoxable for Mesh {
 // MeshInstanceField: Shape + BBoxable
 // =======================================================================================================
 
+
 impl Shape for MeshInstanceField {
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
         
-        let base_mesh = self.base_mesh.as_deref().unwrap(); // panic if base mesh is none
-        let inv_instance = self.matrix.inverse();
-
+        let base_mesh = self.base_mesh.as_deref().unwrap();
+        
         if self.reset_transform {
-            // Do not apply base mesh's transform on the instance mesh (see hw2 descriptions)
+            let inv_instance = self.matrix.inverse();
             let local_ray = ray.inverse_transform(&inv_instance);
-
+            
+            // Intersect without applying base mesh's transform
             if let Some(mut hit) = base_mesh.intersect_bvh(&local_ray, t_interval, vertex_cache) {
                 hit.material = self.material_id;
-                hit.to_world(&self.matrix);
+                hit.to_world(&self.matrix);  // this transforms normals and hitpoints p.53
                 Some(hit)
             } else {
                 None
             }
         } 
         else {
-            // TODO: This part is copy-paste of above only to change the function name..            
-            let local_ray = ray.inverse_transform(&inv_instance);
-
-            if let Some(mut hit) = base_mesh.intersects_with(&local_ray, t_interval, vertex_cache) {
+            // Compose transforms: inv(M_instance * M_base)
+            let composite_matrix = self.matrix * base_mesh.matrix;
+            let inv_composite = composite_matrix.inverse();
+            let local_ray = ray.inverse_transform(&inv_composite);
+            
+            // Intersect with BVH 
+            if let Some(mut hit) = base_mesh.intersect_bvh(&local_ray, t_interval, vertex_cache) {
                 hit.material = self.material_id;
-                hit.to_world(&self.matrix);
+                hit.to_world(&composite_matrix);  // this transforms normals and hitpoints p.53
                 Some(hit)
             } else {
                 None
