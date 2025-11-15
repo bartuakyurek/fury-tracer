@@ -277,7 +277,8 @@ fn resolve_all_mesh_instances(
         for other in left.iter().chain(rest.iter()) {
             if other._id == mint.base_mesh_id {
                 mint.base_mesh = other.base_mesh.clone();
-                mint.matrix = other.matrix * mint.matrix;
+                //mint.matrix = other.matrix * mint.matrix; // TODO: is this the correct order?
+                mint.matrix = mint.matrix * other.matrix; // TODO: is this the correct order?
                 debug!("Mesh instance {} refers base mesh instance {} ", mint._id, mint.base_mesh.clone().unwrap()._id);
                 break;
             }
@@ -295,14 +296,19 @@ impl SceneObjects {
     fn setup_transforms(&mut self, transforms: &Transformations) {
 
         for mesh in self.meshes.iter_mut() {
-            mesh.matrix = parse_transform_expression(
-                                mesh.transformation_names.as_deref().unwrap_or(""),
-                                &transforms,  
-                        );
+            mesh.matrix = if mesh.transformation_names.is_some() {
+                parse_transform_expression(
+                    mesh.transformation_names.as_deref().unwrap_or(""),
+                    &transforms,  
+                )
+            } else {
+                warn!("Mesh '{}'s transformation is not given, defaulting to Identity.", mesh._id);
+                Matrix4::IDENTITY  // Default to identity if no transform is given
+            };
             info!("Composite transform for mesh '{}' is {}", mesh._id, mesh.matrix);
         }
 
-         for mint in self.mesh_instances.iter_mut() {
+        for mint in self.mesh_instances.iter_mut() {
             mint.matrix = parse_transform_expression(
                     mint.transformation_names.as_str(),
                     &transforms,  
@@ -310,6 +316,8 @@ impl SceneObjects {
             info!("Composite transform for mesh '{}' is {}", mint._id, mint.matrix);
         }
 
+
+        
         for tri in self.triangles.iter_mut() {
             info!("Setting up transforms for mesh._id '{}'", tri._id.clone());
             tri.matrix = Some(Arc::new(parse_transform_expression(
