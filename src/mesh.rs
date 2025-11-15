@@ -35,8 +35,8 @@ pub struct MeshInstanceField {
     #[default = false]
     pub(crate) reset_transform: bool,
 
-    #[serde(rename = "Material", deserialize_with = "deser_usize")]
-    pub(crate) material_id: usize,
+    #[serde(rename = "Material", deserialize_with = "deser_opt_usize", default)]
+    pub(crate) material_id: Option<usize>,
     
     #[serde(rename = "Transformations")]
     pub(crate) transformation_names: String,
@@ -259,7 +259,7 @@ impl Shape for MeshInstanceField {
             
             // Intersect without applying base mesh's transform
             if let Some(mut hit) = base_mesh.intersect_bvh(&local_ray, t_interval, vertex_cache) {
-                hit.material = self.material_id;
+                hit.material = self.material_id.unwrap_or(self.base_mesh.clone().unwrap().material_idx);
                 hit.to_world(&self.matrix);  // this transforms normals and hitpoints p.53
                 Some(hit)
             } else {
@@ -274,7 +274,7 @@ impl Shape for MeshInstanceField {
             
             // Intersect with BVH 
             if let Some(mut hit) = base_mesh.intersect_bvh(&local_ray, t_interval, vertex_cache) {
-                hit.material = self.material_id;
+                hit.material = self.material_id.unwrap_or(self.base_mesh.clone().unwrap().material_idx);
                 hit.to_world(&composite_matrix);  // this transforms normals and hitpoints p.53
                 Some(hit)
             } else {
