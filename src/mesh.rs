@@ -280,25 +280,34 @@ impl Shape for MeshInstanceField {
     }
 }
 
+
 impl BBoxable for MeshInstanceField {
     fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
         
-        if let Some(base_mesh) = self.base_mesh.as_deref() { // deref resolved cannot move, behind shared reference error, ig it's because Arc is a shared pointer
-             info!("Retrieving bounding box for base mesh '{}' of instance '{}'", base_mesh._id, self._id);
+        if let Some(base_mesh) = self.base_mesh.as_deref() {
+            info!("Retrieving bounding box for base mesh '{}' of instance '{}'", base_mesh._id, self._id);
         
-            let local_box = base_mesh.get_bbox(verts, false);
-
-            if apply_t {
-                local_box.transform(&self.matrix)
-            }
-            else {
-                local_box
+            if self.reset_transform {
+                // Only apply instance transform, ignoring base mesh transform
+                let local_box = base_mesh.get_bbox(verts, false);
+                if apply_t {
+                    local_box.transform(&self.matrix)
+                } else {
+                    local_box
+                }
+            } else {
+                // Apply transforms: M_instance * M_base
+                let composite = self.matrix * base_mesh.matrix;
+                let local_box = base_mesh.get_bbox(verts, false);
+                if apply_t {
+                    local_box.transform(&composite)
+                } else {
+                    local_box
+                }
             }
         }
         else {
             panic!("Mesh instance {} is missing base mesh (Option set to None)", self._id);
         }
-       
     }
 }
-
