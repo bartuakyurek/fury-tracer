@@ -2,8 +2,12 @@ import subprocess
 import os
 
 # Folder containing your PNG frames
-modelname = "windmill"
-frames_dir = "./outputs/hw2/akif_uslu/" + modelname  + "/input/"
+jsonname = "camera_zoom_david"
+modelname = "davids_camera_zoom"
+
+output_path = "./outputs/hw2/raven/"
+
+frames_dir = os.path.join(output_path, jsonname) 
 output_video = f"{modelname}.mp4"
 
 # Frame name like windmill_000.png
