@@ -37,6 +37,14 @@ pub fn transform_point(mat: &Matrix4, v: &Vector3) -> Vector3 {
     Vector3::new(r.x, r.y, r.z)
 }
 
+pub fn transform_dir(mat: &Matrix4, v: &Vector3) -> Vector3 {
+    // Only difference from transform_point is that last component
+    // w = 0 
+    let v4 = Vector4::new(v.x, v.y, v.z, 0.0);
+    let r = *mat * v4;
+    Vector3::new(r.x, r.y, r.z)
+}
+
 pub fn transform_normal(mat: &Matrix4, n: &Vector3) -> Vector3 {
     // Compute inverse transpose matrix 
     let inv = mat.inverse();
