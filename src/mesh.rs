@@ -42,7 +42,7 @@ pub struct MeshInstanceField {
     pub(crate) transformation_names: String,
 
     #[serde(skip)]
-    pub(crate) matrix: Arc<Matrix4>, // WARNING: This should apply its M_instance on M_base
+    pub(crate) matrix: Matrix4, // WARNING: This should apply its M_instance on M_base
 
     #[serde(skip)]
     pub base_mesh: Option<Arc<Mesh>>, // wrapped around Option to prevent default mesh construction
@@ -93,7 +93,7 @@ pub struct Mesh {
     pub transformation_names: Option<String>,
 
     #[serde(skip)]
-    pub matrix: Arc<Matrix4>,
+    pub matrix: Matrix4,
 
     //#[serde(skip)]
     //pub inv_matrix: Arc<Matrix4>,
@@ -146,7 +146,7 @@ impl Mesh {
                 normal: get_tri_normal(&v1, &v2, &v3),
 
                 transformation_names: self.transformation_names.clone(),
-                matrix: Some(self.matrix.clone()), // NOTE: here it is ok to .clone( ) because it just increases Arc's counter, not cloning the whole data
+                matrix: Some(Arc::new(self.matrix)), // NOTE: here it is ok to .clone( ) because it just increases Arc's counter, not cloning the whole data
             });
         }
         
@@ -251,7 +251,6 @@ impl Shape for MeshInstanceField {
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
         
         let base_mesh = self.base_mesh.as_deref().unwrap(); // panic if base mesh is none
-        
         let inv_instance = self.matrix.inverse();
 
         if self.reset_transform {

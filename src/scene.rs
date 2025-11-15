@@ -277,7 +277,7 @@ fn resolve_all_mesh_instances(
         for other in left.iter().chain(rest.iter()) {
             if other._id == mint.base_mesh_id {
                 mint.base_mesh = other.base_mesh.clone();
-                mint.matrix = Arc::new(*other.matrix * *mint.matrix);
+                mint.matrix = other.matrix * mint.matrix;
                 debug!("Mesh instance {} refers base mesh instance {} ", mint._id, mint.base_mesh.clone().unwrap()._id);
                 break;
             }
@@ -296,9 +296,9 @@ impl SceneObjects {
 
         for mesh in self.meshes.iter_mut() {
             mesh.matrix = parse_transform_expression(
-                    mesh.transformation_names.as_deref().unwrap_or(""),
-                    &transforms,  
-            );
+                                mesh.transformation_names.as_deref().unwrap_or(""),
+                                &transforms,  
+                        );
             info!("Composite transform for mesh '{}' is {}", mesh._id, mesh.matrix);
         }
 
@@ -312,24 +312,24 @@ impl SceneObjects {
 
         for tri in self.triangles.iter_mut() {
             info!("Setting up transforms for mesh._id '{}'", tri._id.clone());
-            tri.matrix = Some(parse_transform_expression(
+            tri.matrix = Some(Arc::new(parse_transform_expression(
                     tri.transformation_names.as_deref().unwrap_or(""),
                     &transforms,  
-            ));
+            )));
         }
 
         for sphere in self.spheres.iter_mut() {
-            sphere.matrix = Some(parse_transform_expression(
+            sphere.matrix = Some(Arc::new(parse_transform_expression(
                 sphere.transformation_names.as_deref().unwrap_or(""), 
-                &transforms));
+                &transforms)));
         }
 
         for plane in self.planes.iter_mut() {
             info!("Setting up transforms for mesh._id '{}'", plane._id.clone());
-            plane.matrix = Some(parse_transform_expression(
+            plane.matrix = Some(Arc::new(parse_transform_expression(
                     plane.transformation_names.as_deref().unwrap_or(""),
                     &transforms,  
-            ));
+            )));
         }
     }
 

@@ -542,7 +542,7 @@ pub fn parse_material(value: serde_json::Value) -> Vec<HeapAllocMaterial> {
 pub fn parse_transform_expression(
     expr: &str,
     global_transforms: &Transformations
-) -> Arc<Matrix4> {
+) -> Matrix4 {
 
     let mut out = Matrix4::IDENTITY;
 
@@ -595,5 +595,5 @@ pub fn parse_transform_expression(
         }
     }
 
-    Arc::new(out)
+    out
 }
