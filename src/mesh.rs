@@ -145,8 +145,8 @@ impl Mesh {
                 is_smooth: self._shading_mode.to_ascii_lowercase() == "smooth",
                 normal: get_tri_normal(&v1, &v2, &v3),
 
-                transformation_names: self.transformation_names.clone(),
-                matrix: Some(Arc::new(self.matrix)), // NOTE: here it is ok to .clone( ) because it just increases Arc's counter, not cloning the whole data
+                transformation_names: None,//self.transformation_names.clone(),
+                matrix: None, //Some(Arc::new(self.matrix)), // NOTE: here it is ok to .clone( ) because it just increases Arc's counter, not cloning the whole data
             });
         }
         
