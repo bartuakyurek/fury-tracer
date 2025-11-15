@@ -17,7 +17,7 @@ use crate::scene::Scene;
 
 fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Error>>  {
     // Parse JSON
-    info!("Loading scene from {}...", json_path);
+    debug!("Loading scene from {}...", json_path);
     let mut root = parse_json795(json_path).map_err(|e| {
         error!("Failed to load scene: {}", e);
         Box::<dyn std::error::Error>::from(e)
@@ -72,7 +72,7 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
         for entry in WalkDir::new(path).into_iter().filter_map(Result::ok) {
             let entry_path = entry.path();
             if entry_path.is_file() && entry_path.extension().map(|s| s == "json").unwrap_or(false) {
-                info!("Rendering JSON: {:?}", entry_path);
+                debug!("Rendering JSON: {:?}", entry_path);
                 read_json_and_render(&entry_path.to_str().unwrap().to_string())?;
             }
         }
