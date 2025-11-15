@@ -6,7 +6,7 @@
     @author: Bartu
 
 */
-
+use walkdir::WalkDir;
 use std::{env, path::Path, path::PathBuf};
 use tracing_subscriber;
 
@@ -50,7 +50,7 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
 
     // Parse args
     let args: Vec<String> = env::args().collect();
-    let json_path: &String = if args.len() == 1 {
+    let input_path: &String = if args.len() == 1 {
         warn!("No arguments were provided, setting default scene path...");
         //&String::from("./inputs/hw1/deniz_sayin/lobster.json")
         &String::from("./inputs/hw2/metal_glass_plates.json")
@@ -61,7 +61,26 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     };
     
-    read_json_and_render(json_path)?;
+    let path = Path::new(&input_path);
+
+    if path.is_file() {
+        // Scenario 1: input contains JSON file
+        read_json_and_render(&path.to_str().unwrap().to_string())?; // TODO: Perhaps I should make these functions accept path directly
+    } else if path.is_dir() {
+        // Scenario 2: input is a directory, explore all .jsons
+        // recursively under this directory (walkdir does it) and render them.
+        for entry in WalkDir::new(path).into_iter().filter_map(Result::ok) {
+            let entry_path = entry.path();
+            if entry_path.is_file() && entry_path.extension().map(|s| s == "json").unwrap_or(false) {
+                info!("Rendering JSON: {:?}", entry_path);
+                read_json_and_render(&entry_path.to_str().unwrap().to_string())?;
+            }
+        }
+    } else {
+        error!("Expected input path to be a file or a directory, got: {:?}", path);
+        std::process::exit(1);
+    }
+
 
     info!("Finished execution.");
     Ok(())
