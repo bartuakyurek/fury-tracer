@@ -60,6 +60,20 @@ pub fn parse_json795(path: &str) -> Result<RootScene, Box<dyn std::error::Error>
 
 }
 
+pub fn deser_opt_usize<'de, D>(deserializer: D) -> Result<Option<usize>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let opt = Option::<String>::deserialize(deserializer)?;
+
+    match opt {
+        Some(s) if !s.is_empty() => {
+            let parsed = s.parse::<usize>().map_err(serde::de::Error::custom)?;
+            Ok(Some(parsed))
+        }
+        _ => Ok(None),
+    }
+}
 
 
 pub fn deser_usize<'de, D>(deserializer: D) -> Result<usize, D::Error>
