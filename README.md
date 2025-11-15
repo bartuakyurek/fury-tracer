@@ -8,6 +8,7 @@ This is a ray tracer developed for METU graduate level course CENG 795. If you'd
 
 Author: Bartu
 
+Render default .json:
 ---
 For fastest run:
 ``$ cargo run --release``
@@ -23,6 +24,14 @@ For more suggestions to improve code:
 
 ---
 
+Render a specific .json:
+``$ cargo run --release ./path/to/your.json``
+
+Render all .json files under a directory:
+``$ cargo run --release ./path/to/folder``
+
+---
+
 > [!IMPORTANT]
 > Binaries are placed under ./target/debug/ or ./target/release depending on cargo run commands above. By default it is under debug but for faster runs compiling with --release is recommended.
 
@@ -30,11 +39,11 @@ For more suggestions to improve code:
 
 # TODO 
 ---
-- [ ] Glass material looks less bright than expected, why?
+- [ ] Acne problem in mirror_room.json 
+- [ ] Glass less reflective in instanced meshes (metal_glass_plates.json)
+- [x] Glass material looks less bright than expected, why?
 - [x] Vertex indices start from 1, not 0, make sure to handle that correctly
 - [x] Ambient light is declared only once, change implementation to return a single vec3, Not vector of vec3. 
-- [ ] Consider utilizing CoordLike implementation in geometry.rs  
-- [ ] Unit tests missing
 - [ ] Consider explicitly marking your function with #[inline] or #[inline(always)] to see if it improves performance. (source: https://softwaremill.com/rust-static-vs-dynamic-dispatch/)
 - [ ] Fix Fresnel computations done twice, see comments or commits for thoughts on it.
 - [ ] I think boilerplate required for implementing material can be reduced if material trait had default ambient( ) diffuse( ) specular( )
