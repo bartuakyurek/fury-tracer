@@ -36,3 +36,15 @@ pub fn transform_point(mat: &Matrix4, v: &Vector3) -> Vector3 {
     let r = *mat * v4;
     Vector3::new(r.x, r.y, r.z)
 }
+
+pub fn transform_normal(mat: &Matrix4, n: &Vector3) -> Vector3 {
+    // Compute inverse transpose matrix 
+    let inv = mat.inverse();
+    let inv_t = inv.transpose();
+
+    // Normal is a direction, so set w = 0.0
+    let n4 = Vector4::new(n.x, n.y, n.z, 0.0);
+    let r = inv_t * n4;
+
+    Vector3::new(r.x, r.y, r.z).normalize()
+}
