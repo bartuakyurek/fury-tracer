@@ -7,7 +7,7 @@
 
 */
 
-use std::{env, path::Path};
+use std::{env, path::Path, path::PathBuf};
 use tracing_subscriber;
 
 use fury_tracer::*; // lib.rs mods
@@ -24,8 +24,14 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
     let json_path: &String = if args.len() == 1 {
         warn!("No arguments were provided, setting default scene path...");
         //&String::from("./inputs/hw1/scienceTree_glass.json")
-        &String::from("./inputs/hw2/dragon_metal.json")
+        //&String::from("./inputs/hw1/deniz_sayin/lobster.json")
+        //&String::from("./inputs/hw2/dragon_metal.json")
         //&String::from("./inputs/hw2/simple_transform.json")
+        //&String::from("./inputs/hw2/marching_dragons.json")
+        //&String::from("./inputs/hw2/grass/grass_desert.json")
+        //&String::from("./inputs/hw2/akif_uslu/berserker/two_berserkers.json")
+        //&String::from("./inputs/hw2/mirror_room.json")
+        &String::from("./inputs/hw2/metal_glass_plates.json")
     } else if args.len() == 2 {
         &args[1]
     } else {
@@ -49,12 +55,51 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
     let images = renderer::render(&scene)?;
     
     // Write images to .png files
+    let imagefolder_pathbuf = get_output_dir(json_path, "inputs", "outputs")?;
+    let imagefolder = imagefolder_pathbuf.to_str().unwrap();
     for im in images.into_iter() {
-        let imagefolder = "./"; // Save to this folder TODO: add outputs/subfolder/... 
         if let Err(e) = im.save_png(&imagefolder) {
             eprintln!("Failed to save {}: {}", imagefolder, e);
         }
     }
     info!("Finished execution.");
     Ok(())
+}
+
+
+/// Given the JSON file path, and its parent name ("inputs" in our case), return the output path to be used while saving .png image
+/// (it doesn't include .png name, only up to its parent folder)
+/// In the homeworks our input_folder = "inputs" and output_folder = "outputs"
+fn get_output_dir(json_path: PathBuf, input_folder: &str, output_folder: &str) -> Result<PathBuf,  Box<dyn std::error::Error>> {
+    let json_dir = json_path.parent().unwrap();  // folder of the json
+
+    // Try to find "inputs" in the path
+    let components: Vec<_> = json_dir.components().collect();
+    let mut input_subpath: Option<PathBuf> = None;
+
+    for (i, comp) in components.iter().enumerate() {
+        if comp.as_os_str() == input_folder {
+            // collect everything after "inputs"
+            let mut p = PathBuf::new();
+            for c in &components[i+1..] {
+                p.push(c.as_os_str());
+            }
+            input_subpath = Some(p);
+            break;
+        }
+    }
+    // If no "inputs" in the path, then use whole path except json filename
+    let relative_path = input_subpath.unwrap_or_else(|| {
+        PathBuf::from(json_dir.file_name().unwrap())
+    });
+
+    // Check if ./outputs exists, else create it
+    let outputs_root = Path::new(output_folder);
+    if !outputs_root.exists() {
+        std::fs::create_dir(outputs_root)?;
+    }
+    // Construct full directory: outputs/rest/of/the/directory
+    let image_folder_path = outputs_root.join(&relative_path);
+    std::fs::create_dir_all(&image_folder_path)?;
+    Ok(image_folder_path)
 }
