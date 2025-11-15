@@ -298,8 +298,11 @@ impl Shape for Plane {
 }
 
 impl BBoxable for Plane {
-    /// Dummy bbox with no volume
+    /// Dummy bbox with no volume -- WARNING: Not to be used in BVH! BBoxable was meant to be separated from Shapes trait
+    /// but I couldn't figure out how to set trait bounds without using trait objects in the scene object
+    /// vectors yet... 
      fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
+        todo!();
         let p = verts[self.point_idx];
         let xint = Interval::new(p.x, p.x);
         let yint = Interval::new(p.y, p.y);
