@@ -14,31 +14,8 @@ use fury_tracer::*; // lib.rs mods
 use crate::prelude::*; 
 use crate::scene::Scene;
 
-fn main()  -> Result<(), Box<dyn std::error::Error>> {
 
-    // Logging on console
-    tracing_subscriber::fmt::init(); 
-
-    // Parse args
-    let args: Vec<String> = env::args().collect();
-    let json_path: &String = if args.len() == 1 {
-        warn!("No arguments were provided, setting default scene path...");
-        //&String::from("./inputs/hw1/scienceTree_glass.json")
-        //&String::from("./inputs/hw1/deniz_sayin/lobster.json")
-        //&String::from("./inputs/hw2/dragon_metal.json")
-        //&String::from("./inputs/hw2/simple_transform.json")
-        //&String::from("./inputs/hw2/marching_dragons.json")
-        //&String::from("./inputs/hw2/grass/grass_desert.json")
-        //&String::from("./inputs/hw2/akif_uslu/berserker/two_berserkers.json")
-        //&String::from("./inputs/hw2/mirror_room.json")
-        &String::from("./inputs/hw2/metal_glass_plates.json")
-    } else if args.len() == 2 {
-        &args[1]
-    } else {
-        error!("Usage: {} <filename>.json", args[0]);
-        std::process::exit(1);
-    };
-    
+fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Error>>  {
     // Parse JSON
     info!("Loading scene from {}...", json_path);
     let mut root = parse_json795(json_path).map_err(|e| {
@@ -62,6 +39,30 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
             eprintln!("Failed to save {}: {}", imagefolder, e);
         }
     }
+
+    Ok(())
+}
+
+fn main()  -> Result<(), Box<dyn std::error::Error>> {
+
+    // Logging on console
+    tracing_subscriber::fmt::init(); 
+
+    // Parse args
+    let args: Vec<String> = env::args().collect();
+    let json_path: &String = if args.len() == 1 {
+        warn!("No arguments were provided, setting default scene path...");
+        //&String::from("./inputs/hw1/deniz_sayin/lobster.json")
+        &String::from("./inputs/hw2/metal_glass_plates.json")
+    } else if args.len() == 2 {
+        &args[1]
+    } else {
+        error!("Usage: {} <filename>.json or <path/to/folder>", args[0]);
+        std::process::exit(1);
+    };
+    
+    read_json_and_render(json_path)?;
+
     info!("Finished execution.");
     Ok(())
 }
