@@ -4,9 +4,8 @@
 </div>
 
 
-This is a ray tracer developed for METU graduate level course CENG 795. If you'd like to read learning logs of this work, see [my Notion page](https://almondine-egg-e28.notion.site/Journey-of-a-Rust-Ray-Tracer-29bf07c7cdad8045ae34f2f68f4d7301).
+This is a ray tracer developed for METU graduate level course CENG 795. If you'd like to read learning logs of this work, see [my Notion page](https://bartuakyurek.notion.site/Journey-of-a-Rust-Ray-Tracer-29bf07c7cdad8045ae34f2f68f4d7301).
 
-Author: Bartu
 
 Render default .json:
 ---
