@@ -194,12 +194,13 @@ impl Shape for Sphere {
         let p_world = transform_point(&*viewmat, &p_local); 
 
         // Update ray t to worlds space
-        let ray_dir_lensqrd = ray.direction.dot(ray.direction);
-        if ray_dir_lensqrd == 0.0 { // Avoid division by zero
-            return None; 
-        }
-        let t_world = (p_world - ray.origin).dot(ray.direction) / ray_dir_lensqrd;
-        if !t_interval.contains(t_world) || t_world <= 0.0 {
+        //let ray_dir_lensqrd = ray.direction.dot(ray.direction);
+        //if ray_dir_lensqrd == 0.0 { // Avoid division by zero
+        //    return None; 
+        //}
+        //let t_world = (p_world - ray.origin).dot(ray.direction) / ray_dir_lensqrd;
+        let t = t_local;
+        if !t_interval.contains(t) || t <= 0.0 {
             return None;
         }
 
@@ -211,7 +212,7 @@ impl Shape for Sphere {
         // Check front face and build hitrecord (I was transforming hitrecord::to_world( ) but here it is already transformed.)
         let front_face = ray.is_front_face(world_normal);
         let final_normal = if front_face { world_normal } else { -world_normal };
-        let rec = HitRecord::new(ray.origin, p_world, final_normal, t_world, self.material_idx, front_face);
+        let rec = HitRecord::new(ray.origin, p_world, final_normal, t, self.material_idx, front_face);
         Some(rec)
     }
 }
@@ -277,20 +278,21 @@ impl Shape for Plane {
         // --- Transform ray ---
         let viewmat = self.matrix.clone().unwrap_or(Arc::new(Matrix4::IDENTITY));
         let inv_matrix = viewmat.inverse();
-        let ray = &ray.inverse_transform(&inv_matrix);
+        let local_ray = &ray.inverse_transform(&inv_matrix);
         // ---------------------
         let verts = &vertex_cache.vertex_data;
         let p0 = verts[self.point_idx];
-        let n = self.normal;
+        //let p0 = transform_point(&viewmat, &p0);
+        let local_n: bevy_math::DVec3 = self.normal;
 
-        let denom = ray.direction.dot(n);
+        let denom = local_ray.direction.dot(local_n);
 
         // ray is parallel to plane ----
         if denom.abs() < 1e-12 {
             return None;
         }
 
-        let t = (p0 - ray.origin).dot(n) / denom;
+        let t = (p0 - local_ray.origin).dot(local_n) / denom;
 
         // plane is behind the ray origin ----
         if t <= 0.0 {
@@ -302,13 +304,18 @@ impl Shape for Plane {
             return None;
         }
 
-        // Construct Hit Record
-        let front_face = ray.is_front_face(n);
-        let normal = if front_face { n } else { -n };
-        let mut rec = HitRecord::new(ray.origin, ray.at(t), normal, t, self.material_idx, front_face);
+        // Construct Hit Record (transform hitpoint and normal (04, p.53))
+        let p_local = local_ray.at(t);
+        let p_world = transform_point(&viewmat, &p_local);
 
-        // transform hitpoint and normal (04, p.53) -----
-        rec.to_world(&viewmat);
+        let mut world_normal = transform_normal(&viewmat, &local_n);
+        if world_normal.norm_squared() > 0.0 {world_normal = world_normal.normalize();} 
+
+        let front_face = ray.is_front_face(world_normal);
+        let final_normal = if front_face { world_normal } else { -world_normal };
+        
+        let rec = HitRecord::new(ray.origin, p_world, final_normal, t, self.material_idx, front_face);
+        //rec.to_world(&viewmat); 
         Some(rec)
     }
 }
