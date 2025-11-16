@@ -168,11 +168,13 @@ impl<'a> Scene <'a>  // Lifetime annotation 'a looks scary but it was needed for
         if let Some(bvh) = &self.bvh {
             let mut rec = HitRecord::default();
             if bvh.intersect(ray, t_interval, &self.vertex_cache, &mut rec) {
+                // TODO: bvh does not allow early break yet...
                 best_t = rec.ray_t;
                 best = Some(rec);
             }
         }
         else {
+            debug!("No BVH Found, iterating over all shapes...");
             best = self.hit_naive(ray, t_interval, early_break);
         }
 

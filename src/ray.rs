@@ -9,7 +9,7 @@ use bevy_math::NormedVectorSpace;
 use crate::prelude::*;
 
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Ray {
     pub origin: Vector3,
     pub direction: Vector3,

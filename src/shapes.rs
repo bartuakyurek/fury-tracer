@@ -271,7 +271,16 @@ impl Shape for Plane {
         // --- Transform ray ---
         let viewmat = self.matrix.clone().unwrap_or(Arc::new(Matrix4::IDENTITY));
         let inv_matrix = viewmat.inverse();
-        let local_ray = &ray.inverse_transform(&inv_matrix);
+
+        // -----------------------------------------------------------------------------------------------------------------------
+        // quick fix for acne to save the day in short term but it does not actually match with the expected output either
+        let mut ray = ray.clone(); // <------ bad practice, delete me!!
+        ray.origin -= 1e-6; // <------ bad practice, delete me!!
+        // let local_ray = &ray.inverse_transform(&inv_matrix); // <------ uncomment me
+        let mut local_ray = ray.inverse_transform(&inv_matrix); // <------ bad practice, delete me!!
+        local_ray.origin += 1e-6; // <------ bad practice, delete me!!
+        // TODO: remove epsilon additions from material, such that they can be handled after inverse transforming rays.-----------
+
         // ---------------------
         let verts = &vertex_cache.vertex_data;
         let p0 = verts[self.point_idx];

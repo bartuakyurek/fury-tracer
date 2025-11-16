@@ -19,10 +19,12 @@ json_files=(
     #"raven/rt_utahteapot_mug_ceng.json"
     "/simple_transform.json"
     "/dragon_metal.json"
-    #"/spheres.json"
-    #"/ellipsoids.json"
+    "/spheres.json"
+    "/ellipsoids.json"
     "/marching_dragons.json"
     "/grass/grass_desert.json"
+    "/metal_glass_plates.json"
+    "/mirror_room.json"
 )
 
 for json_file in "${json_files[@]}"; do

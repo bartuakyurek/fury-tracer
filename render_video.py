@@ -2,8 +2,8 @@ import subprocess
 import os
 
 # Folder containing your PNG frames
-jsonname = "camera_zoom_david"
-modelname = "davids_camera_zoom"
+jsonname = "light_around_david" #"camera_zoom_david"
+modelname = "davids" #"davids_camera_zoom"
 
 output_path = "./outputs/hw2/raven/"
 
