@@ -458,11 +458,11 @@ pub fn parse_string_vecvec3(s: &str) -> Result<Vec<Vector3>, String> {
 
 fn parse_string_vec<T, F>(s: &str, chunk_len: usize, mut f: F) -> Result<Vec<T>, String>
 where
-    F: FnMut(&[f64]) -> Result<T, String>,
+    F: FnMut(&[Float]) -> Result<T, String>,
 {
-    let nums: Vec<f64> = s
+    let nums: Vec<Float> = s
         .split_whitespace()
-        .map(|x| x.parse::<f64>().map_err(|e| e.to_string()))
+        .map(|x| x.parse::<Float>().map_err(|e| e.to_string()))
         .collect::<Result<_, _>>()?;
 
     if nums.len() % chunk_len != 0 {
