@@ -50,10 +50,8 @@ impl Ray {
         // slides 04, p.50
         let local_origin = transform_point(inv_matrix, &self.origin);
         let mat3 = Matrix3::from_mat4(*inv_matrix); //.transpose();
-        let mut local_direction = mat3 * self.direction;
-        local_direction = local_direction.normalize(); // slides 04, p.53
-        //let local_direction = transform_point(inv_matrix, &self.direction);
-        debug_assert!(local_direction.is_normalized());
+        let local_direction = mat3 * self.direction;
+        //local_direction = local_direction.normalize(); DO NOT NORMALIZE!
         Ray::new(local_origin, local_direction)
     }
 }
