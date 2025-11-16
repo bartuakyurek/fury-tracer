@@ -187,19 +187,12 @@ impl Shape for Sphere {
         let t2 = (-b + sqrt_d) / (2.0*a); 
 
         // Pick the closer t
-        let t_local = if t1 > 0.0 { t1 } else if t2 > 0.0 { t2 } else { return None; };
+        let t = if t1 > 0.0 { t1 } else if t2 > 0.0 { t2 } else { return None; };
 
         // Compute hit in local space and then transform back  to world
-        let p_local = local_ray.at(t_local);
+        let p_local = local_ray.at(t);
         let p_world = transform_point(&*viewmat, &p_local); 
 
-        // Update ray t to worlds space
-        //let ray_dir_lensqrd = ray.direction.dot(ray.direction);
-        //if ray_dir_lensqrd == 0.0 { // Avoid division by zero
-        //    return None; 
-        //}
-        //let t_world = (p_world - ray.origin).dot(ray.direction) / ray_dir_lensqrd;
-        let t = t_local;
         if !t_interval.contains(t) || t <= 0.0 {
             return None;
         }
@@ -282,7 +275,6 @@ impl Shape for Plane {
         // ---------------------
         let verts = &vertex_cache.vertex_data;
         let p0 = verts[self.point_idx];
-        //let p0 = transform_point(&viewmat, &p0);
         let local_n: bevy_math::DVec3 = self.normal;
 
         let denom = local_ray.direction.dot(local_n);
