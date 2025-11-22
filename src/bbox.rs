@@ -1,7 +1,6 @@
 /*
 
-    Axis Aligned Bounding Box and Bounding Volume Hierarchy.
-
+    Axis Aligned Bounding Box (AABB)
     
     @author: bartu
     @date: 9 Nov, 2025
@@ -21,10 +20,6 @@ pub struct BBox {
     pub ymax: Float,
     pub zmin: Float, 
     pub zmax: Float,
-    
-   // pub width: Float, // TODO: Are these actually needed? 
-   // pub height: Float,
-   // pub depth: Float,
 }
 
 // TODO: Ideally, BBox should impl Shape but since intersect( ) signatures are different
@@ -43,9 +38,6 @@ impl BBox {
             ymax,
             zmin,
             zmax,
-          //  width: xmax - xmin,
-          //  height: ymax - ymin,
-          //  depth: zmax - zmin,
         }
     }
 
@@ -130,7 +122,7 @@ impl BBox {
 
     /// Transform the bounding box given a 4x4 matrix
     pub fn transform(&self, matrix: &Matrix4) -> Self {
-        // TODO: reduce verbosity
+        // TODO: why not directly apply transform to points? do we really need to compute new extents?
         let corners = [
             Vector3::new(self.xmin, self.ymin, self.zmin),
             Vector3::new(self.xmin, self.ymin, self.zmax),
@@ -147,7 +139,7 @@ impl BBox {
             .map(|corner| matrix.transform_point3(*corner))
             .collect();
 
-        // Find transformed xmin xmax ymin etc.
+        // Find transformed extents and new corners
         let (mut xmin, mut xmax) = (Float::INFINITY, Float::NEG_INFINITY);
         let (mut ymin, mut ymax) = (Float::INFINITY, Float::NEG_INFINITY);
         let (mut zmin, mut zmax) = (Float::INFINITY, Float::NEG_INFINITY);
