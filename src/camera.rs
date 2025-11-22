@@ -38,7 +38,7 @@ pub struct Camera {
     _type: String,
 
     #[serde(rename = "Position", deserialize_with = "deser_vec3")]
-    position: Vector3,
+    pub position: Vector3,
 
     #[serde(rename = "Gaze", deserialize_with = "deser_vec3")]
     gaze_dir: Vector3,
