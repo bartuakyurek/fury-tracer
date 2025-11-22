@@ -13,7 +13,7 @@
 
 use rayon::prelude::*;
 use bevy_math::{NormedVectorSpace};
-use std::{self, time::Instant};
+use std::{self, time::Instant, sync::Arc, sync::Mutex};
 
 use crate::material::{HeapAllocMaterial};
 use crate::ray::{HitRecord, Ray};
@@ -57,7 +57,7 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, mat: &
     color
 }
 
-pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 { 
+pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize, hitpool: Arc<Mutex<Vec<HitRecord>>>) -> Vector3 { 
   
    if depth >= scene.data.max_recursion_depth {
         return scene.data.background_color;
@@ -65,7 +65,8 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
    
    let t_interval = Interval::positive(scene.data.intersection_test_epsilon);
    if let Some(hit_record) = scene.hit_bvh(ray_in, &t_interval, false) {
-        
+        hitpool.lock().unwrap().push(hit_record.clone());
+
         let mat: &HeapAllocMaterial = &scene.data.materials.materials[hit_record.material - 1];
         let mut color = Vector3::ZERO;
         let mat_type = mat.get_type();
@@ -76,7 +77,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
             },
             "mirror" | "conductor" => { 
                     if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        shade_diffuse(scene,  &hit_record, &ray_in, mat) + attenuation * get_color(&reflected_ray, scene, depth + 1) 
+                        shade_diffuse(scene,  &hit_record, &ray_in, mat) + attenuation * get_color(&reflected_ray, scene, depth + 1, hitpool.clone()) 
                     }
                     else {
                         warn!("Material not reflecting...");
@@ -93,12 +94,12 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
  
                 // Reflected 
                 if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        tot_radiance += attenuation * get_color(&reflected_ray, scene, depth + 1);
+                        tot_radiance += attenuation * get_color(&reflected_ray, scene, depth + 1, hitpool.clone());
                 }
         
                 // Refracted 
                 if let Some((refracted_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, false) {
-                        tot_radiance += attenuation * get_color(&refracted_ray, scene, depth + 1);
+                        tot_radiance += attenuation * get_color(&refracted_ray, scene, depth + 1, hitpool.clone());
                 }
                 tot_radiance
             },
@@ -131,15 +132,18 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         info!("Starting rayon multithreading...");
         let start = Instant::now();
         let eye_rays: Vec<Ray> = cam.generate_primary_rays();
+        let hitpool = Arc::new(Mutex::new(Vec::new()));
+       
         let pixel_colors: Vec<_> = eye_rays
             .par_iter()
-            .map(|ray| get_color(ray, scene, 0))
+            .map(|ray| get_color(ray, scene, 0, hitpool.clone()))
             .collect();
         // -----------------------------
             
         let im = ImageData::new_from_colors(cam.image_resolution, cam.image_name.clone(), pixel_colors);
         images.push(im);
         info!("Rendering of {} took: {:?}", cam.image_name, start.elapsed()); 
+        info!("Hitpool has {} entries.", hitpool.lock().unwrap().len());
     }
     
     Ok(images)

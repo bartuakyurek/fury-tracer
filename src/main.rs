@@ -52,8 +52,8 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     let input_path: &String = if args.len() == 1 {
         warn!("No arguments were provided, setting default scene path...");
-        //&String::from("./inputs/hw1/deniz_sayin/lobster.json")
-        &String::from("./inputs/hw2/metal_glass_plates.json")
+        &String::from("./inputs/hw1/deniz_sayin/lobster.json")
+        //&String::from("./inputs/hw2/metal_glass_plates.json")
     } else if args.len() == 2 {
         &args[1]
     } else {
