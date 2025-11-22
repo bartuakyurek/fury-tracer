@@ -58,9 +58,9 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, mat: &
     color
 }
 
-struct HitTrace(HitRecord, Vector3); // Hitrecord and radiance tuple
+struct HitTrace(HitRecord, Vector3, usize); // Hitrecord, radiance, and pixel_idx
 
-pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize, hitpool: Arc<Mutex<Vec<HitTrace>>>) -> Vector3 { 
+pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize, hitpool: Arc<Mutex<Vec<HitTrace>>>,  pixel_idx: Option<usize>) -> Vector3 { 
   
    if depth >= scene.data.max_recursion_depth {
         return scene.data.background_color;
@@ -80,7 +80,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize, hitpool: Arc<Mutex<V
             },
             "mirror" | "conductor" => { 
                     if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        shade_diffuse(scene,  &hit_record, &ray_in, mat) + attenuation * get_color(&reflected_ray, scene, depth + 1, hitpool.clone()) 
+                        shade_diffuse(scene,  &hit_record, &ray_in, mat) + attenuation * get_color(&reflected_ray, scene, depth + 1, hitpool.clone(), None) 
                     }
                     else {
                         warn!("Material not reflecting...");
@@ -97,12 +97,12 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize, hitpool: Arc<Mutex<V
  
                 // Reflected 
                 if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        tot_radiance += attenuation * get_color(&reflected_ray, scene, depth + 1, hitpool.clone());
+                        tot_radiance += attenuation * get_color(&reflected_ray, scene, depth + 1, hitpool.clone(), None);
                 }
         
                 // Refracted 
                 if let Some((refracted_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, false) {
-                        tot_radiance += attenuation * get_color(&refracted_ray, scene, depth + 1, hitpool.clone());
+                        tot_radiance += attenuation * get_color(&refracted_ray, scene, depth + 1, hitpool.clone(), None);
                 }
                 tot_radiance
             },
@@ -112,7 +112,14 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize, hitpool: Arc<Mutex<V
             },
         };
         color += radiance;
-        hitpool.lock().unwrap().push(HitTrace(hit_record.clone(), radiance));
+        
+       // Only store primary ray hits (depth 0)
+        if depth == 0 {
+            if let Some(idx) = pixel_idx {
+                hitpool.lock().unwrap().push(HitTrace(hit_record.clone(), radiance, idx));
+            }
+        }
+        
         color
    }
    else {
@@ -169,50 +176,21 @@ pub fn get_avg_bins(vecs: &Vec<Vector3>, bins_per_axis: usize) -> Vec<Vector3> {
     
     result
 }
-
 /// Given hitpool, return pixel colors
-fn postprocess(hitpool: &Vec<HitTrace>, scene: &Scene, cam: &Camera) -> Vec<Vector3> {
+fn postprocess(hitpool: &Vec<HitTrace>, image_size: [usize; 2]) -> Vec<Vector3> {
+    const BINS: usize = 4;
     let radiances: Vec<Vector3> = hitpool.iter().map(|hit_trace| hit_trace.1).collect();
-    let binned_radiances = get_avg_bins(&radiances, 16);
+    let binned_radiances = get_avg_bins(&radiances, BINS);
     
-    let eye_rays: Vec<Ray> = cam.generate_primary_rays();
-    let width = cam.image_resolution[0];
-    let height = cam.image_resolution[1];
-    let mut pixel_colors = vec![Vector3::ZERO; width * height];
+    let num_pixels = image_size[0] * image_size[1];
+    let mut pixel_colors = vec![Vector3::ZERO; num_pixels];
     
-    // For each pixel's primary ray
-    for (pixel_idx, eye_ray) in eye_rays.iter().enumerate() {
-        // Check all hit points in the pool
-        for (i, HitTrace(hit_record, _)) in hitpool.iter().enumerate() {
-            // Ray from hit point back to camera
-            let ray_origin = hit_record.hit_point + hit_record.normal * scene.data.shadow_ray_epsilon;
-            let to_camera = cam.position - ray_origin;
-            let distance = to_camera.length();
-            let direction = to_camera / distance;
-            
-            let ray_to_camera = Ray::new(ray_origin, direction);
-            let interval = Interval::new(0.0, distance);
-            
-            // Check if this hit point is visible from camera AND roughly aligned with this pixel's ray
-            if scene.hit_bvh(&ray_to_camera, &interval, true).is_none() {
-                // Check if direction from camera to hit point roughly matches the pixel ray direction
-                let from_camera_dir = (hit_record.hit_point - cam.position).normalize();
-                let angle_cos = from_camera_dir.dot(eye_ray.direction);
-                
-                // Only contribute if reasonably aligned (adjust threshold as needed)
-                if angle_cos > 0.99 { // ~8 degree cone
-                    let radiance = binned_radiances[i];
-                    // Falloff by distance
-                    let contribution = radiance / (distance * distance);
-                    pixel_colors[pixel_idx] += contribution;
-                }
-            }
-        }
+    for (i, HitTrace(_, _, pixel_idx)) in hitpool.iter().enumerate() {
+        pixel_colors[*pixel_idx] = binned_radiances[i];
     }
     
     pixel_colors
 }
-
 pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error>>
 {
     let mut images: Vec<ImageData> = Vec::new();
@@ -233,12 +211,13 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
        
         let pixel_colors: Vec<_> = eye_rays
             .par_iter()
-            .map(|ray| get_color(ray, scene, 0, hitpool.clone()))
+            .enumerate()
+            .map(|(idx, ray)| get_color(ray, scene, 0, hitpool.clone(), Some(idx)))
             .collect();
         info!("Rendering of {} took: {:?}", cam.image_name, start.elapsed()); 
         // --- Post processing Hitpool ----
         info!("Hitpool has {} entries.", hitpool.lock().unwrap().len());
-        let postproc_colors = postprocess(&hitpool.lock().unwrap(), scene, &cam);
+        let postproc_colors = postprocess(&hitpool.lock().unwrap(), cam.image_resolution);
         // ------ Push final images (both original and postprocessed) -----
         let raytraced_image = ImageData::new_from_colors(cam.image_resolution, cam.image_name.clone(), pixel_colors);
         let postproc_image = ImageData::new_from_colors(cam.image_resolution, format!("{}{}", String::from("post_"), cam.image_name.clone()), postproc_colors);
