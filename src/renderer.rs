@@ -115,6 +115,11 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize, hitpool: Arc<Mutex<V
    }
 }
 
+/// Given hitpool, return pixel colors
+pub fn postprocess(hitpool: &Vec<HitRecord>) -> Vec<Vector3> {
+    todo!()
+}
+
 pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error>>
 {
     let mut images: Vec<ImageData> = Vec::new();
@@ -138,12 +143,15 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
             .par_iter()
             .map(|ray| get_color(ray, scene, 0, hitpool.clone()))
             .collect();
-        // -----------------------------
-            
-        let im = ImageData::new_from_colors(cam.image_resolution, cam.image_name.clone(), pixel_colors);
-        images.push(im);
         info!("Rendering of {} took: {:?}", cam.image_name, start.elapsed()); 
+        // --- Post processing Hitpool ----
         info!("Hitpool has {} entries.", hitpool.lock().unwrap().len());
+        let postproc_colors = postprocess(&hitpool.lock().unwrap());
+        // ------ Push final images (both original and postprocessed) -----
+        let raytraced_image = ImageData::new_from_colors(cam.image_resolution, cam.image_name.clone(), pixel_colors);
+        let postproc_image = ImageData::new_from_colors(cam.image_resolution, format!("{}{}", String::from("post_"), cam.image_name.clone()), postproc_colors);
+        images.push(raytraced_image);
+        images.push(postproc_image);
     }
     
     Ok(images)
