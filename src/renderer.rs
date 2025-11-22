@@ -22,7 +22,7 @@ use crate::scene::{PointLight, Scene};
 use crate::image::{ImageData};
 use crate::interval::{Interval};
 use crate::prelude::*;
-
+use crate::camera::Camera;
 
 /// Returns a tuple of ray from hit point (epsilon shifted) towards the point light
 /// and interval [0, distance]. 
@@ -171,12 +171,46 @@ pub fn get_avg_bins(vecs: &Vec<Vector3>, bins_per_axis: usize) -> Vec<Vector3> {
 }
 
 /// Given hitpool, return pixel colors
-fn postprocess(hitpool: &Vec<HitTrace>) -> Vec<Vector3> {
-
+fn postprocess(hitpool: &Vec<HitTrace>, scene: &Scene, cam: &Camera) -> Vec<Vector3> {
     let radiances: Vec<Vector3> = hitpool.iter().map(|hit_trace| hit_trace.1).collect();
-    let binned_radiance = get_avg_bins(&radiances, 16);
+    let binned_radiances = get_avg_bins(&radiances, 16);
     
-    todo!() 
+    let eye_rays: Vec<Ray> = cam.generate_primary_rays();
+    let width = cam.image_resolution[0];
+    let height = cam.image_resolution[1];
+    let mut pixel_colors = vec![Vector3::ZERO; width * height];
+    
+    // For each pixel's primary ray
+    for (pixel_idx, eye_ray) in eye_rays.iter().enumerate() {
+        // Check all hit points in the pool
+        for (i, HitTrace(hit_record, _)) in hitpool.iter().enumerate() {
+            // Ray from hit point back to camera
+            let ray_origin = hit_record.hit_point + hit_record.normal * scene.data.shadow_ray_epsilon;
+            let to_camera = cam.position - ray_origin;
+            let distance = to_camera.length();
+            let direction = to_camera / distance;
+            
+            let ray_to_camera = Ray::new(ray_origin, direction);
+            let interval = Interval::new(0.0, distance);
+            
+            // Check if this hit point is visible from camera AND roughly aligned with this pixel's ray
+            if scene.hit_bvh(&ray_to_camera, &interval, true).is_none() {
+                // Check if direction from camera to hit point roughly matches the pixel ray direction
+                let from_camera_dir = (hit_record.hit_point - cam.position).normalize();
+                let angle_cos = from_camera_dir.dot(eye_ray.direction);
+                
+                // Only contribute if reasonably aligned (adjust threshold as needed)
+                if angle_cos > 0.99 { // ~8 degree cone
+                    let radiance = binned_radiances[i];
+                    // Falloff by distance
+                    let contribution = radiance / (distance * distance);
+                    pixel_colors[pixel_idx] += contribution;
+                }
+            }
+        }
+    }
+    
+    pixel_colors
 }
 
 pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error>>
@@ -204,7 +238,7 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         info!("Rendering of {} took: {:?}", cam.image_name, start.elapsed()); 
         // --- Post processing Hitpool ----
         info!("Hitpool has {} entries.", hitpool.lock().unwrap().len());
-        let postproc_colors = postprocess(&hitpool.lock().unwrap());
+        let postproc_colors = postprocess(&hitpool.lock().unwrap(), scene, &cam);
         // ------ Push final images (both original and postprocessed) -----
         let raytraced_image = ImageData::new_from_colors(cam.image_resolution, cam.image_name.clone(), pixel_colors);
         let postproc_image = ImageData::new_from_colors(cam.image_resolution, format!("{}{}", String::from("post_"), cam.image_name.clone()), postproc_colors);
