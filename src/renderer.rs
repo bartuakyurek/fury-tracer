@@ -57,7 +57,9 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, mat: &
     color
 }
 
-pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize, hitpool: Arc<Mutex<Vec<HitRecord>>>) -> Vector3 { 
+struct HitTrace(HitRecord, Vector3); // Hitrecord and radiance tuple
+
+pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize, hitpool: Arc<Mutex<Vec<HitTrace>>>) -> Vector3 { 
   
    if depth >= scene.data.max_recursion_depth {
         return scene.data.background_color;
@@ -65,13 +67,13 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize, hitpool: Arc<Mutex<V
    
    let t_interval = Interval::positive(scene.data.intersection_test_epsilon);
    if let Some(hit_record) = scene.hit_bvh(ray_in, &t_interval, false) {
-        hitpool.lock().unwrap().push(hit_record.clone());
+        
 
         let mat: &HeapAllocMaterial = &scene.data.materials.materials[hit_record.material - 1];
         let mut color = Vector3::ZERO;
         let mat_type = mat.get_type();
         let epsilon = scene.data.intersection_test_epsilon;  
-        color += match mat_type{ 
+        let radiance = match mat_type{ 
             "diffuse" => {
                 shade_diffuse(scene, &hit_record, &ray_in, mat)
             },
@@ -108,6 +110,8 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize, hitpool: Arc<Mutex<V
                 panic!(">> Unknown material type '{}'! Shading function for this material is missing.", mat_type); 
             },
         };
+        color += radiance;
+        hitpool.lock().unwrap().push(HitTrace(hit_record.clone(), radiance));
         color
    }
    else {
@@ -116,8 +120,8 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize, hitpool: Arc<Mutex<V
 }
 
 /// Given hitpool, return pixel colors
-pub fn postprocess(hitpool: &Vec<HitRecord>) -> Vec<Vector3> {
-    todo!()
+pub fn postprocess(hitpool: &Vec<HitTrace>) -> Vec<Vector3> {
+    todo!() 
 }
 
 pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error>>
@@ -130,7 +134,6 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         // vectorized via .all( ) call, however we don't hold the vec versions (currently they are SingleOrVec) 
         //  in actual scene structs, that needs to be changed maybe.
         cam.setup(&scene.data.transformations); 
-        
         if cam.num_samples != 1 { warn!("Found num_samples = '{}' > 1, sampling is not implemented yet...", cam.num_samples); }
         
         // --- Rayon Multithreading ---
