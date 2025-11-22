@@ -14,6 +14,7 @@
 use rayon::prelude::*;
 use bevy_math::{NormedVectorSpace};
 use std::{self, time::Instant, sync::Arc, sync::Mutex};
+use std::collections::HashMap;
 
 use crate::material::{HeapAllocMaterial};
 use crate::ray::{HitRecord, Ray};
@@ -119,8 +120,62 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize, hitpool: Arc<Mutex<V
    }
 }
 
+pub fn get_avg_bins(vecs: &Vec<Vector3>, bins_per_axis: usize) -> Vec<Vector3> {
+    if vecs.is_empty() {
+        return Vec::new();
+    }    
+   
+    // Step 1: Find bounding box of all radiance values
+    let mut min_rad = Vector3::splat(Float::INFINITY);
+    let mut max_rad = Vector3::splat(Float::NEG_INFINITY);
+    
+    for radiance in vecs {
+        min_rad = min_rad.min(*radiance);
+        max_rad = max_rad.max(*radiance);
+    }
+    
+    let bin_size = (max_rad - min_rad) / bins_per_axis as Float;
+    
+    // Step 2: Bin radiances and accumulate
+    let mut bins: HashMap<(usize, usize, usize), (Vector3, usize)> = HashMap::new();
+    
+    for v in vecs {
+        let bin_idx = (
+            ((v.x - min_rad.x) / bin_size.x).floor().clamp(0.0, (bins_per_axis - 1) as Float) as usize,
+            ((v.y - min_rad.y) / bin_size.y).floor().clamp(0.0, (bins_per_axis - 1) as Float) as usize,
+            ((v.z - min_rad.z) / bin_size.z).floor().clamp(0.0, (bins_per_axis - 1) as Float) as usize,
+        );
+        
+        let entry = bins.entry(bin_idx).or_insert((Vector3::ZERO, 0));
+        entry.0 += *v;
+        entry.1 += 1;
+    }
+    
+    // Step 3: Compute average per bin
+    let mut averaged_bins: HashMap<(usize, usize, usize), Vector3> = HashMap::new();
+    for (bin_idx, (total_radiance, count)) in bins {
+        averaged_bins.insert(bin_idx, total_radiance / count as Float);
+    }
+    
+    // Step 4: Map each original radiance to its bin's average
+    let result: Vec<Vector3> = vecs.iter().map(|v| {
+        let bin_idx = (
+            ((v.x - min_rad.x) / bin_size.x).floor().clamp(0.0, (bins_per_axis - 1) as Float) as usize,
+            ((v.y - min_rad.y) / bin_size.y).floor().clamp(0.0, (bins_per_axis - 1) as Float) as usize,
+            ((v.z - min_rad.z) / bin_size.z).floor().clamp(0.0, (bins_per_axis - 1) as Float) as usize,
+        );
+        averaged_bins[&bin_idx]
+    }).collect();
+    
+    result
+}
+
 /// Given hitpool, return pixel colors
-pub fn postprocess(hitpool: &Vec<HitTrace>) -> Vec<Vector3> {
+fn postprocess(hitpool: &Vec<HitTrace>) -> Vec<Vector3> {
+
+    let radiances: Vec<Vector3> = hitpool.iter().map(|hit_trace| hit_trace.1).collect();
+    let binned_radiance = get_avg_bins(&radiances, 16);
+    
     todo!() 
 }
 
