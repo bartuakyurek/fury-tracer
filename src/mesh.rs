@@ -157,7 +157,7 @@ impl Mesh {
         // Delegate intersection test to per-mesh Triangle objects 
         // by iterating over all the triangles (hence naive, accelerated intersection function is to be added soon)
         let mut closest: Option<HitRecord> = None;
-        let mut t_min = std::f64::INFINITY as crate::numeric::Float;
+        let mut t_min = Float::INFINITY;
 
         for tri in self.triangles.iter() {
             if let Some(hit) = tri.intersects_with(ray, t_interval, vertex_cache) {
