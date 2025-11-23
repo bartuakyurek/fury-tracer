@@ -84,16 +84,15 @@ impl Shape for Triangle {
                     let v3_n = vertex_cache.vertex_normals[self.indices[2]];
                     let w = 1. - u - v;
                     (v1_n * w + v2_n * u + v3_n * v).normalize() // WARNING: Be careful with interpolation order!
-                }
+                } 
+                else if self.normal.norm_squared() > 0.0 {
+                    self.normal
+                } 
                 else {
-                    if self.normal.norm_squared() > 0.0 {
-                        self.normal
-                    } else {
-                        // info!("I hope this never occurs"); --> WARNING: Occurs when triangle is not constructed from Mesh data
-                        let verts = &vertex_cache.vertex_data;
-                        let [a, b, c] = self.indices.map(|i| verts[i]);
-                        get_tri_normal(&a, &b, &c)
-                    }
+                    // Occurs when triangle is not constructed from Mesh data
+                    let verts = &vertex_cache.vertex_data;
+                    let [a, b, c] = self.indices.map(|i| verts[i]);
+                    get_tri_normal(&a, &b, &c)
                 }
             };
            
