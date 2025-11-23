@@ -117,7 +117,7 @@ impl Camera {
             Matrix4::IDENTITY
         };
 
-        if self._type == String::from("lookAt") {
+        if self._type == "lookAt" {
             info!("Found camera _type = lookAt, constructing nearplane...");
             // (From h1.pdf) You can fnd the gaze direction by subtracting the camera position from this gaze point
             self.gaze_dir = self.gaze_point - self.position;
