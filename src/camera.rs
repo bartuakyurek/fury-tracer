@@ -110,7 +110,7 @@ impl Camera {
          self.composite_mat = if self.transformation_names.is_some() {
                 parse_transform_expression(
                     self.transformation_names.as_deref().unwrap_or(""),
-                    &transforms,  
+                    transforms,  
                 )
         } else {
             debug!("No transformation matrix found for camera, defaulting to Identity...");
