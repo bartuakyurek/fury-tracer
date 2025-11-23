@@ -470,7 +470,7 @@ where
     }
 
     nums.chunks(chunk_len)
-        .map(|chunk| f(chunk))
+        .map(f)
         .collect::<Result<Vec<_>, _>>()
 }
 
