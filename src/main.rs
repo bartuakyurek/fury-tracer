@@ -58,7 +58,7 @@ fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Er
     debug!("Loading scene from {}...", json_path);
     let mut root = parse_json795(json_path).map_err(|e| {
         error!("Failed to load scene: {}", e);
-        Box::<dyn std::error::Error>::from(e)
+        e
     })?;
 
     let json_path = Path::new(json_path).canonicalize()?;
