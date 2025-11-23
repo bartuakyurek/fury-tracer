@@ -14,7 +14,46 @@ use fury_tracer::*; // lib.rs mods
 use crate::prelude::*; 
 use crate::scene::Scene;
 
+fn main()  -> Result<(), Box<dyn std::error::Error>> {
 
+    // Logging on console
+    tracing_subscriber::fmt::init(); 
+
+    // Parse args
+    let args: Vec<String> = env::args().collect();
+    let input_path: &String = if args.len() == 1 {
+        warn!("No arguments were provided, setting default scene path...");
+        &String::from("./inputs/hw2/mirror_room.json")
+    } else if args.len() == 2 {
+        &args[1]
+    } else {
+        error!("Usage: {} <filename>.json or <path/to/folder>", args[0]);
+        std::process::exit(1);
+    };
+    
+    let path = Path::new(&input_path);
+    if path.is_file() {
+        // Scenario 1: input contains JSON file
+        read_json_and_render(&path.to_str().unwrap().to_string())?; // TODO: Perhaps I should make these functions accept path directly
+    } else if path.is_dir() {
+        // Scenario 2: input is a directory, explore all .jsons recursively
+        for entry in WalkDir::new(path).into_iter().filter_map(Result::ok) {
+            let entry_path = entry.path();
+            if entry_path.is_file() && entry_path.extension().map(|s| s == "json").unwrap_or(false) {
+                debug!("Rendering JSON: {:?}", entry_path);
+                read_json_and_render(&entry_path.to_str().unwrap().to_string())?;
+            }
+        }
+    } else {
+        error!("Expected input path to be a file or a directory, got: {:?}", path);
+        std::process::exit(1);
+    }
+
+    info!("Finished execution.");
+    Ok(())
+}
+
+/// Helper function for main() 
 fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Error>>  {
     // Parse JSON
     debug!("Loading scene from {}...", json_path);
@@ -24,8 +63,7 @@ fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Er
     })?;
 
     let json_path = Path::new(json_path).canonicalize()?;
-
-    let scene = Scene::new_from(&mut root.scene, &json_path); // TODO: This should be done in a different way
+    let scene = Scene::new_from(&mut root.scene, &json_path); 
     debug!("Scene is setup successfully.\n {:#?}", scene);
 
     // Render images and return array of RGB
@@ -42,50 +80,6 @@ fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Er
 
     Ok(())
 }
-
-fn main()  -> Result<(), Box<dyn std::error::Error>> {
-
-    // Logging on console
-    tracing_subscriber::fmt::init(); 
-
-    // Parse args
-    let args: Vec<String> = env::args().collect();
-    let input_path: &String = if args.len() == 1 {
-        warn!("No arguments were provided, setting default scene path...");
-        //&String::from("./inputs/hw1/deniz_sayin/lobster.json")
-        &String::from("./inputs/hw2/metal_glass_plates.json")
-    } else if args.len() == 2 {
-        &args[1]
-    } else {
-        error!("Usage: {} <filename>.json or <path/to/folder>", args[0]);
-        std::process::exit(1);
-    };
-    
-    let path = Path::new(&input_path);
-
-    if path.is_file() {
-        // Scenario 1: input contains JSON file
-        read_json_and_render(&path.to_str().unwrap().to_string())?; // TODO: Perhaps I should make these functions accept path directly
-    } else if path.is_dir() {
-        // Scenario 2: input is a directory, explore all .jsons
-        // recursively under this directory (walkdir does it) and render them.
-        for entry in WalkDir::new(path).into_iter().filter_map(Result::ok) {
-            let entry_path = entry.path();
-            if entry_path.is_file() && entry_path.extension().map(|s| s == "json").unwrap_or(false) {
-                debug!("Rendering JSON: {:?}", entry_path);
-                read_json_and_render(&entry_path.to_str().unwrap().to_string())?;
-            }
-        }
-    } else {
-        error!("Expected input path to be a file or a directory, got: {:?}", path);
-        std::process::exit(1);
-    }
-
-
-    info!("Finished execution.");
-    Ok(())
-}
-
 
 /// Given the JSON file path, and its parent name ("inputs" in our case), return the output path to be used while saving .png image
 /// (it doesn't include .png name, only up to its parent folder)
