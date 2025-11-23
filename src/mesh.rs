@@ -300,7 +300,7 @@ impl BBoxable for MeshInstanceField {
             let mut composite = self.matrix;
 
             if !self.reset_transform{
-                composite = composite * base_mesh.matrix;
+                composite *= base_mesh.matrix;
             }
             
             if apply_t {
