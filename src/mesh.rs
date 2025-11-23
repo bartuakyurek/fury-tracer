@@ -173,7 +173,7 @@ impl Mesh {
     fn intersect_bvh(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
          if let Some(bvh) = &self.bvh {
                 let mut closest = HitRecord::default();    
-                if bvh.intersect(&ray, t_interval, &vertex_cache, &mut closest) {
+                if bvh.intersect(ray, t_interval, vertex_cache, &mut closest) {
                     Some(closest)
                 }
                 else {
@@ -182,7 +182,7 @@ impl Mesh {
             } 
             else {
                 warn!("Intersecting naively.... this shouldn't happen.");
-                self.intersect_naive(&ray, t_interval, vertex_cache)
+                self.intersect_naive(ray, t_interval, vertex_cache)
             }
     }
 
