@@ -347,7 +347,7 @@ impl SceneObjects {
             mesh.matrix = if mesh.transformation_names.is_some() {
                 parse_transform_expression(
                     mesh.transformation_names.as_deref().unwrap_or(""),
-                    &transforms,  
+                    transforms,  
                 )
             } else {
                 debug!("Mesh '{}'s transformation is not given, defaulting to Identity.", mesh._id);
@@ -359,7 +359,7 @@ impl SceneObjects {
         for mint in self.mesh_instances.iter_mut() {
             mint.matrix = parse_transform_expression(
                     mint.transformation_names.as_str(),
-                    &transforms,  
+                    transforms,  
             );
             debug!("Composite transform for mesh '{}' is {}", mint._id, mint.matrix);
         }
@@ -368,21 +368,21 @@ impl SceneObjects {
             debug!("Setting up transforms for mesh._id '{}'", tri._id.clone());
             tri.matrix = Some(Arc::new(parse_transform_expression(
                     tri.transformation_names.as_deref().unwrap_or(""),
-                    &transforms,  
+                    transforms,  
             )));
         }
 
         for sphere in self.spheres.iter_mut() {
             sphere.matrix = Some(Arc::new(parse_transform_expression(
                 sphere.transformation_names.as_deref().unwrap_or(""), 
-                &transforms)));
+                transforms)));
         }
 
         for plane in self.planes.iter_mut() {
             debug!("Setting up transforms for mesh._id '{}'", plane._id.clone());
             plane.matrix = Some(Arc::new(parse_transform_expression(
                     plane.transformation_names.as_deref().unwrap_or(""),
-                    &transforms,  
+                    transforms,  
             )));
         }
     }
@@ -471,7 +471,7 @@ impl SceneObjects {
         self.bboxable_shapes = bboxable_shapes;
         self.unbboxable_shapes = unbboxable_shapes;
         //info!(">> There are {} shapes in the scene.", self.bboxable_shapes.len());
-        let cache = VertexCache::build(&verts, &all_triangles);   
+        let cache = VertexCache::build(verts, &all_triangles);   
         Ok(cache)
     }
 
