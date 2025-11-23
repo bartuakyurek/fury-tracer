@@ -456,7 +456,7 @@ pub fn parse_string_vecvec3(s: &str) -> Result<Vec<Vector3>, String> {
 }
 
 
-fn parse_string_vec<T, F>(s: &str, chunk_len: usize, mut f: F) -> Result<Vec<T>, String>
+fn parse_string_vec<T, F>(s: &str, chunk_len: usize, f: F) -> Result<Vec<T>, String>
 where
     F: FnMut(&[Float]) -> Result<T, String>,
 {
