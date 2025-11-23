@@ -8,7 +8,6 @@
 */
 use walkdir::WalkDir;
 use std::{env, path::Path, path::PathBuf};
-use tracing_subscriber;
 
 use fury_tracer::*; // lib.rs mods
 use crate::prelude::*; 
