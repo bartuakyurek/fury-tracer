@@ -160,11 +160,11 @@ impl Mesh {
         let mut t_min = Float::INFINITY;
 
         for tri in self.triangles.iter() {
-            if let Some(hit) = tri.intersects_with(ray, t_interval, vertex_cache) {
-                if hit.ray_t < t_min {
+            if let Some(hit) = tri.intersects_with(ray, t_interval, vertex_cache) 
+                && hit.ray_t < t_min {
                     t_min = hit.ray_t;
                     closest = Some(hit);
-                }
+                
             }
         }
         closest
