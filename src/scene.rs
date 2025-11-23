@@ -140,7 +140,7 @@ impl<'a> Scene <'a>  // Lifetime annotation 'a looks scary but it was needed for
         let mut rec: Option<HitRecord> = None;
         let mut t_min: Float = FloatConst::INF;
         for shape in self.data.objects.bboxable_shapes.iter() { 
-            if let Some(hit_record) = shape.intersects_with(ray, &t_interval, &self.vertex_cache){
+            if let Some(hit_record) = shape.intersects_with(ray, t_interval, &self.vertex_cache){
 
                 if early_break { 
                     return Some(hit_record);
