@@ -326,8 +326,7 @@ fn resolve_all_mesh_instances(
         for other in left.iter().chain(rest.iter()) {
             if other._id == mint.base_mesh_id {
                 mint.base_mesh = other.base_mesh.clone();
-                //mint.matrix = other.matrix * mint.matrix; // TODO: is this the correct order?
-                mint.matrix = mint.matrix * other.matrix; // TODO: is this the correct order?
+                mint.matrix *= other.matrix; // TODO: is this the correct order?
                 debug!("Mesh instance {} refers base mesh instance {} ", mint._id, mint.base_mesh.clone().unwrap()._id);
                 break;
             }
