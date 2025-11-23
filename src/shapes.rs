@@ -190,7 +190,7 @@ impl Shape for Sphere {
 
         // Compute hit in local space and then transform back  to world
         let p_local = local_ray.at(t_local);
-        let p_world = transform_point(&*viewmat, &p_local); 
+        let p_world = transform_point(&viewmat, &p_local); 
 
         // Update ray t to worlds space
         let ray_dir_lensqrd = ray.direction.dot(ray.direction);
@@ -204,7 +204,7 @@ impl Shape for Sphere {
 
         // World space normal
         let local_normal = (p_local - center).normalize();
-        let mut world_normal = transform_normal(&*viewmat, &local_normal); 
+        let mut world_normal = transform_normal(&viewmat, &local_normal); 
         if world_normal.norm_squared() > 0.0 { world_normal = world_normal.normalize(); }
 
         // Check front face and build hitrecord (I was transforming hitrecord::to_world( ) but here it is already transformed.)
