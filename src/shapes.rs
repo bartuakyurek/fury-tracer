@@ -318,25 +318,7 @@ impl BBoxable for Plane {
     /// Dummy bbox with no volume -- WARNING: Not to be used in BVH! BBoxable was meant to be separated from Shapes trait
     /// but I couldn't figure out how to set trait bounds without using trait objects in the scene object
     /// vectors yet... 
-     fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
+     fn get_bbox(&self, _: &VertexData, _: bool) -> BBox {
         todo!();
-        let p = verts[self.point_idx];
-        let xint = Interval::new(p.x, p.x);
-        let yint = Interval::new(p.y, p.y);
-        let zint = Interval::new(p.z, p.z);
-
-        let local_box = BBox::new_from(&xint, &yint, &zint);
-        if apply_t {
-            if let Some(matrix) = &self.matrix {
-                let transformed_bbox = local_box.transform(matrix);
-                transformed_bbox
-            } else {
-                warn!("No transformation matrix found for Plane. Returning local bounding box.");
-                BBox::new_from(&xint, &yint, &zint)
-            }
-        }
-        else {
-            local_box
-        }
     }
 }
