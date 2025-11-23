@@ -7,9 +7,6 @@
 */
 
 
-
-use bevy_math::NormedVectorSpace;
-
 use crate::prelude::*;
 use crate::{image, ray::Ray};
 use crate::json_structs::{SingleOrVec, Transformations};
@@ -53,7 +50,7 @@ pub struct Camera {
     fovy: Float,
 
     #[serde(rename = "NearPlane", deserialize_with = "deser_nearplane")]
-    pub nearplane: NearPlane,
+    pub(crate) nearplane: NearPlane,
 
     #[serde(rename = "NearDistance", deserialize_with = "deser_float")]
     near_distance: Float,
