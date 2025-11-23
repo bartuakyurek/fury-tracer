@@ -38,8 +38,11 @@ Render all .json files under a directory:
 
 # TODO 
 ---
-- [ ] Acne problem in mirror_room.json 
-- [ ] Glass less reflective in instanced meshes (metal_glass_plates.json)
+- [ ] Currently epsilon is added before transforming the ray, which doesn't cause discrepency in expected output but should we consider
+adding epsilon after the transformed rays?
+- [ ] Cache inverse transforms as calling .inverse( ) is inefficient 
+- [x] Acne problem in mirror_room.json (Fixed by setting intensity 0 point light id = 2)
+- [x] Glass less reflective in instanced meshes (metal_glass_plates.json) (fixed by not normalizing ray direction after transform)
 - [x] Glass material looks less bright than expected, why?
 - [x] Vertex indices start from 1, not 0, make sure to handle that correctly
 - [x] Ambient light is declared only once, change implementation to return a single vec3, Not vector of vec3. 
