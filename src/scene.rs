@@ -511,7 +511,7 @@ impl Default for VertexCache {
 // shape refers to this data for their coordinates. 
 impl VertexCache {
     
-    pub fn build(verts: &VertexData, triangles: &Vec<Triangle>) -> VertexCache {
+    pub fn build(verts: &VertexData, triangles: &[Triangle]) -> VertexCache {
         // Compute per-vertex normal from neighbouring triangles
         let vertex_data = verts.clone();
         let mut vertex_normals: Vec<Vector3> = vec![Vector3::ZERO; vertex_data._data.len()];
