@@ -178,14 +178,14 @@ impl<'a> Scene <'a>  // Lifetime annotation 'a looks scary but it was needed for
 
         // 2. Test planes (looping over all planes)
         for plane in &self.data.objects.unbboxable_shapes {
-            if let Some(hit) = plane.intersects_with(ray, t_interval, &self.vertex_cache) {
-                if hit.ray_t < best_t {
+            if let Some(hit) = plane.intersects_with(ray, t_interval, &self.vertex_cache) 
+                && hit.ray_t < best_t {
                     if early_break {
                         return Some(hit);
                     }
                     best_t = hit.ray_t;
                     best = Some(hit);
-                }
+                
             }
         }
 
