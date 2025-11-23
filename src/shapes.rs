@@ -227,8 +227,7 @@ impl BBoxable for Sphere {
         let local_box = BBox::new_from(&xint, &yint, &zint);
         if apply_t {
             if let Some(matrix) = &self.matrix {
-                let transformed_bbox = local_box.transform(matrix);
-                transformed_bbox
+                local_box.transform(matrix) // return transformed bbox
             } else {
                 warn!("No transformation matrix found for Sphere. Returning local bounding box.");
                 local_box
