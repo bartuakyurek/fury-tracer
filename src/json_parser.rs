@@ -60,7 +60,7 @@ pub fn parse_json795(path: &str) -> Result<RootScene, Box<dyn std::error::Error>
 
 }
 
-pub fn deser_opt_usize<'de, D>(deserializer: D) -> Result<Option<usize>, D::Error>
+pub(crate) fn deser_opt_usize<'de, D>(deserializer: D) -> Result<Option<usize>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -76,7 +76,7 @@ where
 }
 
 
-pub fn deser_usize<'de, D>(deserializer: D) -> Result<usize, D::Error>
+pub(crate) fn deser_usize<'de, D>(deserializer: D) -> Result<usize, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -96,7 +96,7 @@ where
     }
 }
 
-pub fn deser_int<'de, D>(deserializer: D) -> Result<Int, D::Error>
+pub(crate) fn deser_int<'de, D>(deserializer: D) -> Result<Int, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -115,7 +115,7 @@ where
 }
 
 // Handles floats as string or number
-pub fn deser_float<'de, D>(deserializer: D) -> Result<Float, D::Error>
+pub(crate) fn deser_float<'de, D>(deserializer: D) -> Result<Float, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -133,7 +133,7 @@ where
     }
 }
 
-pub fn deser_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
+pub(crate) fn deser_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -200,7 +200,7 @@ impl From3<f64> for bevy_math::DVec3 {
     }
 }
 
-pub fn deser_vec3<'de, D, V, F>(deserializer: D) -> Result<V, D::Error>
+pub(crate) fn deser_vec3<'de, D, V, F>(deserializer: D) -> Result<V, D::Error>
 where
     D: Deserializer<'de>,
     F: Deserialize<'de> + FromStr,
@@ -254,7 +254,7 @@ where
 }
 
 
-pub fn deser_pair<'de, D, T>(deserializer: D) -> Result<[T; 2], D::Error>
+pub(crate) fn deser_pair<'de, D, T>(deserializer: D) -> Result<[T; 2], D::Error>
 where
     D: Deserializer<'de>,
     T: Deserialize<'de> + FromStr,
@@ -306,7 +306,7 @@ where
     deserializer.deserialize_any(Vec2Visitor::<T>(PhantomData))
 }
 
-pub fn deser_numeric_vec<'de, D, N>(deserializer: D) -> Result<Vec<N>, D::Error>
+pub(crate) fn deser_numeric_vec<'de, D, N>(deserializer: D) -> Result<Vec<N>, D::Error>
 where
     D: serde::Deserializer<'de>,
     N: FromStr, 
@@ -326,7 +326,7 @@ where
 
 
 // Wrapper for deser_numeric_vec<Float>
-pub fn deser_float_vec<'de, D>(deserializer: D) -> Result<Vec<Float>, D::Error>
+pub(crate) fn deser_float_vec<'de, D>(deserializer: D) -> Result<Vec<Float>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -335,7 +335,7 @@ where
 
 
 // Wrapper for deser_numeric_vec<usize>
-pub fn deser_usize_vec<'de, D>(deserializer: D) -> Result<Vec<usize>, D::Error>
+pub(crate) fn deser_usize_vec<'de, D>(deserializer: D) -> Result<Vec<usize>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -344,14 +344,14 @@ where
 
 
 // Wrapper for deser_numeric_vec<Int>
-pub fn deser_int_vec<'de, D>(deserializer: D) -> Result<Vec<Int>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    deser_numeric_vec::<D, Int>(deserializer)
-}
+//pub(crate) fn deser_int_vec<'de, D>(deserializer: D) -> Result<Vec<Int>, D::Error>
+//where
+//    D: serde::Deserializer<'de>,
+//{
+//    deser_numeric_vec::<D, Int>(deserializer)
+//}
 
-pub fn deser_usize_array<'de, D, const N: usize>(deserializer: D) -> Result<[usize; N], D::Error>
+pub(crate) fn deser_usize_array<'de, D, const N: usize>(deserializer: D) -> Result<[usize; N], D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -368,7 +368,7 @@ where
         .map_err(|_| serde::de::Error::custom("failed to convert Vec to array"))
 }
 
-pub fn deser_nearplane<'de, D>(deserializer: D) -> Result<NearPlane, D::Error>
+pub(crate) fn deser_nearplane<'de, D>(deserializer: D) -> Result<NearPlane, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -456,7 +456,7 @@ pub fn parse_string_vecvec3(s: &str) -> Result<Vec<Vector3>, String> {
 }
 
 
-fn parse_string_vec<T, F>(s: &str, chunk_len: usize, mut f: F) -> Result<Vec<T>, String>
+fn parse_string_vec<T, F>(s: &str, chunk_len: usize, f: F) -> Result<Vec<T>, String>
 where
     F: FnMut(&[Float]) -> Result<T, String>,
 {
@@ -465,12 +465,12 @@ where
         .map(|x| x.parse::<Float>().map_err(|e| e.to_string()))
         .collect::<Result<_, _>>()?;
 
-    if nums.len() % chunk_len != 0 {
+    if !nums.len().is_multiple_of(chunk_len) {
         return Err(format!("Input length not divisible by {}", chunk_len));
     }
 
     nums.chunks(chunk_len)
-        .map(|chunk| f(chunk))
+        .map(f)
         .collect::<Result<Vec<_>, _>>()
 }
 

@@ -313,6 +313,7 @@ version = "0.1.0"
 dependencies = [
  "bevy_math",
  "png",
+ "rand",
  "rayon",
  "serde",
  "serde-ply",

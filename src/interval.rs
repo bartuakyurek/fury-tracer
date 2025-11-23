@@ -121,12 +121,12 @@ pub trait FloatConst: Copy {
 
 impl FloatConst for f32 {
     const PI: Self = std::f32::consts::PI;
-    const INF: Self = std::f32::INFINITY;
-    const NEG_INF: Self = std::f32::NEG_INFINITY;
+    const INF: Self = f32::INFINITY;
+    const NEG_INF: Self = f32::NEG_INFINITY;
 }
 
 impl FloatConst for f64 {
     const PI: Self = std::f64::consts::PI;
-    const INF: Self = std::f64::INFINITY;
-    const NEG_INF: Self = std::f64::NEG_INFINITY;
+    const INF: Self = f64::INFINITY;
+    const NEG_INF: Self = f64::NEG_INFINITY;
 }

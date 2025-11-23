@@ -142,7 +142,7 @@ impl Mesh {
                 _id: id_offset + i, 
                 indices,
                 material_idx: self.material_idx,
-                is_smooth: self._shading_mode.to_ascii_lowercase() == "smooth",
+                is_smooth: self._shading_mode.eq_ignore_ascii_case("smooth"),
                 normal: get_tri_normal(&v1, &v2, &v3),
 
                 transformation_names: None,//self.transformation_names.clone(),
@@ -157,14 +157,14 @@ impl Mesh {
         // Delegate intersection test to per-mesh Triangle objects 
         // by iterating over all the triangles (hence naive, accelerated intersection function is to be added soon)
         let mut closest: Option<HitRecord> = None;
-        let mut t_min = std::f64::INFINITY as crate::numeric::Float;
+        let mut t_min = Float::INFINITY;
 
         for tri in self.triangles.iter() {
-            if let Some(hit) = tri.intersects_with(ray, t_interval, vertex_cache) {
-                if hit.ray_t < t_min {
+            if let Some(hit) = tri.intersects_with(ray, t_interval, vertex_cache) 
+                && hit.ray_t < t_min {
                     t_min = hit.ray_t;
                     closest = Some(hit);
-                }
+                
             }
         }
         closest
@@ -173,7 +173,7 @@ impl Mesh {
     fn intersect_bvh(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
          if let Some(bvh) = &self.bvh {
                 let mut closest = HitRecord::default();    
-                if bvh.intersect(&ray, t_interval, &vertex_cache, &mut closest) {
+                if bvh.intersect(ray, t_interval, vertex_cache, &mut closest) {
                     Some(closest)
                 }
                 else {
@@ -182,7 +182,7 @@ impl Mesh {
             } 
             else {
                 warn!("Intersecting naively.... this shouldn't happen.");
-                self.intersect_naive(&ray, t_interval, vertex_cache)
+                self.intersect_naive(ray, t_interval, vertex_cache)
             }
     }
 
@@ -300,7 +300,7 @@ impl BBoxable for MeshInstanceField {
             let mut composite = self.matrix;
 
             if !self.reset_transform{
-                composite = composite * base_mesh.matrix;
+                composite *= base_mesh.matrix;
             }
             
             if apply_t {

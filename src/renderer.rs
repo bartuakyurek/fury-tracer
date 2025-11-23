@@ -72,11 +72,11 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
         let epsilon = scene.data.intersection_test_epsilon;  
         color += match mat_type{ 
             "diffuse" => {
-                shade_diffuse(scene, &hit_record, &ray_in, mat)
+                shade_diffuse(scene, &hit_record, ray_in, mat)
             },
             "mirror" | "conductor" => { 
                     if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        shade_diffuse(scene,  &hit_record, &ray_in, mat) + attenuation * get_color(&reflected_ray, scene, depth + 1) 
+                        shade_diffuse(scene,  &hit_record, ray_in, mat) + attenuation * get_color(&reflected_ray, scene, depth + 1) 
                     }
                     else {
                         warn!("Material not reflecting...");
@@ -88,7 +88,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
                 
                 // Only add diffuse, specular, and ambient components if front face (see slides 02, p.29)
                 if hit_record.is_front_face { 
-                    tot_radiance += shade_diffuse(scene, &hit_record, &ray_in, mat);
+                    tot_radiance += shade_diffuse(scene, &hit_record, ray_in, mat);
                 }
  
                 // Reflected 

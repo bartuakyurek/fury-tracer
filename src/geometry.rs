@@ -177,7 +177,7 @@ pub fn moller_trumbore_intersection(ray: &Ray, t_interval: &Interval, tri_indice
     let inverse_determinant = 1.0 as Float / determinant;
     let dist = ray.origin - tri_pivot;
     let barycentric_u = dist.dot(perp) * inverse_determinant;
-    if (barycentric_u < 0.0) || (barycentric_u > 1.0) {
+    if !(0.0..=1.0).contains(&barycentric_u) {
         return None;
     }
     let another_perp = dist.cross(edge_ab);

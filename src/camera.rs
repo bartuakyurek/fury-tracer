@@ -7,9 +7,6 @@
 */
 
 
-
-use bevy_math::NormedVectorSpace;
-
 use crate::prelude::*;
 use crate::{image, ray::Ray};
 use crate::json_structs::{SingleOrVec, Transformations};
@@ -53,7 +50,7 @@ pub struct Camera {
     fovy: Float,
 
     #[serde(rename = "NearPlane", deserialize_with = "deser_nearplane")]
-    pub nearplane: NearPlane,
+    pub(crate) nearplane: NearPlane,
 
     #[serde(rename = "NearDistance", deserialize_with = "deser_float")]
     near_distance: Float,
@@ -113,14 +110,14 @@ impl Camera {
          self.composite_mat = if self.transformation_names.is_some() {
                 parse_transform_expression(
                     self.transformation_names.as_deref().unwrap_or(""),
-                    &transforms,  
+                    transforms,  
                 )
         } else {
             debug!("No transformation matrix found for camera, defaulting to Identity...");
             Matrix4::IDENTITY
         };
 
-        if self._type == String::from("lookAt") {
+        if self._type == "lookAt" {
             info!("Found camera _type = lookAt, constructing nearplane...");
             // (From h1.pdf) You can fnd the gaze direction by subtracting the camera position from this gaze point
             self.gaze_dir = self.gaze_point - self.position;

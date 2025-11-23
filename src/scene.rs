@@ -140,7 +140,7 @@ impl<'a> Scene <'a>  // Lifetime annotation 'a looks scary but it was needed for
         let mut rec: Option<HitRecord> = None;
         let mut t_min: Float = FloatConst::INF;
         for shape in self.data.objects.bboxable_shapes.iter() { 
-            if let Some(hit_record) = shape.intersects_with(ray, &t_interval, &self.vertex_cache){
+            if let Some(hit_record) = shape.intersects_with(ray, t_interval, &self.vertex_cache){
 
                 if early_break { 
                     return Some(hit_record);
@@ -178,14 +178,14 @@ impl<'a> Scene <'a>  // Lifetime annotation 'a looks scary but it was needed for
 
         // 2. Test planes (looping over all planes)
         for plane in &self.data.objects.unbboxable_shapes {
-            if let Some(hit) = plane.intersects_with(ray, t_interval, &self.vertex_cache) {
-                if hit.ray_t < best_t {
+            if let Some(hit) = plane.intersects_with(ray, t_interval, &self.vertex_cache) 
+                && hit.ray_t < best_t {
                     if early_break {
                         return Some(hit);
                     }
                     best_t = hit.ray_t;
                     best = Some(hit);
-                }
+                
             }
         }
 
@@ -221,7 +221,7 @@ impl SceneLights {
             {
                 parse_transform_expression(
                     plight.transformation_names.as_deref().unwrap_or(""),
-                    &transforms,  
+                    transforms,  
                 )
             } else {
                 debug!("No transformation matrix found for camera, defaulting to Identity...");
@@ -326,8 +326,7 @@ fn resolve_all_mesh_instances(
         for other in left.iter().chain(rest.iter()) {
             if other._id == mint.base_mesh_id {
                 mint.base_mesh = other.base_mesh.clone();
-                //mint.matrix = other.matrix * mint.matrix; // TODO: is this the correct order?
-                mint.matrix = mint.matrix * other.matrix; // TODO: is this the correct order?
+                mint.matrix *= other.matrix; // TODO: is this the correct order?
                 debug!("Mesh instance {} refers base mesh instance {} ", mint._id, mint.base_mesh.clone().unwrap()._id);
                 break;
             }
@@ -348,7 +347,7 @@ impl SceneObjects {
             mesh.matrix = if mesh.transformation_names.is_some() {
                 parse_transform_expression(
                     mesh.transformation_names.as_deref().unwrap_or(""),
-                    &transforms,  
+                    transforms,  
                 )
             } else {
                 debug!("Mesh '{}'s transformation is not given, defaulting to Identity.", mesh._id);
@@ -360,7 +359,7 @@ impl SceneObjects {
         for mint in self.mesh_instances.iter_mut() {
             mint.matrix = parse_transform_expression(
                     mint.transformation_names.as_str(),
-                    &transforms,  
+                    transforms,  
             );
             debug!("Composite transform for mesh '{}' is {}", mint._id, mint.matrix);
         }
@@ -369,21 +368,21 @@ impl SceneObjects {
             debug!("Setting up transforms for mesh._id '{}'", tri._id.clone());
             tri.matrix = Some(Arc::new(parse_transform_expression(
                     tri.transformation_names.as_deref().unwrap_or(""),
-                    &transforms,  
+                    transforms,  
             )));
         }
 
         for sphere in self.spheres.iter_mut() {
             sphere.matrix = Some(Arc::new(parse_transform_expression(
                 sphere.transformation_names.as_deref().unwrap_or(""), 
-                &transforms)));
+                transforms)));
         }
 
         for plane in self.planes.iter_mut() {
             debug!("Setting up transforms for mesh._id '{}'", plane._id.clone());
             plane.matrix = Some(Arc::new(parse_transform_expression(
                     plane.transformation_names.as_deref().unwrap_or(""),
-                    &transforms,  
+                    transforms,  
             )));
         }
     }
@@ -472,7 +471,7 @@ impl SceneObjects {
         self.bboxable_shapes = bboxable_shapes;
         self.unbboxable_shapes = unbboxable_shapes;
         //info!(">> There are {} shapes in the scene.", self.bboxable_shapes.len());
-        let cache = VertexCache::build(&verts, &all_triangles);   
+        let cache = VertexCache::build(verts, &all_triangles);   
         Ok(cache)
     }
 
@@ -494,6 +493,7 @@ pub struct VertexCache {
 
 impl Default for VertexCache {
     fn default() -> Self {
+        debug!("Defaulting VertexCache...");
         Self {
             vertex_data: VertexData::default(),
             vertex_normals: Vec::new(),
@@ -511,7 +511,7 @@ impl Default for VertexCache {
 // shape refers to this data for their coordinates. 
 impl VertexCache {
     
-    pub fn build(verts: &VertexData, triangles: &Vec<Triangle>) -> VertexCache {
+    pub fn build(verts: &VertexData, triangles: &[Triangle]) -> VertexCache {
         // Compute per-vertex normal from neighbouring triangles
         let vertex_data = verts.clone();
         let mut vertex_normals: Vec<Vector3> = vec![Vector3::ZERO; vertex_data._data.len()];

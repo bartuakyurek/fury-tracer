@@ -309,6 +309,7 @@ impl<T: Clone> SingleOrVec<T>  {
 
 impl<T: Default> Default for SingleOrVec<T> {
     fn default() -> Self {
+        debug!("Implementing default for SingleOrVec...");
         SingleOrVec::Empty
     }
 }
@@ -390,7 +391,7 @@ impl VertexData{
 
         self._data = new_data;
         self._type = "xyz".to_string();
-        return true;
+        true
     }
 }
 
@@ -400,6 +401,11 @@ impl FaceType {
     pub fn len(&self) -> usize {
         debug_assert!(self._type == "triangle"); // Only triangle meshes are supported
         (self._data.len() as f64 / 3.) as usize
+    }
+
+    pub fn is_empty(&self) -> bool {
+        debug_assert!(self._type == "triangle"); // Only triangle meshes are supported   
+        self._data.is_empty()
     }
 
     pub fn get_indices(&self, i: usize) -> [usize; 3] {

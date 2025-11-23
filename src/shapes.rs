@@ -84,16 +84,15 @@ impl Shape for Triangle {
                     let v3_n = vertex_cache.vertex_normals[self.indices[2]];
                     let w = 1. - u - v;
                     (v1_n * w + v2_n * u + v3_n * v).normalize() // WARNING: Be careful with interpolation order!
-                }
+                } 
+                else if self.normal.norm_squared() > 0.0 {
+                    self.normal
+                } 
                 else {
-                    if self.normal.norm_squared() > 0.0 {
-                        self.normal
-                    } else {
-                        // info!("I hope this never occurs"); --> WARNING: Occurs when triangle is not constructed from Mesh data
-                        let verts = &vertex_cache.vertex_data;
-                        let [a, b, c] = self.indices.map(|i| verts[i]);
-                        get_tri_normal(&a, &b, &c)
-                    }
+                    // Occurs when triangle is not constructed from Mesh data
+                    let verts = &vertex_cache.vertex_data;
+                    let [a, b, c] = self.indices.map(|i| verts[i]);
+                    get_tri_normal(&a, &b, &c)
                 }
             };
            
@@ -187,25 +186,31 @@ impl Shape for Sphere {
         let t2 = (-b + sqrt_d) / (2.0*a); 
 
         // Pick the closer t
-        let t = if t1 > 0.0 { t1 } else if t2 > 0.0 { t2 } else { return None; };
+        let t_local = if t1 > 0.0 { t1 } else if t2 > 0.0 { t2 } else { return None; };
 
         // Compute hit in local space and then transform back  to world
-        let p_local = local_ray.at(t);
-        let p_world = transform_point(&*viewmat, &p_local); 
+        let p_local = local_ray.at(t_local);
+        let p_world = transform_point(&viewmat, &p_local); 
 
-        if !t_interval.contains(t) || t <= 0.0 {
+        // Update ray t to worlds space
+        let ray_dir_lensqrd = ray.direction.dot(ray.direction);
+        if ray_dir_lensqrd == 0.0 { // Avoid division by zero
+            return None; 
+        }
+        let t_world = (p_world - ray.origin).dot(ray.direction) / ray_dir_lensqrd;
+        if !t_interval.contains(t_world) || t_world <= 0.0 {
             return None;
         }
 
         // World space normal
         let local_normal = (p_local - center).normalize();
-        let mut world_normal = transform_normal(&*viewmat, &local_normal); 
+        let mut world_normal = transform_normal(&viewmat, &local_normal); 
         if world_normal.norm_squared() > 0.0 { world_normal = world_normal.normalize(); }
 
         // Check front face and build hitrecord (I was transforming hitrecord::to_world( ) but here it is already transformed.)
         let front_face = ray.is_front_face(world_normal);
         let final_normal = if front_face { world_normal } else { -world_normal };
-        let rec = HitRecord::new(ray.origin, p_world, final_normal, t, self.material_idx, front_face);
+        let rec = HitRecord::new(ray.origin, p_world, final_normal, t_world, self.material_idx, front_face);
         Some(rec)
     }
 }
@@ -222,8 +227,7 @@ impl BBoxable for Sphere {
         let local_box = BBox::new_from(&xint, &yint, &zint);
         if apply_t {
             if let Some(matrix) = &self.matrix {
-                let transformed_bbox = local_box.transform(matrix);
-                transformed_bbox
+                local_box.transform(matrix) // return transformed bbox
             } else {
                 warn!("No transformation matrix found for Sphere. Returning local bounding box.");
                 local_box
@@ -271,20 +275,20 @@ impl Shape for Plane {
         // --- Transform ray ---
         let viewmat = self.matrix.clone().unwrap_or(Arc::new(Matrix4::IDENTITY));
         let inv_matrix = viewmat.inverse();
-        let local_ray = &ray.inverse_transform(&inv_matrix);
+        let ray = &ray.inverse_transform(&inv_matrix);
         // ---------------------
         let verts = &vertex_cache.vertex_data;
         let p0 = verts[self.point_idx];
-        let local_n: bevy_math::DVec3 = self.normal;
+        let n = self.normal;
 
-        let denom = local_ray.direction.dot(local_n);
+        let denom = ray.direction.dot(n);
 
         // ray is parallel to plane ----
         if denom.abs() < 1e-12 {
             return None;
         }
 
-        let t = (p0 - local_ray.origin).dot(local_n) / denom;
+        let t = (p0 - ray.origin).dot(n) / denom;
 
         // plane is behind the ray origin ----
         if t <= 0.0 {
@@ -296,18 +300,13 @@ impl Shape for Plane {
             return None;
         }
 
-        // Construct Hit Record (transform hitpoint and normal (04, p.53))
-        let p_local = local_ray.at(t);
-        let p_world = transform_point(&viewmat, &p_local);
+        // Construct Hit Record
+        let front_face = ray.is_front_face(n);
+        let normal = if front_face { n } else { -n };
+        let mut rec = HitRecord::new(ray.origin, ray.at(t), normal, t, self.material_idx, front_face);
 
-        let mut world_normal = transform_normal(&viewmat, &local_n);
-        if world_normal.norm_squared() > 0.0 {world_normal = world_normal.normalize();} 
-
-        let front_face = ray.is_front_face(world_normal);
-        let final_normal = if front_face { world_normal } else { -world_normal };
-        
-        let rec = HitRecord::new(ray.origin, p_world, final_normal, t, self.material_idx, front_face);
-        //rec.to_world(&viewmat); 
+        // transform hitpoint and normal (04, p.53) -----
+        rec.to_world(&viewmat);
         Some(rec)
     }
 }
@@ -317,25 +316,7 @@ impl BBoxable for Plane {
     /// Dummy bbox with no volume -- WARNING: Not to be used in BVH! BBoxable was meant to be separated from Shapes trait
     /// but I couldn't figure out how to set trait bounds without using trait objects in the scene object
     /// vectors yet... 
-     fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
+     fn get_bbox(&self, _: &VertexData, _: bool) -> BBox {
         todo!();
-        let p = verts[self.point_idx];
-        let xint = Interval::new(p.x, p.x);
-        let yint = Interval::new(p.y, p.y);
-        let zint = Interval::new(p.z, p.z);
-
-        let local_box = BBox::new_from(&xint, &yint, &zint);
-        if apply_t {
-            if let Some(matrix) = &self.matrix {
-                let transformed_bbox = local_box.transform(matrix);
-                transformed_bbox
-            } else {
-                warn!("No transformation matrix found for Plane. Returning local bounding box.");
-                BBox::new_from(&xint, &yint, &zint)
-            }
-        }
-        else {
-            local_box
-        }
     }
 }
