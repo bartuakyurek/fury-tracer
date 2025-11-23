@@ -493,6 +493,7 @@ pub struct VertexCache {
 
 impl Default for VertexCache {
     fn default() -> Self {
+        debug!("Defaulting VertexCache...");
         Self {
             vertex_data: VertexData::default(),
             vertex_normals: Vec::new(),
