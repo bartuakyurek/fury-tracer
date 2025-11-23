@@ -391,7 +391,7 @@ impl VertexData{
 
         self._data = new_data;
         self._type = "xyz".to_string();
-        return true;
+        true
     }
 }
 
