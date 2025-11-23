@@ -221,7 +221,7 @@ impl SceneLights {
             {
                 parse_transform_expression(
                     plight.transformation_names.as_deref().unwrap_or(""),
-                    &transforms,  
+                    transforms,  
                 )
             } else {
                 debug!("No transformation matrix found for camera, defaulting to Identity...");
