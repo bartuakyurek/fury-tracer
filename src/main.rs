@@ -72,7 +72,7 @@ fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Er
     let imagefolder_pathbuf = get_output_dir(json_path, "inputs", "outputs")?;
     let imagefolder = imagefolder_pathbuf.to_str().unwrap();
     for im in images.into_iter() {
-        if let Err(e) = im.save_png(&imagefolder) {
+        if let Err(e) = im.save_png(imagefolder) {
             eprintln!("Failed to save {}: {}", imagefolder, e);
         }
     }
