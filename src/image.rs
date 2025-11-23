@@ -51,15 +51,15 @@ impl ImageData {
         // where each triplet is RGB color of a pixel.
         self.pixel_colors.into_iter().flat_map(|v| [v.x, v.y, v.z]).collect()
     }
-    pub fn to_rgb(self) -> Vec<u8> {
-        let rgb_vec = self.flatten_color().into_iter().map(|x| {
-            if x < 0.0 || x > 255.0 {
-                // debug!("Clamping applied to x={} value for RGB conversion.", x); // sorry it prints too much 
-            }
-            x.clamp(0.0, 255.0) as u8
-        }).collect();
 
-        rgb_vec
+    /// Clamp colors and return a flattened array of R G B values per pixel 
+    pub fn to_rgb(self) -> Vec<u8> {
+        
+        self.flatten_color().into_iter().map(|x| 
+            {
+            x.clamp(0.0, 255.0) as u8
+            }
+        ).collect()
     } 
 
     pub fn check_extension(&self, path: &PathBuf, extension: &str) -> bool {
