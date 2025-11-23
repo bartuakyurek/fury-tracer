@@ -62,7 +62,7 @@ impl ImageData {
         ).collect()
     } 
 
-    pub fn check_extension(&self, path: &PathBuf, extension: &str) -> bool {
+    pub fn check_extension(&self, path: &Path, extension: &str) -> bool {
         path.extension().unwrap().to_str().unwrap() == extension
     }
 
