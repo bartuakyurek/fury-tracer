@@ -101,7 +101,7 @@ impl ImageData {
         let path: PathBuf = self.get_png_fullpath(path);
 
         let file = File::create(path.clone()).unwrap();
-        let ref mut w = BufWriter::new(file);
+        let w = &mut BufWriter::new(file);
         let mut encoder = png::Encoder::new(w, self.width as u32, self.height as u32); // Width is 2 pixels and height is 1.
     
         encoder.set_color(png::ColorType::Rgb);
