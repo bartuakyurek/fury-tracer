@@ -465,7 +465,7 @@ where
         .map(|x| x.parse::<Float>().map_err(|e| e.to_string()))
         .collect::<Result<_, _>>()?;
 
-    if nums.len() % chunk_len != 0 {
+    if !nums.len().is_multiple_of(chunk_len) {
         return Err(format!("Input length not divisible by {}", chunk_len));
     }
 
