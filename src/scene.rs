@@ -203,6 +203,9 @@ pub struct SceneLights {
 
     #[serde(rename = "PointLight")]
     pub point_lights: SingleOrVec<PointLight>, 
+
+    #[serde(rename = "AreaLight")]
+    pub area_lights: SingleOrVec<AreaLight>
 }
 
 impl SceneLights {
@@ -216,19 +219,38 @@ impl SceneLights {
                     transforms,  
                 )
             } else {
-                debug!("No transformation matrix found for camera, defaulting to Identity...");
+                debug!("No transformation matrix found for point light '{}', defaulting to Identity...", plight._id);
                 Matrix4::IDENTITY
             };
 
             plight.position = transform_point(&plight.composite_mat, &plight.position);
         }
+        debug!("WARNING: Assumes area lights have no transformation!")
     }
+}
+
+#[derive(Debug, Deserialize, Clone, Default)]
+pub struct AreaLight {
+    #[serde(rename = "_id", deserialize_with = "deser_int")]
+    pub _id: Int, 
+
+    #[serde(rename = "Position", deserialize_with = "deser_vec3")]
+    pub position: Vector3,
+
+    #[serde(rename = "Normal", deserialize_with = "deser_vec3")]
+    pub normal: Vector3,
+
+    #[serde(rename = "Size", deserialize_with = "deser_int")]
+    pub size: Int, // Assume square area light
+
+    #[serde(rename = "Radiance", deserialize_with = "deser_vec3")]
+    pub radiance: Vector3, 
 }
 
 #[derive(Debug, Deserialize, Clone, Default)]
 pub struct PointLight {
     #[serde(rename = "_id", deserialize_with = "deser_int")]
-    pub _id: Int, // or String if you prefer
+    pub _id: Int, 
 
     #[serde(rename = "Position", deserialize_with = "deser_vec3")]
     pub position: Vector3,
