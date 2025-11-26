@@ -194,7 +194,7 @@ impl<'a> Scene <'a>  // Lifetime annotation 'a looks scary but it was needed for
 }
 
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Default)]
 #[serde(rename_all = "PascalCase")]
 #[serde(default)] // If any of the fields below is missing in the JSON, use default
 pub struct SceneLights {
@@ -203,16 +203,6 @@ pub struct SceneLights {
 
     #[serde(rename = "PointLight")]
     pub point_lights: SingleOrVec<PointLight>, 
-}
-
-impl Default for SceneLights {
-    fn default() -> Self {
-        debug!("Defaulting scene lights...");
-        Self {
-            ambient_light: Vector3::ZERO, // No intensity
-            point_lights: SingleOrVec::Empty,
-            }
-    }
 }
 
 impl SceneLights {
