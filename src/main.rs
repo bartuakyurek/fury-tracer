@@ -38,7 +38,8 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
         // Scenario 2: input is a directory, explore all .jsons recursively
         for entry in WalkDir::new(path).into_iter().filter_map(Result::ok) {
             let entry_path = entry.path();
-            if entry_path.is_file() && entry_path.extension().map(|s| s == "json").unwrap_or(false) {
+            let is_json = entry_path.extension().map(|s| s == "json").unwrap_or(false);
+            if entry_path.is_file() && is_json {
                 debug!("Rendering JSON: {:?}", entry_path);
                 read_json_and_render(&entry_path.to_str().unwrap().to_string())?;
             }
