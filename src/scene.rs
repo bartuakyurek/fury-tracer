@@ -71,9 +71,9 @@ impl SceneJSON {
 
         // 1- Convert materials serde_json values to actual structs
         self.materials.finalize();
-        for m in &self.materials.materials { // TODO: refactor that ambigious call materials.materials( )
-            debug!("Material {}: {:#?}", m.get_type(), m);
-        }
+        //for m in &self.materials.materials { // TODO: refactor that ambigious call materials.materials( )
+        //    debug!("Material {}: {:#?}", m.get_type(), m);
+        //}
 
         // 2- Fix VertexData if _type is not "xyz" 
         let previous_type = self.vertex_data._type.clone();

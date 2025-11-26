@@ -64,7 +64,8 @@ fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Er
 
     let json_path = Path::new(json_path).canonicalize()?;
     let scene = Scene::new_from(&mut root.scene, &json_path); 
-    debug!("Scene is setup successfully.\n {:#?}", scene);
+    debug!("Scene is setup successfully.");
+    debug!("Scene lights: {:#?} ", scene.data.lights);
 
     // Render images and return array of RGB
     let images = renderer::render(&scene)?;

@@ -146,8 +146,8 @@ impl Camera {
         debug_assert!(approx_zero(self.u.dot(self.w))); 
         debug_assert!(approx_zero(self.v.dot(self.w))); 
         debug_assert!(approx_zero(self.v.dot(self.u))); 
-        debug!("{:#?}", self);
-        debug!("Nearplane corners are {:#?}", &self.get_nearplane_corners());
+        debug!("Camera position {:#?}", self.position);
+        //debug!("Nearplane corners are {:#?}", &self.get_nearplane_corners());
     }
 
     pub fn get_resolution(&self) -> (usize, usize) {
