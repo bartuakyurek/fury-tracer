@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 use std::io::BufWriter;
 use std::fs::File;
 
+use rand::random;
+
 use crate::prelude::*;
 
 
@@ -116,7 +118,12 @@ impl ImageData {
     }
 }
 
+//////////////////////////// Sampling Pixels ///////////////////////////////////////////////////
+/// TODO: can we put these functions below into a module? 
+/// 
 
+
+/// Uniformly get pixel centers on the nearplane (no sampling, hw1 and hw2 used this function)
 pub fn get_pixel_centers(width: usize, height: usize, near_plane_corners: &[Vector3; 4]) -> Vec<Vector3> {
     // Assuming nearplane corners are:
     // [0]=top-left, [1]=top-right, [2]=bottom-left, [3]=bottom-right
@@ -127,8 +134,8 @@ pub fn get_pixel_centers(width: usize, height: usize, near_plane_corners: &[Vect
             let u = (col as Float + 0.5) / width as Float; // pixel width
             let v = (row as Float + 0.5) / height as Float; // pixel height
             
-            let top = near_plane_corners[0] * (1.0 - u) + near_plane_corners[1] * u;
-            let bottom = near_plane_corners[2] * (1.0 - u) + near_plane_corners[3] * u;
+            let top = near_plane_corners[0] * (1.0 - u) + near_plane_corners[1] * u; // top-center
+            let bottom = near_plane_corners[2] * (1.0 - u) + near_plane_corners[3] * u; // bottom-center
             let center = top * (1.0 - v) + bottom * v;
             
             pixel_centers.push(center);
@@ -139,9 +146,49 @@ pub fn get_pixel_centers(width: usize, height: usize, near_plane_corners: &[Vect
 }
 
 
+/// Given top corner pixel coordinate and number of rows and columns,
+/// push sample on the pixel to samples.
+fn _jittered_sample_pixel(top_left: Vector3, n_rows: usize, n_cols: usize, samples: &mut Vec<Vector3>) {
 
-pub fn jittered_sampling(width: usize, height: usize, nearplane_corners: &[Vector3; 4]) -> Vec<Vector3> {
+    for y in 0..n_rows {
+        for x in 0..n_cols {
+            let psi_1: Float = random_float();
+            let psi_2: Float = random_float();
 
+            let mut sample = top_left;
+            sample.x = (top_left.x + x as Float + psi_1) / (n_cols as Float);
+            sample.y = (top_left.y + y as Float + psi_2) / (n_rows as Float);
+            samples.push(sample);
+        }
+    }
 
-    todo!()
+}
+
+/// Stratified random sampling, given nearplane corners and image resoluion (width, height)
+/// See slides 05, p.40
+pub fn jittered_sampling(n_samples: usize, width: usize, height: usize, nearplane_corners: &[Vector3; 4]) -> Vec<Vector3> {
+    if n_samples <= 1 {
+        warn!("Something is wrong! n_samples is expected to be > 1, got {}", n_samples);
+    }
+
+    // Check also this https://users.rust-lang.org/t/integer-square-root/96/10
+    warn!("Assumes number of samples = {} is a perfect square.", n_samples);
+    let n_rows = (n_samples as Float).sqrt() as usize;
+    let n_cols = n_rows.clone();
+    let mut samples: Vec<Vector3> = Vec::with_capacity(width * height * n_samples);
+
+    for im_row in 0..height {
+        for im_col in 0..width {
+            
+            let u = im_col as Float / width as Float; // Not adding 0.5 here because we'll use top left corner in sampling
+            let v = im_row as Float / height as Float;
+            let top = nearplane_corners[0] * (1.0 - u) + nearplane_corners[1] * u;
+            let bottom = nearplane_corners[2] * (1.0 - u) + nearplane_corners[3] * u;
+            let top_left = top * (1.0 - v) + bottom * v;
+
+            _jittered_sample_pixel(top_left, n_rows, n_cols, &mut samples);
+        }
+    }
+    
+    samples
 }
