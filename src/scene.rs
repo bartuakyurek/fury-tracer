@@ -12,7 +12,8 @@
     @author: Bartu
 */
 use std::{path::Path, io::BufReader, error::Error, fs::File};
-use bevy_math::NormedVectorSpace; // traits needed for norm_squared( ) 
+use bevy_math::NormedVectorSpace;
+use rand::random; // traits needed for norm_squared( ) 
 
 use crate::material::{*};
 use crate::shapes::{*};
@@ -276,7 +277,19 @@ pub struct AreaLight {
 
 impl AreaLight {
     pub fn sample_position(&self) -> Vector3 {
-        todo!()
+        // see slides 05, p.97
+        // extent is arealight.size here
+        // TODO: how to use rng with seed here? 
+        if self.u.eq(&Vector3::ZERO) {
+            warn!("Found area light u as a zero vector! Make sure you called arealight.setup_onb() before sampling!");
+        }
+        if self.v.eq(&Vector3::ZERO) {
+            warn!("Found area light v as a zero vector! Make sure you called arealight.setup_onb() before sampling!");
+        }
+
+        let (psi_1, psi_2) = (random_float(), random_float());
+        let extent = self.size as Float;
+        self.position + (extent * ((psi_1 - 0.5) * self.u + (psi_2 - 0.5) * self.v))
     }
 
     pub fn setup_onb(&mut self) {
