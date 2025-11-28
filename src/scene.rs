@@ -228,9 +228,53 @@ impl SceneLights {
         debug!("WARNING: Assumes area lights have no transformation!")
     }
 
-    pub fn all_nonambient() -> Vec<LightKind> {
-
+    pub fn all_nonambient(&self) -> Vec<LightKind> {
+        todo!()
     }
+}
+
+
+
+#[derive(Debug, Deserialize, Clone, Default)]
+pub struct AreaLight {
+    #[serde(rename = "_id", deserialize_with = "deser_int")]
+    pub _id: Int, 
+
+    #[serde(rename = "Position", deserialize_with = "deser_vec3")]
+    pub position: Vector3,
+
+    #[serde(rename = "Normal", deserialize_with = "deser_vec3")]
+    pub normal: Vector3,
+
+    #[serde(rename = "Size", deserialize_with = "deser_int")]
+    pub size: Int, // Assume square area light
+
+    #[serde(rename = "Radiance", deserialize_with = "deser_vec3")]
+    pub radiance: Vector3, 
+}
+
+impl AreaLight {
+    pub fn sample_position(&self) -> Vector3 {
+        todo!()
+    }
+}
+
+#[derive(Debug, Deserialize, Clone, Default)]
+pub struct PointLight {
+    #[serde(rename = "_id", deserialize_with = "deser_int")]
+    pub _id: Int, 
+
+    #[serde(rename = "Position", deserialize_with = "deser_vec3")]
+    pub position: Vector3,
+
+    #[serde(rename = "Intensity", deserialize_with = "deser_vec3")]
+    pub rgb_intensity: Vector3,
+
+     #[serde(rename = "Transformations")]
+    pub(crate) transformation_names: Option<String>,
+
+    #[serde(skip)]
+    pub(crate) composite_mat: Matrix4,
 }
 
 pub enum LightKind {
@@ -253,48 +297,6 @@ impl LightKind {
             LightKind::Area(a) => a.radiance,
         }
     }
-}
-
-#[derive(Debug, Deserialize, Clone, Default)]
-pub struct AreaLight {
-    #[serde(rename = "_id", deserialize_with = "deser_int")]
-    pub _id: Int, 
-
-    #[serde(rename = "Position", deserialize_with = "deser_vec3")]
-    pub position: Vector3,
-
-    #[serde(rename = "Normal", deserialize_with = "deser_vec3")]
-    pub normal: Vector3,
-
-    #[serde(rename = "Size", deserialize_with = "deser_int")]
-    pub size: Int, // Assume square area light
-
-    #[serde(rename = "Radiance", deserialize_with = "deser_vec3")]
-    pub radiance: Vector3, 
-}
-
-impl AreaLight {
-    pub fn sample_position() -> Vector3 {
-        todo!()
-    }
-}
-
-#[derive(Debug, Deserialize, Clone, Default)]
-pub struct PointLight {
-    #[serde(rename = "_id", deserialize_with = "deser_int")]
-    pub _id: Int, 
-
-    #[serde(rename = "Position", deserialize_with = "deser_vec3")]
-    pub position: Vector3,
-
-    #[serde(rename = "Intensity", deserialize_with = "deser_vec3")]
-    pub rgb_intensity: Vector3,
-
-     #[serde(rename = "Transformations")]
-    pub(crate) transformation_names: Option<String>,
-
-    #[serde(skip)]
-    pub(crate) composite_mat: Matrix4,
 }
 
 

@@ -17,7 +17,7 @@ use std::{self, time::Instant};
 
 use crate::material::{HeapAllocMaterial};
 use crate::ray::{HitRecord, Ray};
-use crate::scene::{PointLight, Scene};
+use crate::scene::{LightKind, Scene};
 use crate::image::{ImageData};
 use crate::interval::{Interval};
 use crate::prelude::*;
