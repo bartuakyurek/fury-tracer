@@ -46,7 +46,7 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, mat: &
             let (shadow_ray, interval) = get_shadow_ray(&light, hit_record, scene.data.shadow_ray_epsilon);
             if scene.hit_bvh(&shadow_ray, &interval, true).is_none() {
                 
-                let irradiance = light.rgb_intensity / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
+                let irradiance = light.get_intensity() / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
                 let n = hit_record.normal;
                 let w_i = shadow_ray.direction;
                 let w_o = -ray_in.direction;

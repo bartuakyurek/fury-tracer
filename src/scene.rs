@@ -242,8 +242,15 @@ pub enum LightKind {
 impl LightKind {
     pub fn get_position(&self) -> Vector3 {
         match self {
-            PointLight => self.position,
-            AreaLight => self.sample_position( ),
+            LightKind::Point(p) => p.position,
+            LightKind::Area(a) => a.sample_position(),
+        }
+    }
+
+    pub fn get_intensity(&self) -> Vector3 {
+        match self {
+            LightKind::Point(p) => p.rgb_intensity,
+            LightKind::Area(a) => a.radiance,
         }
     }
 }
@@ -266,6 +273,7 @@ pub struct AreaLight {
     pub radiance: Vector3, 
 }
 
+impl AreaLight {
 #[derive(Debug, Deserialize, Clone, Default)]
 pub struct PointLight {
     #[serde(rename = "_id", deserialize_with = "deser_int")]
