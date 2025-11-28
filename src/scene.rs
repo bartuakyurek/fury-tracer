@@ -227,6 +227,25 @@ impl SceneLights {
         }
         debug!("WARNING: Assumes area lights have no transformation!")
     }
+
+    pub fn all_nonambient() -> Vec<LightKind> {
+
+    }
+}
+
+pub enum LightKind {
+    Point(PointLight),
+    Area(AreaLight),
+}
+
+
+impl LightKind {
+    pub fn get_position(&self) -> Vector3 {
+        match self {
+            PointLight => self.position,
+            AreaLight => self.sample_position( ),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Clone, Default)]

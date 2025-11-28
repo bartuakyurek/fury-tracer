@@ -25,11 +25,11 @@ use crate::prelude::*;
 
 /// Returns a tuple of ray from hit point (epsilon shifted) towards the point light
 /// and interval [0, distance]. 
-pub fn get_shadow_ray(point_light: &PointLight, hit_record: &HitRecord, epsilon: Float) -> (Ray, Interval) { 
+pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, epsilon: Float) -> (Ray, Interval) { 
         
     debug_assert!(hit_record.normal.is_normalized());
     let ray_origin = hit_record.hit_point + (hit_record.normal * epsilon);
-    let distance_vec = point_light.position - ray_origin;
+    let distance_vec = light.get_position() - ray_origin;
     let distance_squared = distance_vec.norm_squared(); // TODO: Cache?
     let distance = distance_squared.sqrt();
     let dir = distance_vec / distance;
@@ -41,12 +41,12 @@ pub fn get_shadow_ray(point_light: &PointLight, hit_record: &HitRecord, epsilon:
 
 pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, mat: &HeapAllocMaterial) -> Vector3 {
     let mut color = mat.ambient() * scene.data.lights.ambient_light; 
-    for point_light in scene.data.lights.point_lights.all() {
+    for light in scene.data.lights.all_nonambient().iter() {
             
-            let (shadow_ray, interval) = get_shadow_ray(&point_light, hit_record, scene.data.shadow_ray_epsilon);
+            let (shadow_ray, interval) = get_shadow_ray(&light, hit_record, scene.data.shadow_ray_epsilon);
             if scene.hit_bvh(&shadow_ray, &interval, true).is_none() {
                 
-                let irradiance = point_light.rgb_intensity / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
+                let irradiance = light.rgb_intensity / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
                 let n = hit_record.normal;
                 let w_i = shadow_ray.direction;
                 let w_o = -ray_in.direction;
