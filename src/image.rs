@@ -138,3 +138,10 @@ pub fn get_pixel_centers(width: usize, height: usize, near_plane_corners: &[Vect
     pixel_centers
 }
 
+
+
+pub fn jittered_sampling(width: usize, height: usize, nearplane_corners: &[Vector3; 4]) -> Vec<Vector3> {
+
+
+    todo!()
+}
