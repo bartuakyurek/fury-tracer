@@ -241,7 +241,11 @@ impl SceneLights {
     }
 
     pub fn all_nonambient(&self) -> Vec<LightKind> {
-        todo!()
+        // TODO: store all lights directly? esp if this has a significant overhead when called during ray tracing?
+        self.point_lights.iter()
+        .map(|p| LightKind::Point(p.clone()))
+        .chain(self.area_lights.iter().map(|a| LightKind::Area(a.clone())))
+        .collect()
     }
 }
 
@@ -290,6 +294,13 @@ impl AreaLight {
         let (psi_1, psi_2) = (random_float(), random_float());
         let extent = self.size as Float;
         self.position + (extent * ((psi_1 - 0.5) * self.u + (psi_2 - 0.5) * self.v))
+    }
+
+    pub fn attenuation(&self, dir: &Vector3) -> Float {
+        // See slides 05, p.98
+        debug_assert!(dir.is_normalized());
+        let area = (self.size * self.size) as Float;
+        area * (self.normal.dot(*dir))
     }
 
     pub fn setup_onb(&mut self) {
@@ -347,10 +358,17 @@ impl LightKind {
         }
     }
 
-    pub fn get_intensity(&self) -> Vector3 {
+    pub fn get_intensity(&self, ) -> Vector3 {
         match self {
             LightKind::Point(p) => p.rgb_intensity,
-            LightKind::Area(a) => a.radiance,
+            LightKind::Area(a) => a.radiance, 
+        }
+    }
+
+    pub fn attenuation(&self, dir: &Vector3) -> Float {
+        match self {
+            LightKind::Point(_) => 1.0,
+            LightKind::Area(a) => a.attenuation(dir), // slides 05, p.98 computing radiance NOTE: this is not actual attenuation, we dont attenuate light in vacuum
         }
     }
 }

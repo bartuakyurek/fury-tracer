@@ -45,8 +45,9 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, mat: &
             
             let (shadow_ray, interval) = get_shadow_ray(&light, hit_record, scene.data.shadow_ray_epsilon);
             if scene.hit_bvh(&shadow_ray, &interval, true).is_none() {
-                
-                let irradiance = light.get_intensity() / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
+                // Note that we don't attenuate the light as we assume rays are travelling in vacuum
+                // but area lights will scale intensity wrt ray's direction and for point lights attenuation is simply one
+                let irradiance = light.get_intensity() * light.attenuation(&shadow_ray.direction) / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
                 let n = hit_record.normal;
                 let w_i = shadow_ray.direction;
                 let w_o = -ray_in.direction;
