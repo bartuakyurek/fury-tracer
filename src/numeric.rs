@@ -56,3 +56,14 @@ pub fn transform_normal(mat: &Matrix4, n: &Vector3) -> Vector3 {
 
     Vector3::new(r.x, r.y, r.z).normalize()
 }
+//////////////////////////////////////////////////////////////////////////
+/// RNG utils
+//////////////////////////////////////////////////////////////////////////
+
+pub fn random_float() -> Float {
+    // Return a random real in [0.0, 1.0)
+    // NOTE: (See https://docs.rs/rand/latest/rand/fn.random.html)
+    // If you’re calling random() repeatedly, consider using a local rng handle 
+    // to save an initialization-check on each usage
+    rand::random::<Float>()
+}
