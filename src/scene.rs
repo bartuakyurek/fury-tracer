@@ -210,6 +210,9 @@ pub struct SceneLights {
 
 impl SceneLights {
     pub fn setup(&mut self, transforms: &Transformations) {
+        // ----------------------------------------------------------
+        // Setup point lights
+        // ----------------------------------------------------------
         for plight in self.point_lights.iter_mut() {
             
             plight.composite_mat = if plight.transformation_names.is_some() 
@@ -225,7 +228,15 @@ impl SceneLights {
 
             plight.position = transform_point(&plight.composite_mat, &plight.position);
         }
+        // ----------------------------------------------------------
+        // Setup area lights 
+        // ----------------------------------------------------------
+        // TODO: I keep setting up these structs, what would be a useful interface 
+        // to decouple deserialization and precomputation in scene structs?
         debug!("WARNING: Assumes area lights have no transformation!")
+        for alight in self.area_lights.iter_mut() {
+            todo!()
+        }
     }
 
     pub fn all_nonambient(&self) -> Vec<LightKind> {
@@ -251,11 +262,28 @@ pub struct AreaLight {
 
     #[serde(rename = "Radiance", deserialize_with = "deser_vec3")]
     pub radiance: Vector3, 
+
+    #[serde(skip)] // For ONB, see slides 05, p.96
+    u: Vector3,
+    #[serde(skip)]
+    v: Vector3,
 }
+
+//pub struct AreaLightBase {
+//    u: Vector3,
+//    v: Vector3,
+//}
 
 impl AreaLight {
     pub fn sample_position(&self) -> Vector3 {
         todo!()
+    }
+
+    pub fn setup_onb(&mut self) {
+        // See slides 05, p.96
+
+        // u: set minimum component of n to 0 and flip
+        // other components negating one 
     }
 }
 
