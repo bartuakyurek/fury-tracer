@@ -284,6 +284,21 @@ impl AreaLight {
 
         // u: set minimum component of n to 0 and flip
         // other components negating one 
+        let mut u = self.normal.clone();
+        let min_idx = u.min_position();
+        u[min_idx] = 0.;
+        
+        let (i, j) = if min_idx == 2 {(0, 1)} else if min_idx == 1 {(0, 2)} else if min_idx == 0 {(1, 2)} else {panic!("Expected min_idx to be either 0, 1, 2. Got {}.", min_idx)};
+        let tmp = u[i]; // swap other two components(std::mem::swap didn't work here due to second mutation not allowed)
+        u[i] = - u[j]; // negating one
+        u[j] = tmp;
+        u = u.normalize();
+
+        let v = u.cross(self.normal);
+
+        self.u = u;
+        self.v = v;
+        debug!("Area light ONB is setup successfully.");
     }
 }
 
