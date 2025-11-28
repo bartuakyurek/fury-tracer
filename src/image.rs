@@ -131,8 +131,8 @@ pub fn get_pixel_centers(width: usize, height: usize, near_plane_corners: &[Vect
     
     for row in 0..height {
         for col in 0..width {
-            let u = (col as Float + 0.5) / width as Float; // pixel width
-            let v = (row as Float + 0.5) / height as Float; // pixel height
+            let u = (col as Float + 0.5) / width as Float; // pixel width in range [0,1] for lerp
+            let v = (row as Float + 0.5) / height as Float; 
             
             let top = near_plane_corners[0] * (1.0 - u) + near_plane_corners[1] * u; // top-center
             let bottom = near_plane_corners[2] * (1.0 - u) + near_plane_corners[3] * u; // bottom-center
@@ -148,7 +148,7 @@ pub fn get_pixel_centers(width: usize, height: usize, near_plane_corners: &[Vect
 
 /// Given top corner pixel coordinate and number of rows and columns,
 /// push sample on the pixel to samples.
-fn _jittered_sample_pixel(top_left: Vector3, n_rows: usize, n_cols: usize, samples: &mut Vec<Vector3>) {
+fn _jittered_sample_pixel(top_left: Vector3, pixel_w: Float, pixel_h: Float, n_rows: usize, n_cols: usize, samples: &mut Vec<Vector3>) {
 
     for y in 0..n_rows {
         for x in 0..n_cols {
@@ -156,8 +156,8 @@ fn _jittered_sample_pixel(top_left: Vector3, n_rows: usize, n_cols: usize, sampl
             let psi_2: Float = random_float();
 
             let mut sample = top_left;
-            sample.x = top_left.x + ((x as Float + psi_1) / (n_cols as Float));
-            sample.y = top_left.y + ((y as Float + psi_2) / (n_rows as Float));
+            sample.x = top_left.x + ((x as Float + psi_1) / (n_cols as Float)) * pixel_w;
+            sample.y = top_left.y + ((y as Float + psi_2) / (n_rows as Float)) * pixel_h;
             samples.push(sample);
         }
     }
@@ -186,7 +186,11 @@ pub fn jittered_sampling(n_samples: usize, width: usize, height: usize, nearplan
             let bottom = nearplane_corners[2] * (1.0 - u) + nearplane_corners[3] * u;
             let top_left = top * (1.0 - v) + bottom * v;
 
-            _jittered_sample_pixel(top_left, n_rows, n_cols, &mut samples);
+            let right_edge = nearplane_corners[1] - nearplane_corners[0];
+            let bottom_edge = nearplane_corners[2] - nearplane_corners[0];
+            let pixel_w = right_edge.length() / width as Float;
+            let pixel_h = bottom_edge.length() / height as Float;
+            _jittered_sample_pixel(top_left, pixel_w, pixel_h, n_rows, n_cols, &mut samples);
         }
     }
     
