@@ -162,9 +162,15 @@ impl Camera {
         self.position
     }
 
-    pub fn generate_primary_rays(&self) -> Vec<Ray> {
+    pub fn generate_primary_rays(&self, samples: usize) -> Vec<Ray> {
         let (width, height) = self.get_resolution();
-        let pixel_centers = image::get_pixel_centers(width, height, &self.get_nearplane_corners()); 
+        let nearplane_corners = self.get_nearplane_corners();
+        
+        let pixel_centers = match samples {
+            1 => image::get_pixel_centers(width, height, &nearplane_corners),
+            _ => image::jittered_sampling(width, height, &nearplane_corners),
+        };
+        
         let ray_origin = self.position;
         let mut rays = Vec::<Ray>::with_capacity(pixel_centers.len());
         for pixel_center in pixel_centers.iter() {            
