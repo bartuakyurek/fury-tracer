@@ -274,6 +274,11 @@ pub struct AreaLight {
 }
 
 impl AreaLight {
+    pub fn sample_position() -> Vector3 {
+        todo!()
+    }
+}
+
 #[derive(Debug, Deserialize, Clone, Default)]
 pub struct PointLight {
     #[serde(rename = "_id", deserialize_with = "deser_int")]
