@@ -156,8 +156,8 @@ fn _jittered_sample_pixel(top_left: Vector3, n_rows: usize, n_cols: usize, sampl
             let psi_2: Float = random_float();
 
             let mut sample = top_left;
-            sample.x = (top_left.x + x as Float + psi_1) / (n_cols as Float);
-            sample.y = (top_left.y + y as Float + psi_2) / (n_rows as Float);
+            sample.x = top_left.x + ((x as Float + psi_1) / (n_cols as Float));
+            sample.y = top_left.y + ((y as Float + psi_2) / (n_rows as Float));
             samples.push(sample);
         }
     }
