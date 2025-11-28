@@ -168,7 +168,7 @@ impl Camera {
         
         let pixel_centers = match samples {
             1 => image::get_pixel_centers(width, height, &nearplane_corners),
-            _ => image::jittered_sampling(width, height, &nearplane_corners),
+            _ => image::jittered_sampling(samples, width, height, &nearplane_corners),
         };
         
         let ray_origin = self.position;

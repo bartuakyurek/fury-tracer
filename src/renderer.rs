@@ -125,12 +125,12 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         //  in actual scene structs, that needs to be changed maybe.
         cam.setup(&scene.data.transformations); 
         
-        if cam.num_samples != 1 { warn!("Found num_samples = '{}' > 1, sampling is not implemented yet...", cam.num_samples); }
+        //if cam.num_samples != 1 { warn!("Found num_samples = '{}' > 1, sampling is not implemented yet...", cam.num_samples); }
         
         // --- Rayon Multithreading ---
         info!("Starting rayon multithreading...");
         let start = Instant::now();
-        let eye_rays: Vec<Ray> = cam.generate_primary_rays();
+        let eye_rays: Vec<Ray> = cam.generate_primary_rays(cam.num_samples as usize);
         let pixel_colors: Vec<_> = eye_rays
             .par_iter()
             .map(|ray| get_color(ray, scene, 0))
