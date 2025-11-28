@@ -114,6 +114,22 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
    }
 }
 
+
+/// Average samples per pixel (WARNING: it does not incorporate neighbouring 
+/// pixels, simply partitions given colors into chunks with each chunk having
+/// n_samples length, then sums each component and takes the average)
+fn box_filter(colors: &Vec<Vector3>, n_samples: usize) -> Vec<Vector3> {
+    info!("Applying box filter to obtain final pixel colors...");
+    colors
+            .chunks_exact(n_samples)
+            .map(|chunk| {
+                let mut sum = Vector3::ZERO;
+                for c in chunk { sum += *c; }
+                sum / (chunk.len() as Float)
+            })
+            .collect()
+}
+
 pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error>>
 {
     let mut images: Vec<ImageData> = Vec::new();
@@ -124,19 +140,25 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         // vectorized via .all( ) call, however we don't hold the vec versions (currently they are SingleOrVec) 
         //  in actual scene structs, that needs to be changed maybe.
         cam.setup(&scene.data.transformations); 
-        
+        let n_samples = cam.num_samples as usize;
         //if cam.num_samples != 1 { warn!("Found num_samples = '{}' > 1, sampling is not implemented yet...", cam.num_samples); }
         
         // --- Rayon Multithreading ---
         info!("Starting rayon multithreading...");
         let start = Instant::now();
-        let eye_rays: Vec<Ray> = cam.generate_primary_rays(cam.num_samples as usize);
-        let pixel_colors: Vec<_> = eye_rays
+        let eye_rays: Vec<Ray> = cam.generate_primary_rays(n_samples);
+        let colors: Vec<_> = eye_rays
             .par_iter()
             .map(|ray| get_color(ray, scene, 0))
             .collect();
         // -----------------------------
-            
+        
+        let pixel_colors = if n_samples > 1 {
+            box_filter(&colors, n_samples)
+        } else {
+            colors
+        };
+
         let im = ImageData::new_from_colors(cam.image_resolution, cam.image_name.clone(), pixel_colors);
         images.push(im);
         info!("Rendering of {} took: {:?}", cam.image_name, start.elapsed()); 
