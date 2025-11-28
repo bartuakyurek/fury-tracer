@@ -233,9 +233,9 @@ impl SceneLights {
         // ----------------------------------------------------------
         // TODO: I keep setting up these structs, what would be a useful interface 
         // to decouple deserialization and precomputation in scene structs?
-        debug!("WARNING: Assumes area lights have no transformation!")
+        debug!("WARNING: Assumes area lights have no transformation!");
         for alight in self.area_lights.iter_mut() {
-            todo!()
+            alight.setup_onb();
         }
     }
 
