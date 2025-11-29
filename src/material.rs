@@ -180,9 +180,15 @@ impl MirrorMaterial {
         let n = hit_record.normal;
         let w_i = ray_in.direction;
         let w_r = w_i - 2. * n * (n.dot(w_i));
-        debug_assert!(w_r.is_normalized());
-        
-        let ray = Ray::new(hit_record.hit_point + (n * epsilon), w_r);
+        debug_assert!(w_r.is_normalized());        
+
+        // Glossy reflections (slides 05, p.108)
+        let r = hit_record.hit_point + (n * epsilon);
+        let (u, v) = get_onb(&n);
+        let (psi_1, psi_2) = (random_float(), random_float());
+        let r_prime = r + self.roughness * (((psi_1 * 0.5) * u) + ((psi_2 - 0.5) * v));
+
+        let ray = Ray::new(r_prime, w_r);
         let attenuation = self.mirror_rf;
         Some((ray, attenuation)) // Always reflects
     }
@@ -364,9 +370,15 @@ impl DielectricMaterial {
             let w_i = ray_in.direction;
             let w_r = w_i - 2.0 * n * (n.dot(w_i));
             debug_assert!(w_r.is_normalized());
-            
-            let ray = Ray::new(hit_record.hit_point + (n * epsilon), w_r);
-            let attenuation = fresnel.f_r * self.mirror_rf; // TODO: Am I doing it right?? scalar times a vector, is that really the attenuation from glass reflectance?
+
+            // Glossy reflections (slides 05, p.108)
+            let r = hit_record.hit_point + (n * epsilon);
+            let (u, v) = get_onb(&n);
+            let (psi_1, psi_2) = (random_float(), random_float());
+            let r_prime = r + self.roughness * (((psi_1 * 0.5) * u) + ((psi_2 - 0.5) * v));
+
+            let ray = Ray::new(r_prime, w_r);
+            let attenuation = fresnel.f_r * self.mirror_rf; 
             Some((ray, attenuation))
         } else {
             None
@@ -545,7 +557,14 @@ impl ConductorMaterial {
             let w_r = w_i - 2.0 * n * (n.dot(w_i));
             debug_assert!(w_r.is_normalized());
             
-            let ray = Ray::new(hit_record.hit_point + (n * epsilon), w_r);
+            // Glossy reflections (slides 05, p.108)
+            let r = hit_record.hit_point + (n * epsilon);
+            let (u, v) = get_onb(&n);
+            let (psi_1, psi_2) = (random_float(), random_float());
+            let r_prime = r + self.roughness * (((psi_1 * 0.5) * u) + ((psi_2 - 0.5) * v));
+
+            let ray = Ray::new(r_prime, w_r);
+            
             let attenuation = fresnel.f_r * self.mirror_rf; // TODO: Am I doing it right?? scalar times a vector, is that really the attenuation from glass reflectance?
             Some((ray, attenuation))
         } else {
