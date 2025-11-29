@@ -307,7 +307,8 @@ impl AreaLight {
         // See slides 05, p.96
 
         // u: set minimum component of n to 0 and flip
-        // other components negating one 
+        // other components negating one
+        debug_assert!(self.normal.is_normalized(), "Area light normal is not normalized: normal = {}", self.normal); 
         let mut u = self.normal.clone();
         let min_idx = u.min_position();
         u[min_idx] = 0.;
@@ -323,6 +324,9 @@ impl AreaLight {
         self.u = u;
         self.v = v;
         debug!("Area light ONB is setup successfully.");
+        debug_assert!(approx_zero(self.u.dot(self.v)), "u and v not orthogonal: dot = {}", self.u.dot(self.v));
+        debug_assert!(approx_zero(self.u.dot(self.normal)), "u and n not orthogonal: dot = {}", self.u.dot(self.normal));
+        debug_assert!(approx_zero(self.v.dot(self.normal)), "v and n not orthogonal: dot = {}", self.v.dot(self.normal));
     }
 }
 
