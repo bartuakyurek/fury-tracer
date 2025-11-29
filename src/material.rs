@@ -188,7 +188,7 @@ impl MirrorMaterial {
         let ray_dir = if self.roughness > 0.0 {
             let (u, v) = get_onb(&n);
             let (psi_1, psi_2) = (random_float(), random_float());
-            let r_prime = r + self.roughness * ((psi_1 * u) + (psi_2 * v));
+            let r_prime = r + self.roughness * (((psi_1 - 0.5) * u) + ((psi_2 - 0.5) * v));
             r_prime.normalize()
         } else {
             r
@@ -382,7 +382,7 @@ impl DielectricMaterial {
             let ray_dir = if self.roughness > 0.0 {
                 let (u, v) = get_onb(&n);
                 let (psi_1, psi_2) = (random_float(), random_float());
-                let r_prime = r + self.roughness * ((psi_1 * u) + (psi_2 * v));
+                let r_prime = r + self.roughness * (((psi_1 - 0.5) * u) + ((psi_2 - 0.5) * v));
                 r_prime.normalize()
             } else {
                 r
@@ -574,7 +574,7 @@ impl ConductorMaterial {
             let ray_dir = if self.roughness > 0.0 {
                 let (u, v) = get_onb(&n);
                 let (psi_1, psi_2) = (random_float(), random_float());
-                let r_prime = r + self.roughness * ((psi_1 * u) + (psi_2 * v));
+                let r_prime = r + self.roughness * (((psi_1 - 0.5) * u) + ((psi_2 - 0.5) * v));
                 r_prime.normalize()
             } else {
                 r
