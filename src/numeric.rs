@@ -15,6 +15,8 @@
 */
 
 use bevy_math::{DMat3, DMat4, DVec3, DVec4};
+use crate::prelude::*;
+
 pub type Int = i32;
 pub type Float = f64; // WARNING: If you want to change it to f32, don't forget to update Vector3 and Matrix3 types
 pub type Vector3 = DVec3; 
@@ -56,6 +58,32 @@ pub fn transform_normal(mat: &Matrix4, n: &Vector3) -> Vector3 {
 
     Vector3::new(r.x, r.y, r.z).normalize()
 }
+
+pub fn get_onb(normal: &Vector3) -> (Vector3, Vector3) {
+    // See slides 05, p.96
+    debug_assert!(normal.is_normalized(), "normal is not normalized: normal = {}", normal); 
+    let mut u = normal.clone();
+    let min_idx = u.abs().min_position(); // FIND THE ABSOLUTE MINIMUM
+    u[min_idx] = 0.;
+    debug_assert!(!u.is_nan(), "u found Nan: {}", u);
+    
+    let (i, j) = if min_idx == 2 {(0, 1)} else if min_idx == 1 {(0, 2)} else if min_idx == 0 {(1, 2)} else {panic!("Expected min_idx to be either 0, 1, 2. Got {}.", min_idx)};
+    let tmp = u[i]; // swap other two components(std::mem::swap didn't work here due to second mutation not allowed)
+    u[i] = - u[j]; // negating one
+    u[j] = tmp;
+    u = u.normalize();    
+    debug_assert!(!u.is_nan(), "u found Nan: {}", u);
+    
+    let v = u.cross(*normal);
+    debug_assert!(approx_zero(u.dot(v)), "u and v not orthogonal: dot = {}", u.dot(v));
+    debug_assert!(approx_zero(u.dot(*normal)), "u and n not orthogonal: dot = {}", u.dot(*normal));
+    debug_assert!(approx_zero(v.dot(*normal)), "v and n not orthogonal: dot = {}", v.dot(*normal));
+
+    (u, v)
+}
+
+
+
 //////////////////////////////////////////////////////////////////////////
 /// RNG utils
 //////////////////////////////////////////////////////////////////////////
