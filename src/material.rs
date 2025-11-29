@@ -154,6 +154,8 @@ pub struct MirrorMaterial {
     pub mirror_rf: Vector3,
     #[serde(rename = "PhongExponent", deserialize_with = "deser_float")]
     pub phong_exponent: Float,
+    #[serde(rename = "Roughness", deserialize_with = "deser_float")]
+    pub roughness: Float,
 }
 
 impl Default for MirrorMaterial {
@@ -165,6 +167,7 @@ impl Default for MirrorMaterial {
             specular_rf: Vector3::new(0.0, 0.0, 0.0),
             mirror_rf: Vector3::new(0.5, 0.5, 0.5),
             phong_exponent: 1.0,
+            roughness: 0.0, // Perfect mirror
         }
     }
 }
@@ -265,6 +268,8 @@ pub struct DielectricMaterial {
     pub absorption_coeff: Vector3,
     #[serde(rename = "RefractionIndex", deserialize_with = "deser_float")]
     pub refraction_index: Float,
+    #[serde(rename = "Roughness", deserialize_with = "deser_float")]
+    pub roughness: Float,
 }
 
 impl Default for DielectricMaterial {
@@ -278,6 +283,7 @@ impl Default for DielectricMaterial {
             phong_exponent: 1.0,
             absorption_coeff: Vector3::new(0.01, 0.01, 0.01),
             refraction_index: 1.5,
+            roughness: 0.0,
         }
     }
 }
@@ -478,6 +484,8 @@ pub struct ConductorMaterial {
     pub absorption_index: Float,
     #[serde(rename = "RefractionIndex", deserialize_with = "deser_float")]
     pub refraction_index: Float,
+    #[serde(rename = "Roughness", deserialize_with = "deser_float")]
+    pub roughness: Float,
 }
 
 impl Default for ConductorMaterial {
@@ -491,6 +499,7 @@ impl Default for ConductorMaterial {
             phong_exponent: 1., // TODO: Is that a good default? WARNING: cornellbox_recursive missing phong 
             absorption_index: 2.82,
             refraction_index: 0.37,
+            roughness: 0.0,
         }
     }
 }
