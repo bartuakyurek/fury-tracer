@@ -300,7 +300,13 @@ impl AreaLight {
         // See slides 05, p.98
         debug_assert!(dir.is_normalized());
         let area = (self.size * self.size) as Float;
-        area * (self.normal.dot(*dir))
+
+         let cos_alpha = self.normal.dot(*dir);
+        if cos_alpha <= 0.0 {
+            return 0.0; 
+        }
+
+        area * cos_alpha
     }
 
     pub fn setup_onb(&mut self) {
