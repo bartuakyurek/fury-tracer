@@ -183,12 +183,14 @@ impl MirrorMaterial {
         debug_assert!(w_r.is_normalized());        
 
         // Glossy reflections (slides 05, p.108)
-        let r = hit_record.hit_point + (n * epsilon);
+        let ray_origin = hit_record.hit_point + (n * epsilon);
+        let r = w_r;
         let (u, v) = get_onb(&n);
         let (psi_1, psi_2) = (random_float(), random_float());
-        let r_prime = r + self.roughness * (((psi_1 * 0.5) * u) + ((psi_2 - 0.5) * v));
+        let mut r_prime = r + self.roughness * (((psi_1 - 0.5) * u) + ((psi_2 - 0.5) * v));
+        r_prime = r_prime.normalize();
+        let ray = Ray::new(ray_origin, r_prime);
 
-        let ray = Ray::new(r_prime, w_r);
         let attenuation = self.mirror_rf;
         Some((ray, attenuation)) // Always reflects
     }
@@ -372,12 +374,15 @@ impl DielectricMaterial {
             debug_assert!(w_r.is_normalized());
 
             // Glossy reflections (slides 05, p.108)
-            let r = hit_record.hit_point + (n * epsilon);
+            let ray_origin = hit_record.hit_point + (n * epsilon);
+            let r = w_r;
             let (u, v) = get_onb(&n);
             let (psi_1, psi_2) = (random_float(), random_float());
-            let r_prime = r + self.roughness * (((psi_1 * 0.5) * u) + ((psi_2 - 0.5) * v));
+            let mut r_prime = r + self.roughness * (((psi_1 - 0.5) * u) + ((psi_2 - 0.5) * v));
+            r_prime = r_prime.normalize();
 
-            let ray = Ray::new(r_prime, w_r);
+            let ray = Ray::new(ray_origin, r_prime);
+
             let attenuation = fresnel.f_r * self.mirror_rf; 
             Some((ray, attenuation))
         } else {
@@ -558,12 +563,13 @@ impl ConductorMaterial {
             debug_assert!(w_r.is_normalized());
             
             // Glossy reflections (slides 05, p.108)
-            let r = hit_record.hit_point + (n * epsilon);
+            let ray_origin = hit_record.hit_point + (n * epsilon);
+            let r = w_r;
             let (u, v) = get_onb(&n);
             let (psi_1, psi_2) = (random_float(), random_float());
-            let r_prime = r + self.roughness * (((psi_1 * 0.5) * u) + ((psi_2 - 0.5) * v));
-
-            let ray = Ray::new(r_prime, w_r);
+            let mut r_prime = r + self.roughness * (((psi_1 - 0.5) * u) + ((psi_2 - 0.5) * v));
+            r_prime = r_prime.normalize();
+            let ray = Ray::new(ray_origin, r_prime);
             
             let attenuation = fresnel.f_r * self.mirror_rf; // TODO: Am I doing it right?? scalar times a vector, is that really the attenuation from glass reflectance?
             Some((ray, attenuation))
