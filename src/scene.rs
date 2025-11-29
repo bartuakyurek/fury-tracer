@@ -290,23 +290,25 @@ impl AreaLight {
         if self.v.eq(&Vector3::ZERO) {
             warn!("Found area light v as a zero vector! Make sure you called arealight.setup_onb() before sampling!");
         }
+        debug_assert!(approx_zero(self.u.dot(self.v)), "ONB failed! u dot v found nonzero: {}", self.u.dot(self.v));
 
         let (psi_1, psi_2) = (random_float(), random_float());
         let extent = self.size as Float;
-        self.position + (extent * ((psi_1 - 0.5) * self.u + (psi_2 - 0.5) * self.v))
+        self.position + (extent * ((psi_1 - 0.5) * self.u) + ((psi_2 - 0.5) * self.v))
     }
 
-    pub fn attenuation(&self, dir: &Vector3) -> Float {
+    pub fn attenuation(&self, shadow_ray_dir: &Vector3) -> Float {
         // See slides 05, p.98
-        debug_assert!(dir.is_normalized());
+        debug_assert!(shadow_ray_dir.is_normalized());
         let area = (self.size * self.size) as Float;
+        let emitted_light_dir = -shadow_ray_dir;
 
-         let cos_alpha = self.normal.dot(*dir);
-        if cos_alpha <= 0.0 {
-            return 0.0; 
-        }
+        let cos_alpha = emitted_light_dir.dot(self.normal);
+        //if cos_alpha <= 0.0 {
+        //    return 0.0; 
+        //}
 
-        area * cos_alpha
+        area * cos_alpha.abs()
     }
 
     pub fn setup_onb(&mut self) {
