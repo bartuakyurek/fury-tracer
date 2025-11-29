@@ -75,6 +75,7 @@ pub fn get_onb(normal: &Vector3) -> (Vector3, Vector3) {
     debug_assert!(!u.is_nan(), "u found Nan: {}", u);
     
     let v = u.cross(*normal);
+    debug_assert!(v.is_normalized());
     debug_assert!(approx_zero(u.dot(v)), "u and v not orthogonal: dot = {}", u.dot(v));
     debug_assert!(approx_zero(u.dot(*normal)), "u and n not orthogonal: dot = {}", u.dot(*normal));
     debug_assert!(approx_zero(v.dot(*normal)), "v and n not orthogonal: dot = {}", v.dot(*normal));
