@@ -310,14 +310,18 @@ impl AreaLight {
         // other components negating one
         debug_assert!(self.normal.is_normalized(), "Area light normal is not normalized: normal = {}", self.normal); 
         let mut u = self.normal.clone();
-        let min_idx = u.min_position();
+        let min_idx = u.abs().min_position(); // FIND THE ABSOLUTE MINIMUM
         u[min_idx] = 0.;
-        
+        debug_assert!(!u.is_nan(), "u found Nan: {}", u);
+        debug!(">> Area light u : {}", u);
+
         let (i, j) = if min_idx == 2 {(0, 1)} else if min_idx == 1 {(0, 2)} else if min_idx == 0 {(1, 2)} else {panic!("Expected min_idx to be either 0, 1, 2. Got {}.", min_idx)};
         let tmp = u[i]; // swap other two components(std::mem::swap didn't work here due to second mutation not allowed)
         u[i] = - u[j]; // negating one
         u[j] = tmp;
         u = u.normalize();
+        debug!(">> Area light u : {}", u);
+        debug_assert!(!u.is_nan(), "u found Nan: {}", u);
 
         let v = u.cross(self.normal);
 
