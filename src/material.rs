@@ -399,31 +399,37 @@ impl DielectricMaterial {
     fn refract(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float) -> Option<(Ray, Vector3)> {
         
         let mut frd = FresnelData::default();
-        if self.fresnel(ray_in, hit_record, &mut frd) {
-            
-            let d = ray_in.direction;
-            let n = hit_record.normal;
-            let refracted_direction = ((d + (n * frd.cos_theta)) * frd.n_ratio) - (n * frd.cos_phi); // p.15
-            debug_assert!(refracted_direction.is_normalized());
 
-            let ray = Ray::new(hit_record.hit_point - n * epsilon, refracted_direction); // Apply epsilon in negative normal direction!
-            let mut attenuation = frd.f_t * Vector3::ONE;
-            if !hit_record.is_front_face {
-                // Attenuate as it goes out of object 
-                // assumes glass object is empty
-                let distance = (hit_record.entry_point - hit_record.hit_point).norm(); 
-                //let distance2 = ray_in.distance_at(hit_record.ray_t);
-                //debug_assert_eq!(distance, distance2);
-                attenuation *= self.get_beers_law_attenuation(distance);
-            } 
-           
-            Some((ray, attenuation))
+        if !self.fresnel(ray_in, hit_record, &mut frd) {
+        // Total internal reflection
+            return None;
         }
-        else {
-            None // Total internal reflection
-        }
-       
+
+        let d = ray_in.direction;
+        let n = hit_record.normal;
+        let mut refracted_direction = ((d + (n * frd.cos_theta)) * frd.n_ratio) - (n * frd.cos_phi); // p.15
+        debug_assert!(refracted_direction.is_normalized());
         
+         if self.roughness > 0.0 {
+            let (u, v) = get_onb(&refracted_direction); // build tangent around refracted dir
+            let (psi1, psi2) = (random_float(), random_float());
+            let jitter = ((psi1 - 0.5) * u) + ((psi2 - 0.5) * v);
+            refracted_direction = (refracted_direction + self.roughness * jitter).normalize();
+        }
+        
+        let ray = Ray::new(hit_record.hit_point - n * epsilon, refracted_direction); // Apply epsilon in negative normal direction!
+        let mut attenuation = frd.f_t * Vector3::ONE;
+        if !hit_record.is_front_face {
+            // Attenuate as it goes out of object 
+            // assumes glass object is empty
+            let distance = (hit_record.entry_point - hit_record.hit_point).norm(); 
+            //let distance2 = ray_in.distance_at(hit_record.ray_t);
+            //debug_assert_eq!(distance, distance2);
+            attenuation *= self.get_beers_law_attenuation(distance);
+        } 
+        
+        Some((ray, attenuation))
+    
     }
 }
 
