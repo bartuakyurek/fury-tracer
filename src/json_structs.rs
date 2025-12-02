@@ -313,8 +313,6 @@ impl<T: Default> Default for SingleOrVec<T> {
         SingleOrVec::Empty
     }
 }
-
-
  
 #[derive(Deserialize)]
 pub struct Vertex {
@@ -325,6 +323,7 @@ pub struct Vertex {
 
 #[derive(Deserialize)]
 pub struct Face {
+    #[serde(rename = "vertex_index", alias = "vertex_indices")]
     pub vertex_indices: Vec<usize>, 
 }
 
