@@ -283,7 +283,7 @@ impl AreaLight {
     pub fn sample_position(&self) -> Vector3 {
         // see slides 05, p.97
         // extent is arealight.size here
-        // TODO: how to use rng with seed here? 
+        // TODO: how to use rng with seed here? and precompute jittered sampling etc.?
         if self.u.eq(&Vector3::ZERO) {
             warn!("Found area light u as a zero vector! Make sure you called arealight.setup_onb() before sampling!");
         }
@@ -308,7 +308,7 @@ impl AreaLight {
         //    return 0.0; 
         //}
 
-        area * cos_alpha.abs()
+        area * cos_alpha.abs() // abs for double sided area light
     }
 
     pub fn setup_onb(&mut self) {
