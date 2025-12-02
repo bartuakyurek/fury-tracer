@@ -166,15 +166,15 @@ impl Camera {
         let (width, height) = self.get_resolution();
         let nearplane_corners = self.get_nearplane_corners();
         
-        let pixel_centers = match samples {
+        let pixel_samples = match samples {
             1 => image::get_pixel_centers(width, height, &nearplane_corners),
             _ => image::jittered_sampling(samples, width, height, &nearplane_corners),
         };
         
         let ray_origin = self.position;
-        let mut rays = Vec::<Ray>::with_capacity(pixel_centers.len());
-        for pixel_center in pixel_centers.iter() {            
-            let direction = (pixel_center - ray_origin).normalize(); 
+        let mut rays = Vec::<Ray>::with_capacity(pixel_samples.len());
+        for sample in pixel_samples.iter() {            
+            let direction = (sample - ray_origin).normalize(); 
             rays.push(Ray::new(ray_origin, direction));
         }
         rays
