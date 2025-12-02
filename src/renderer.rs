@@ -25,7 +25,7 @@ use crate::prelude::*;
 
 /// Returns a tuple of ray from hit point (epsilon shifted) towards the point light
 /// and interval [0, distance]. 
-pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, epsilon: Float) -> (Ray, Interval) { 
+pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, ray_in: &Ray, epsilon: Float) -> (Ray, Interval) { 
         
     debug_assert!(hit_record.normal.is_normalized());
     let ray_origin = hit_record.hit_point + (hit_record.normal * epsilon);
@@ -34,7 +34,7 @@ pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, epsilon: Float)
     let distance = distance_squared.sqrt();
     let dir = distance_vec / distance;
     debug_assert!(dir.is_normalized());
-    let shadow_ray = Ray::new(ray_origin, dir);
+    let shadow_ray = Ray::new(ray_origin, dir, ray_in.time); // TODO: is it important for shadow ray's time parameter? could it be just set zero?
     let interval = Interval::new(0.0, distance); 
     (shadow_ray, interval)
 }
@@ -43,7 +43,7 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, mat: &
     let mut color = mat.ambient() * scene.data.lights.ambient_light; 
     for light in scene.data.lights.all_nonambient().iter() {
             
-            let (shadow_ray, interval) = get_shadow_ray(&light, hit_record, scene.data.shadow_ray_epsilon);
+            let (shadow_ray, interval) = get_shadow_ray(&light, hit_record, ray_in, scene.data.shadow_ray_epsilon);
             if scene.hit_bvh(&shadow_ray, &interval, true).is_none() {
 
                 debug_assert!( (hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) < 0.) || (!hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) > 0.));
