@@ -239,7 +239,8 @@ impl BBoxable for Mesh {
         }
 
         // Transform bounding box for top-level BVH
-        let local_box = BBox::new_from(&xint, &yint, &zint);
+        let mut local_box = BBox::new_from(&xint, &yint, &zint);
+        local_box = local_box.expand_by_motion(self.motionblur);
         if apply_t {
             debug!("Applying transform for TLAS {}", self.matrix);
            local_box.transform(&self.matrix)
@@ -302,7 +303,8 @@ impl BBoxable for MeshInstanceField {
         if let Some(base_mesh) = self.base_mesh.as_deref() {
             debug!("Retrieving bounding box for base mesh '{}' of instance '{}'", base_mesh._id, self._id);
             
-            let local_box = base_mesh.get_bbox(verts, false);
+            let mut local_box = base_mesh.get_bbox(verts, false);
+            local_box = local_box.expand_by_motion(self.motionblur);
             let mut composite = self.matrix;
 
             if !self.reset_transform{
