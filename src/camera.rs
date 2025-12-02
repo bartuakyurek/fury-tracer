@@ -65,6 +65,14 @@ pub struct Camera {
     #[serde(rename = "NumSamples", deserialize_with = "deser_int")]
     pub num_samples: Int,
 
+    #[default = 0.] // pinhole
+    #[serde(rename = "ApertureSize", deserialize_with = "deser_float")]
+    pub aperture_size: Float,
+
+    #[default = 0.]
+    #[serde(rename = "FocusDistance", deserialize_with = "deser_float")]
+    pub focus_distance: Float,
+
     #[serde(rename = "Transformations")]
     pub(crate) transformation_names: Option<String>,
 
@@ -171,12 +179,22 @@ impl Camera {
             _ => image::jittered_sampling(samples, width, height, &nearplane_corners),
         };
         
-        let ray_origin = self.position;
         let mut rays = Vec::<Ray>::with_capacity(pixel_samples.len());
-        for sample in pixel_samples.iter() {            
-            let direction = (sample - ray_origin).normalize(); 
-            rays.push(Ray::new(ray_origin, direction));
-        }
+
+        // Generate primary rays based on aperture type
+        let aperature_type = if self.aperture_size > 1e-20 {"square"} else {"pinhole"};
+        match aperature_type {
+            "square" => todo!(),
+            "pinhole" => {
+                            let ray_origin = self.position;
+                            for sample in pixel_samples.iter() {            
+                                let direction = (sample - ray_origin).normalize(); 
+                                rays.push(Ray::new(ray_origin, direction));
+                            }
+                        },
+             _ => { panic!("Unknown aperture type: {}", aperature_type)}
+        }         
+
         rays
     }
 }
