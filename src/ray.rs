@@ -10,7 +10,7 @@ use rand::random;
 use crate::prelude::*;
 
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Ray {
     pub origin: Vector3,
     pub direction: Vector3,
@@ -48,6 +48,17 @@ impl Ray {
         }
     }
 
+    #[inline]
+    pub fn translate(&mut self, u: Vector3) {
+        self.origin += u;
+    }
+
+    #[inline]
+    pub fn get_translated(&self, u: Vector3) -> Self {
+        let mut translated_ray = self.clone();
+        translated_ray.translate(u);
+        translated_ray
+    }
 
     #[inline] // TODO: does it matter? could you benchmark?
     pub fn at(&self, t: Float) -> Vector3 {
