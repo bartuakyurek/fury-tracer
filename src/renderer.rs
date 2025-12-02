@@ -69,12 +69,6 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
    let t_interval = Interval::positive(scene.data.intersection_test_epsilon);
    if let Some(hit_record) = scene.hit_bvh(ray_in, &t_interval, false) {
         
-        let ray_in = if hit_record.translation.norm_squared() > 1e-20 {
-            &ray_in.get_translated(hit_record.translation * ray_in.time) // TODO: if ray_in was mutatable this block would be shorter but the changes are a bit ugly 
-        } else {
-            ray_in
-        };
-
         let mat: &HeapAllocMaterial = &scene.data.materials.materials[hit_record.material - 1];
         let mut color = Vector3::ZERO;
         let mat_type = mat.get_type();
