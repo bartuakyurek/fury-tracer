@@ -5,6 +5,7 @@
 
 
 use bevy_math::NormedVectorSpace;
+use rand::random;
 
 use crate::prelude::*;
 
@@ -13,16 +14,40 @@ use crate::prelude::*;
 pub struct Ray {
     pub origin: Vector3,
     pub direction: Vector3,
+    pub(crate) time: Float, // set nonzero for motion blur
 }
 
 impl Ray {
-    pub fn new(origin: Vector3, direction: Vector3) -> Self {
+
+    pub fn new(origin: Vector3, direction: Vector3, time: Float) -> Self {
         debug_assert!(direction.is_normalized());
         Self {
             origin,
             direction,
+            time,
         }
     }
+
+    pub fn new_from(origin: Vector3, direction: Vector3) -> Self {
+        debug_assert!(direction.is_normalized());
+        Self {
+            origin,
+            direction,
+            time: 0.,
+        }
+    }
+
+    pub fn new_with_random_t(origin: Vector3, direction: Vector3) -> Self {
+        debug_assert!(direction.is_normalized());
+        let t = random_float();
+        debug_assert!(t >= 0.0 && t <= 1.0);
+        Self {
+            origin,
+            direction,
+            time: random_float(),
+        }
+    }
+
 
     #[inline] // TODO: does it matter? could you benchmark?
     pub fn at(&self, t: Float) -> Vector3 {
