@@ -49,6 +49,9 @@ pub struct Triangle {
     #[serde(rename = "Transformations", default)]
     pub transformation_names: Option<String>,
 
+    #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3")]
+    pub(crate) motionblur: Vector3, 
+
     #[serde(skip)]
     pub matrix: Option<Arc<Matrix4>>, // Arc here to share Transformations with Mesh, I didn't want to clone the same transform while creating triangles for mesh
 
@@ -155,6 +158,9 @@ pub struct Sphere {
     #[serde(rename = "Transformations", default)]
     pub transformation_names: Option<String>,
 
+    #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3")]
+    pub(crate) motionblur: Vector3, 
+
     #[serde(skip)]
     pub matrix: Option<Arc<Matrix4>>, // Arc here to share Transformations with Mesh, I didn't want to clone the same transform while creating triangles for mesh
 
@@ -257,6 +263,9 @@ pub struct Plane {
 
     #[serde(rename = "Transformations", default)]
     pub transformation_names: Option<String>,
+
+    #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3")]
+    pub(crate) motionblur: Vector3, 
 
     #[serde(skip)]
     pub matrix: Option<Arc<Matrix4>>, // Arc here to share Transformations with Mesh, I didn't want to clone the same transform while creating triangles for mesh

@@ -150,7 +150,7 @@ impl Mesh {
                 material_idx: self.material_idx,
                 is_smooth: self._shading_mode.eq_ignore_ascii_case("smooth"),
                 normal: get_tri_normal(&v1, &v2, &v3),
-
+                motionblur: self.motionblur,
                 transformation_names: None,//self.transformation_names.clone(),
                 matrix: None, //Some(Arc::new(self.matrix)), // NOTE: here it is ok to .clone( ) because it just increases Arc's counter, not cloning the whole data
             });
