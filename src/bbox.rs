@@ -7,6 +7,8 @@
 */
 
 
+use bevy_math::NormedVectorSpace;
+
 use crate::prelude::*;
 use crate::ray::{Ray};
 use crate::interval::{Interval};
@@ -154,6 +156,23 @@ impl BBox {
         }
 
         Self::new(xmin, xmax, ymin, ymax, zmin, zmax)
+    }
+
+    /// To be used in motion blur
+    pub fn expand_by_motion(&self, motion: Vector3) -> Self {
+        if motion.norm_squared() < 1e-10 {
+            return self.clone();
+        }
+        
+        // at t=1
+        let bbox_at_t1 = BBox::new_from(
+            &Interval::new(self.xmin + motion.x, self.xmax + motion.x),
+            &Interval::new(self.ymin + motion.y, self.ymax + motion.y),
+            &Interval::new(self.zmin + motion.z, self.zmax + motion.z),
+        );
+        
+        // Merge with original bbox (see slides 05, p.105)
+        self.merge(&bbox_at_t1)
     }
 }
 
