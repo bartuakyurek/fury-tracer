@@ -77,7 +77,7 @@ impl Ray {
         let mat3 = Matrix3::from_mat4(*inv_matrix); //.transpose();
         let local_direction = mat3 * self.direction;
         //local_direction = local_direction.normalize(); DO NOT NORMALIZE!
-        Ray::new(local_origin, local_direction)
+        Ray::new(local_origin, local_direction, self.time)
     }
 }
 

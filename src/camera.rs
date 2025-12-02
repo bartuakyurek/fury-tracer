@@ -209,11 +209,12 @@ impl Camera {
                             info!("Sampling primary rays on lens...");
                             for (q, s) in zip(pixel_samples.iter(), lens_samples.iter()) {
                                 let dir = (o - q).normalize();
-                                let r = Ray::new(o, dir);
+                                let time = random_float();
+                                let r = Ray::new(o, dir, time);
                                 let t_fd = self.focus_distance / (dir.dot(-self.w));
                                 let p = r.at(t_fd);
                                 let d = (p - s).normalize(); // added this to prevent debug assert failing
-                                let primary_ray = Ray::new(*s, d);
+                                let primary_ray = Ray::new(*s, d, time);
                                 rays.push(primary_ray);
                             }
                             info!("Sampling primary rays done.");
@@ -223,7 +224,8 @@ impl Camera {
                             let ray_origin = self.position;
                             for sample in pixel_samples.iter() {            
                                 let direction = (sample - ray_origin).normalize(); 
-                                rays.push(Ray::new(ray_origin, direction));
+                                let time = random_float();
+                                rays.push(Ray::new(ray_origin, direction, time));
                             }
                         },
              _ => { panic!("Unknown aperture type: {}", aperature_type)}

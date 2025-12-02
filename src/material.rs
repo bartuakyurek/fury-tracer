@@ -193,7 +193,7 @@ impl MirrorMaterial {
         } else {
             r
         };
-        let ray = Ray::new(ray_origin, ray_dir);
+        let ray = Ray::new(ray_origin, ray_dir, ray_in.time);
 
         let attenuation = self.mirror_rf;
         Some((ray, attenuation)) // Always reflects
@@ -387,7 +387,7 @@ impl DielectricMaterial {
             } else {
                 r
             };
-            let ray = Ray::new(ray_origin, ray_dir);
+            let ray = Ray::new(ray_origin, ray_dir, ray_in.time);
 
             let attenuation = fresnel.f_r * self.mirror_rf; 
             Some((ray, attenuation))
@@ -417,7 +417,7 @@ impl DielectricMaterial {
             refracted_direction = (refracted_direction + self.roughness * jitter).normalize();
         }
         
-        let ray = Ray::new(hit_record.hit_point - n * epsilon, refracted_direction); // Apply epsilon in negative normal direction!
+        let ray = Ray::new(hit_record.hit_point - n * epsilon, refracted_direction, ray_in.time); // Apply epsilon in negative normal direction!
         let mut attenuation = frd.f_t * Vector3::ONE;
         if !hit_record.is_front_face {
             // Attenuate as it goes out of object 
@@ -585,7 +585,7 @@ impl ConductorMaterial {
             } else {
                 r
             };
-            let ray = Ray::new(ray_origin, ray_dir);
+            let ray = Ray::new(ray_origin, ray_dir, ray_in.time);
             
             let attenuation = fresnel.f_r * self.mirror_rf; 
             Some((ray, attenuation))
