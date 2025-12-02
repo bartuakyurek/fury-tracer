@@ -6,6 +6,7 @@
     @author: bartu
 */
 use std::iter::zip;
+use bevy_math::NormedVectorSpace;
 use rand::{SeedableRng, random};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom; // for shuffle()
@@ -177,10 +178,12 @@ impl Camera {
         let (width, height) = self.get_resolution();
         let nearplane_corners = self.get_nearplane_corners();
         
+        info!("Getting pixel samples...");
         let pixel_samples = match samples {
             1 => image::get_pixel_centers(width, height, &nearplane_corners),
             _ => image::jittered_sampling(samples, width, height, &nearplane_corners),
         };
+        info!("Pixel samples are generated.");
         
         let mut rays = Vec::<Ray>::with_capacity(pixel_samples.len());
 
@@ -209,13 +212,14 @@ impl Camera {
                                 let r = Ray::new(o, dir);
                                 let t_fd = self.focus_distance / (dir.dot(-self.w));
                                 let p = r.at(t_fd);
-                                let d = p - s;
+                                let d = (p - s).normalize(); // added this to prevent debug assert failing
                                 let primary_ray = Ray::new(*s, d);
                                 rays.push(primary_ray);
                             }
                             info!("Sampling primary rays done.");
                         },
             "pinhole" => {
+                            info!("Using pinhole camera.");
                             let ray_origin = self.position;
                             for sample in pixel_samples.iter() {            
                                 let direction = (sample - ray_origin).normalize(); 
