@@ -49,7 +49,7 @@ pub struct Triangle {
     #[serde(rename = "Transformations", default)]
     pub transformation_names: Option<String>,
 
-    #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3")]
+    #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3", default)]
     pub(crate) motionblur: Vector3, 
 
     #[serde(skip)]
@@ -158,7 +158,7 @@ pub struct Sphere {
     #[serde(rename = "Transformations", default)]
     pub transformation_names: Option<String>,
 
-    #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3")]
+    #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3", default)]
     pub(crate) motionblur: Vector3, 
 
     #[serde(skip)]
@@ -264,7 +264,7 @@ pub struct Plane {
     #[serde(rename = "Transformations", default)]
     pub transformation_names: Option<String>,
 
-    #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3")]
+    #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3", default)]
     pub(crate) motionblur: Vector3, 
 
     #[serde(skip)]

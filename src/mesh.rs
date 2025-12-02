@@ -41,7 +41,7 @@ pub struct MeshInstanceField {
     #[serde(rename = "Transformations")]
     pub(crate) transformation_names: String,
 
-    #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3")]
+    #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3", default)]
     pub(crate) motionblur: Vector3, // translational
 
     #[serde(skip)]
@@ -95,7 +95,7 @@ pub struct Mesh {
     #[serde(rename = "Transformations", default)]
     pub transformation_names: Option<String>,
 
-    #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3")]
+    #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3", default)]
     pub(crate) motionblur: Vector3, // translational
 
     #[serde(skip)]
