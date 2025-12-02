@@ -55,9 +55,10 @@ impl Ray {
 
     #[inline]
     pub fn get_translated(&self, u: Vector3) -> Self {
-        let mut translated_ray = self.clone();
-        translated_ray.translate(u);
-        translated_ray
+        Self {
+            origin: self.origin + u,
+            ..self.clone()
+        }
     }
 
     #[inline] // TODO: does it matter? could you benchmark?
