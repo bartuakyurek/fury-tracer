@@ -41,6 +41,9 @@ pub struct MeshInstanceField {
     #[serde(rename = "Transformations")]
     pub(crate) transformation_names: String,
 
+    #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3")]
+    pub(crate) motionblur: Vector3, // translational
+
     #[serde(skip)]
     pub(crate) matrix: Matrix4, // WARNING: This should apply its M_instance on M_base
 
@@ -91,6 +94,9 @@ pub struct Mesh {
 
     #[serde(rename = "Transformations", default)]
     pub transformation_names: Option<String>,
+
+    #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3")]
+    pub(crate) motionblur: Vector3, // translational
 
     #[serde(skip)]
     pub matrix: Matrix4,
