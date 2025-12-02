@@ -5,7 +5,10 @@
     @date: Oct, 2025
     @author: bartu
 */
-
+use std::iter::zip;
+use rand::{SeedableRng, random};
+use rand::rngs::StdRng;
+use rand::seq::SliceRandom; // for shuffle()
 
 use crate::prelude::*;
 use crate::{image, ray::Ray};
@@ -184,7 +187,34 @@ impl Camera {
         // Generate primary rays based on aperture type
         let aperature_type = if self.aperture_size > 1e-20 {"square"} else {"pinhole"};
         match aperature_type {
-            "square" => todo!(),
+            "square" => {
+                            debug!("Square aperture with size {} is used for camera.", self.aperture_size);
+                            debug_assert!(self.focus_distance > 1e-20, "Expected non-zero focus distance, got {}", self.focus_distance);
+                            // Following the notation in distribution_ray_tracing.pdf, p.3
+                            // as well as slides 05, p.92
+                            let o = self.position;
+                            let mut rng = StdRng::seed_from_u64(42); // see https://rust-random.github.io/book/
+
+                            // Sample from the lens and shuffle them
+                            info!("Generating samples on aperture...");
+                            let mut lens_samples = Vec::<Vector3>::with_capacity(pixel_samples.len());
+                            for _ in 0..pixel_samples.len() {
+                                let a: Vector3 = self.position + self.aperture_size * ((self.u * (random_float() - 0.5)) + (self.v * (random_float() - 0.5)));
+                                lens_samples.push(a);
+                            } // TODO: use rng here too?
+                            lens_samples.shuffle(&mut rng);
+                            info!("Sampling primary rays on lens...");
+                            for (q, s) in zip(pixel_samples.iter(), lens_samples.iter()) {
+                                let dir = (o - q).normalize();
+                                let r = Ray::new(o, dir);
+                                let t_fd = self.focus_distance / (dir.dot(-self.w));
+                                let p = r.at(t_fd);
+                                let d = p - s;
+                                let primary_ray = Ray::new(*s, d);
+                                rays.push(primary_ray);
+                            }
+                            info!("Sampling primary rays done.");
+                        },
             "pinhole" => {
                             let ray_origin = self.position;
                             for sample in pixel_samples.iter() {            
