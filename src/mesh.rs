@@ -199,6 +199,10 @@ impl Shape for Mesh {
     
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
         
+        // Motion blur (Note: normally we inverse transform the ray along translation but here I add it first, it is transformed to inverse in the next step tgogether with object transformation since they have the same logic)
+        let mut ray = ray.clone();
+        ray.origin += self.motionblur * ray.time;
+
         // Transform ray to local space
         let inv_matrix = self.matrix.inverse();
         let local_ray = ray.inverse_transform(&inv_matrix);
