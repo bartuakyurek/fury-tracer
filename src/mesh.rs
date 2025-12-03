@@ -150,7 +150,7 @@ impl Mesh {
                 material_idx: self.material_idx,
                 is_smooth: self._shading_mode.eq_ignore_ascii_case("smooth"),
                 normal: get_tri_normal(&v1, &v2, &v3),
-                motionblur: self.motionblur,
+                //motionblur: self.motionblur,
                 transformation_names: None,//self.transformation_names.clone(),
                 matrix: None, //Some(Arc::new(self.matrix)), // NOTE: here it is ok to .clone( ) because it just increases Arc's counter, not cloning the whole data
             });
@@ -263,6 +263,10 @@ impl BBoxable for Mesh {
 impl Shape for MeshInstanceField {
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
         
+        // Motion blur (Note: normally we inverse transform the ray along translation but here I add it first, it is transformed to inverse in the next step tgogether with object transformation since they have the same logic)
+        let mut ray = ray.clone();
+        ray.origin += self.motionblur * ray.time;
+
         let base_mesh = self.base_mesh.as_deref().unwrap();
         
         if self.reset_transform {
