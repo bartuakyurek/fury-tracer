@@ -108,22 +108,22 @@ pub struct HitRecord {
     pub ray_t: Float,  // To check which HitRecord has smaller t 
     pub material: usize, // TODO: Should we hold the index of material or actually Option<Rc<dyn Material>> as in here https://the-ray-tracing-road-to-rust.vercel.app/9-metal? Or Arc instead of Rc if we use rayon in future.
     pub is_front_face: bool,
-    pub translation: Vector3, // for motion blur
+    //pub translation: Vector3, // for motion blur
 }
 
 impl HitRecord {
 
-    pub fn new(entry_point: Vector3, hit_point: Vector3, normal: Vector3, ray_t: Float, material: usize, is_front_face: bool, translation: Vector3) -> Self {
-        Self {
-            entry_point,
-            hit_point,
-            normal,
-            ray_t,
-            material,
-            is_front_face,
-            translation,
-        }
-    }
+    //pub fn new(entry_point: Vector3, hit_point: Vector3, normal: Vector3, ray_t: Float, material: usize, is_front_face: bool, translation: Vector3) -> Self {
+    //    Self {
+    //        entry_point,
+    //        hit_point,
+    //        normal,
+    //        ray_t,
+    //        material,
+    //        is_front_face,
+    //        //translation,
+    //    }
+    //}
 
     pub fn new_from(entry_point: Vector3, hit_point: Vector3, normal: Vector3, ray_t: Float, material: usize, is_front_face: bool) -> Self {
         Self {
@@ -133,7 +133,7 @@ impl HitRecord {
             ray_t,
             material,
             is_front_face,
-            translation: Vector3::ZERO,
+            //translation: Vector3::ZERO,
         }
     }
 

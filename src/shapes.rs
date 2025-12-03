@@ -49,9 +49,6 @@ pub struct Triangle {
     #[serde(rename = "Transformations", default)]
     pub transformation_names: Option<String>,
 
-    #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3", default)]
-    pub(crate) motionblur: Vector3, 
-
     #[serde(skip)]
     pub matrix: Option<Arc<Matrix4>>, // Arc here to share Transformations with Mesh, I didn't want to clone the same transform while creating triangles for mesh
 
@@ -103,7 +100,7 @@ impl Shape for Triangle {
             let normal = if front_face { tri_normal } else { -tri_normal };
 
             // ------ Create hitrecord wrt transform ------------------
-            let mut rec = HitRecord::new(ray.origin, p, normal, t, self.material_idx, front_face, self.motionblur);
+            let mut rec = HitRecord::new_from(ray.origin, p, normal, t, self.material_idx, front_face);
             rec.to_world(&viewmat);
             Some(rec) 
             // --------------------------------------------------------
@@ -216,7 +213,7 @@ impl Shape for Sphere {
         // Check front face and build hitrecord (I was transforming hitrecord::to_world( ) but here it is already transformed.)
         let front_face = ray.is_front_face(world_normal);
         let final_normal = if front_face { world_normal } else { -world_normal };
-        let rec = HitRecord::new(ray.origin, p_world, final_normal, t_world, self.material_idx, front_face, self.motionblur);
+        let rec = HitRecord::new_from(ray.origin, p_world, final_normal, t_world, self.material_idx, front_face);
         Some(rec)
     }
 }
@@ -312,7 +309,7 @@ impl Shape for Plane {
         // Construct Hit Record
         let front_face = ray.is_front_face(n);
         let normal = if front_face { n } else { -n };
-        let mut rec = HitRecord::new(ray.origin, ray.at(t), normal, t, self.material_idx, front_face, self.motionblur);
+        let mut rec = HitRecord::new_from(ray.origin, ray.at(t), normal, t, self.material_idx, front_face);
 
         // transform hitpoint and normal (04, p.53) -----
         rec.to_world(&viewmat);
