@@ -103,7 +103,7 @@ impl BVHSubtree {
         } else {
             // Reached to leaf node (remember only leaf nodes have objects) 
             for obj in &node.objects {
-                if let Some(hit) = obj.intersects_with(ray, t_interval, vertex_cache) {
+                if let Some(hit) = obj.intersects_with(ray, t_interval, vertex_cache) { // Note to self: this is where BLAS called
                     if let Some(existing) = &closest {
                         if hit.ray_t < existing.ray_t {
                             *closest = Some(hit);
