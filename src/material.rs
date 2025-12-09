@@ -33,7 +33,7 @@ pub trait Material : Debug + Send + Sync  {
         match serde_json::from_value::<Self>(value.clone()) {
             Ok(m) => m,
             Err(e) => {
-                error!("Failed to parse DiffuseMaterial: {e}. JSON: {value}");
+                error!("Failed to parse Material: {e}. JSON: {value}\nSetting material to default...");
                 Self::default()
             }
         }
