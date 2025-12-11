@@ -4,15 +4,15 @@
 use std::path::{Path, PathBuf};
 use std::io::BufWriter;
 use std::fs::File;
+use image::{GenericImageView}; // TODO: right now png crate is used to save the final image but as of hw4, this crate is added to read texture images, so mayb we can remove png crate and just use image crate?
 
-use rand::random;
 
 use crate::json_structs::SingleOrVec;
 use crate::prelude::*;
 
 
 pub struct Texture {
-    images: SingleOrVec<ImageData>,
+    images: SingleOrVec<ImageData>, // WARNING: I assume Image _id corresponds to its index in the Images vector
     texture_map: SingleOrVec<TextureMap>,
 }
 
@@ -69,6 +69,44 @@ pub struct ImageData {
 
 
 impl ImageData {
+    // TODO: now that we use image crate, should we rename this module or even remove it?
+    /// Read from .jpg or .png (for other supported file formats see https://docs.rs/image )
+    pub fn new_from_file(path: String) -> Self {
+        
+        let img = image::open(&path)
+            .unwrap_or_else(|e| panic!("Failed to read image '{}': {}", path, e));
+
+        let (width, height) = img.dimensions();
+        let width = width as usize;
+        let height = height as usize;
+
+        // WARNING: Asusmes 8 bit RGB
+        let rgb = img.to_rgb8();
+
+        let mut pixel_colors = Vec::with_capacity(width * height);
+        for chunk in rgb.as_raw().chunks_exact(3) {
+            pixel_colors.push(Vector3::new(
+                chunk[0] as Float,
+                chunk[1] as Float,
+                chunk[2] as Float,
+            ));
+        }
+
+        // WARNING: Assumes the name is not the path of the image! 
+        let name = std::path::Path::new(&path)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("image")
+            .to_string();
+
+        Self {
+            pixel_colors,
+            width,
+            height,
+            name,
+        }
+    }
+
 
     pub fn new(width: usize, height: usize, name: String, pixel_colors: Vec<Vector3>) -> Self {
         ImageData {
