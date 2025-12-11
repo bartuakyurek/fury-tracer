@@ -1,6 +1,6 @@
 
 
-
+use serde::{self, Deserialize, de::{Deserializer}};
 use std::path::{Path, PathBuf};
 use std::io::BufWriter;
 use std::fs::File;
@@ -10,22 +10,31 @@ use image::{GenericImageView}; // TODO: right now png crate is used to save the 
 use crate::json_structs::SingleOrVec;
 use crate::prelude::*;
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, SmartDefault)]
 pub struct Textures {
     images: SingleOrVec<ImageData>, // WARNING: I assume Image _id corresponds to its index in the Images vector
     texture_map: SingleOrVec<TextureMap>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
+#[serde(tag = "_type", content = "content", rename_all = "lowercase")]
 enum TextureMap {
-    Image(ImageTexture),
-    Perlin(PerlinTexture),
+    Image(ImageTexmap),
+    Perlin(PerlinTexmap),
+    Empty,
 }
 
 
+impl Default for TextureMap {
+    fn default() -> Self {
+        debug!("Default for TextureMap called. Setting to Empty...");
+        TextureMap::Empty
+    }
+}
+
 //#[derive(SmartDefault)]
-#[derive(Debug)]
-struct ImageTexture {
+#[derive(Debug, SmartDefault)]
+struct ImageTexmap {
     
     id: usize, 
     image_id: usize,
@@ -36,33 +45,115 @@ struct ImageTexture {
     normalizer: Float,
 }
 
-#[derive(Debug)]
-struct PerlinTexture {
+impl<'de> Deserialize<'de> for ImageTexmap {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize, SmartDefault)]
+        #[serde(rename_all = "PascalCase")]
+        struct Helper {
+            _id: usize,
+            image_id: usize,
+            decal_mode: String,
+            interpolation: String,
+            #[default = 1.0] // WARNING: I assume default for normalizer is 1.
+            normalizer: Float,
+        }
+
+        let h = Helper::deserialize(deserializer)?;
+
+        Ok(ImageTexmap {
+            id: h._id,
+            image_id: h.image_id,
+            decal_mode: parse_decal(&h.decal_mode)
+                .map_err(serde::de::Error::custom)?,
+            interpolation: parse_interp(&h.interpolation)
+                .map_err(serde::de::Error::custom)?,
+            normalizer: h.normalizer,
+        })
+    }
+}
+
+
+
+#[derive(Debug, Default)]
+struct PerlinTexmap {
     noise_conversion: NoiseConversion,
     decal_mode: DecalMode,
 
 }
 
+impl<'de> Deserialize<'de> for PerlinTexmap {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "PascalCase")]
+        struct Helper {
+            #[serde(default)]
+            decal_mode: String,
+            #[serde(default)]
+            noise_conversion: String,
+        }
+
+        let h = Helper::deserialize(deserializer)?;
+
+        Ok(PerlinTexmap {
+            decal_mode: parse_decal(&h.decal_mode)
+                .map_err(serde::de::Error::custom)?,
+            noise_conversion: NoiseConversion::AbsoluteVal, // extend later if needed
+        })
+    }
+}
+
+
 #[derive(Debug)]
 enum NoiseConversion {
     AbsoluteVal,
+    Linear,
+}
+
+impl Default for NoiseConversion {
+    fn default() -> Self {
+        debug!("Default for NoiseConversion called. Setting to linear [0,1] range...");
+        NoiseConversion::Linear      
+    }
 }
 
 #[derive(Debug)]
-enum DecalMode {
+pub(crate) enum DecalMode {
     ReplaceKd,
     ReplaceKs,
     BlendKd,
 }
 
+
+impl Default for DecalMode {
+    fn default() -> Self {
+        debug!("Default for DecalMode called. Setting to replace_kd...");
+        DecalMode::ReplaceKd      
+    }
+}
+
+
 #[derive(Debug)]
-enum Interpolation {
+pub(crate) enum Interpolation {
     Nearest,
     Bilinear,
 }
 
+
+impl Default for Interpolation {
+    fn default() -> Self {
+        debug!("Default for Interpolation called. Setting to nearest...");
+        Interpolation::Nearest      
+    }
+}
+
 /// ImageData is meant to be used while saving the final rendered image
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, SmartDefault)]
 pub struct ImageData {
     // WARNING: Currently width and height is assumed to represent number of pixels,
     // not accepting a measure like centimeters, that'd require DPI as well
@@ -72,6 +163,25 @@ pub struct ImageData {
     name: String, // TODO: width, height, name info actually is stored under camera as well
                   // is it wise to copy those into ImageData? I thought it is more organized this way.
 }
+
+
+impl<'de> Deserialize<'de> for ImageData {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct Helper {
+            _data: String,
+            #[serde(deserialize_with = "deser_usize")]
+            _id: usize, // TODO: WARNING here I assume _id aligns with order of these images in the json file, unused field here.
+        }
+
+        let helper = Helper::deserialize(deserializer)?;
+        Ok(Self::new_from_file(helper._data))
+    }
+}
+
 
 
 impl ImageData {
