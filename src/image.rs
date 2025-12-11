@@ -21,12 +21,38 @@ enum TextureMap {
     Perlin(PerlinTexture),
 }
 
-struct ImageTexture {
 
+//#[derive(SmartDefault)]
+struct ImageTexture {
+    
+    id: usize, 
+    image_id: usize,
+    interpolation: Interpolation,
+    decal_mode: DecalMode,
+    
+    //#[default = 1.]
+    normalizer: Float,
 }
 
 struct PerlinTexture {
-    
+    noise_conversion: NoiseConversion,
+    decal_mode: DecalMode,
+
+}
+
+enum NoiseConversion {
+    AbsoluteVal,
+}
+
+enum DecalMode {
+    ReplaceKd,
+    ReplaceKs,
+    BlendKd,
+}
+
+enum Interpolation {
+    Nearest,
+    Bilinear,
 }
 
 /// ImageData is meant to be used while saving the final rendered image
