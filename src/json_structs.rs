@@ -307,12 +307,13 @@ impl<T: Clone> SingleOrVec<T>  {
     
 }
 
-impl<T: Default> Default for SingleOrVec<T> {
+impl<T> Default for SingleOrVec<T> {
     fn default() -> Self {
         debug!("Implementing default for SingleOrVec...");
         SingleOrVec::Empty
     }
 }
+
  
 #[derive(Deserialize)]
 pub struct Vertex {
