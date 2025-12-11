@@ -7,9 +7,29 @@ use std::fs::File;
 
 use rand::random;
 
+use crate::json_structs::SingleOrVec;
 use crate::prelude::*;
 
 
+pub struct Texture {
+    images: SingleOrVec<ImageData>,
+    texture_map: SingleOrVec<TextureMap>,
+}
+
+enum TextureMap {
+    Image(ImageTexture),
+    Perlin(PerlinTexture),
+}
+
+struct ImageTexture {
+
+}
+
+struct PerlinTexture {
+    
+}
+
+/// ImageData is meant to be used while saving the final rendered image
 #[derive(Clone)]
 pub struct ImageData {
     // WARNING: Currently width and height is assumed to represent number of pixels,
