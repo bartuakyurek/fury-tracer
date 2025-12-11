@@ -11,7 +11,7 @@ use crate::json_structs::SingleOrVec;
 use crate::prelude::*;
 
 
-pub struct Texture {
+pub struct Textures {
     images: SingleOrVec<ImageData>, // WARNING: I assume Image _id corresponds to its index in the Images vector
     texture_map: SingleOrVec<TextureMap>,
 }

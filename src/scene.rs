@@ -15,6 +15,7 @@ use std::{path::Path, io::BufReader, error::Error, fs::File};
 use bevy_math::NormedVectorSpace;
 use rand::random; // traits needed for norm_squared( ) 
 
+use crate::image::Textures;
 use crate::material::{*};
 use crate::shapes::{*};
 use crate::mesh::{Mesh, MeshInstanceField};
@@ -63,6 +64,7 @@ pub struct SceneJSON {
     pub lights: SceneLights,
     pub materials: SceneMaterials,
     pub objects: SceneObjects,
+    pub textures: Textures,
 }
 
 impl SceneJSON {
