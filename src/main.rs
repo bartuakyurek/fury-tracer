@@ -65,7 +65,12 @@ fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Er
     let json_path = Path::new(json_path).canonicalize()?;
     let scene = Scene::new_from(&mut root.scene, &json_path); 
     debug!("Scene is setup successfully.");
-    debug!("Scene lights: {:#?} ", scene.data.lights);
+    
+    // UPDATE: If environment variable is given, just load the json, print it and exit.
+    if std::env::var("JUST_LOAD").is_ok() {
+        dbg!(&scene);
+        std::process::exit(0);
+    }
 
     // Render images and return array of RGB
     let images = renderer::render(&scene)?;

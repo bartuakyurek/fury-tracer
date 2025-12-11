@@ -30,6 +30,9 @@ Render all .json files under a directory:
 ``$ cargo run --release ./path/to/folder``
 
 ---
+Just load .json, print and exit (for debugging purposes):
+``$ JUST_LOAD=1 cargo run ./path/to/your.json``
+Note: on windows these commands work on git bash in VSCode, not powershell.
 
 > [!IMPORTANT]
 > Binaries are placed under ./target/debug/ or ./target/release depending on cargo run commands above. By default it is under debug but for faster runs compiling with --release is recommended.
