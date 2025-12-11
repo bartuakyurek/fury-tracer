@@ -611,3 +611,22 @@ pub fn parse_transform_expression(
 
     out
 }
+
+use crate::image::{DecalMode, Interpolation};
+pub(crate) fn parse_decal(s: &str) -> Result<DecalMode, String> {
+    match s {
+        "replace_all" => Ok(DecalMode::ReplaceKd),
+        "replace_kd" => Ok(DecalMode::ReplaceKd),
+        "replace_ks" => Ok(DecalMode::ReplaceKs),
+        "blend_kd"   => Ok(DecalMode::BlendKd),
+        other => Err(format!("Unknown decal mode: {}", other)),
+    }
+}
+
+pub(crate) fn parse_interp(s: &str) -> Result<Interpolation, String> {
+    match s {
+        "nearest" => Ok(Interpolation::Nearest),
+        "bilinear" => Ok(Interpolation::Bilinear),
+        other => Err(format!("Unknown interpolation: {}", other)),
+    }
+}
