@@ -10,12 +10,13 @@ use image::{GenericImageView}; // TODO: right now png crate is used to save the 
 use crate::json_structs::SingleOrVec;
 use crate::prelude::*;
 
-
+#[derive(Debug)]
 pub struct Textures {
     images: SingleOrVec<ImageData>, // WARNING: I assume Image _id corresponds to its index in the Images vector
     texture_map: SingleOrVec<TextureMap>,
 }
 
+#[derive(Debug)]
 enum TextureMap {
     Image(ImageTexture),
     Perlin(PerlinTexture),
@@ -23,6 +24,7 @@ enum TextureMap {
 
 
 //#[derive(SmartDefault)]
+#[derive(Debug)]
 struct ImageTexture {
     
     id: usize, 
@@ -34,29 +36,33 @@ struct ImageTexture {
     normalizer: Float,
 }
 
+#[derive(Debug)]
 struct PerlinTexture {
     noise_conversion: NoiseConversion,
     decal_mode: DecalMode,
 
 }
 
+#[derive(Debug)]
 enum NoiseConversion {
     AbsoluteVal,
 }
 
+#[derive(Debug)]
 enum DecalMode {
     ReplaceKd,
     ReplaceKs,
     BlendKd,
 }
 
+#[derive(Debug)]
 enum Interpolation {
     Nearest,
     Bilinear,
 }
 
 /// ImageData is meant to be used while saving the final rendered image
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ImageData {
     // WARNING: Currently width and height is assumed to represent number of pixels,
     // not accepting a measure like centimeters, that'd require DPI as well
