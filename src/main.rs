@@ -68,7 +68,7 @@ fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Er
     
     // UPDATE: If environment variable is given, just load the json, print it and exit.
     if std::env::var("JUST_LOAD").is_ok() {
-        dbg!(&scene);
+        dbg!(&scene.data.textures); // TODO https://github.com/casey/just see this one to have commands like "just print textures"
         std::process::exit(0);
     }
 
