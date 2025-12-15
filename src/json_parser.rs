@@ -615,11 +615,14 @@ pub fn parse_transform_expression(
 use crate::image::{DecalMode, Interpolation, NoiseConversion};
 pub(crate) fn parse_decal(s: &str) -> Result<DecalMode, String> {
     match s {
-        "replace_all" => Ok(DecalMode::ReplaceAll),
         "replace_kd" => Ok(DecalMode::ReplaceKd),
-        "replace_ks" => Ok(DecalMode::ReplaceKs),
         "blend_kd"   => Ok(DecalMode::BlendKd),
+        "replace_ks" => Ok(DecalMode::ReplaceKs),
+        "replace_background" => Ok(DecalMode::ReplaceBackground),
+        "replace_normal" => Ok(DecalMode::ReplaceNormal),
         "bump_normal" => Ok(DecalMode::BumpNormal),
+        "replace_all" => Ok(DecalMode::ReplaceAll),
+
         other => Err(format!("Unknown decal mode: {}", other)),
     }
 }

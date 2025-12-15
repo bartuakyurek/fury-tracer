@@ -102,10 +102,10 @@ impl<'de> Deserialize<'de> for ImageTexmap {
         Ok(ImageTexmap {
             id: h._id,
             image_index: h.image_id - 1,
-            decal_mode: parse_decal(&h.decal_mode)
-                .map_err(serde::de::Error::custom)?,
-            interpolation: parse_interp(&h.interpolation)
-                .map_err(serde::de::Error::custom)?,
+            decal_mode: parse_decal(&h.decal_mode).unwrap(),
+                //.map_err(serde::de::Error::custom)?,
+            interpolation: parse_interp(&h.interpolation).unwrap(),
+                //.map_err(serde::de::Error::custom)?,
             normalizer: h.normalizer,
         })
     }
@@ -170,8 +170,10 @@ impl Default for NoiseConversion {
 #[derive(Debug)]
 pub(crate) enum DecalMode {
     ReplaceKd,
-    ReplaceKs,
     BlendKd,
+    ReplaceKs,
+    ReplaceBackground,
+    ReplaceNormal,
     BumpNormal,
     ReplaceAll,
 }
