@@ -64,7 +64,7 @@ pub struct SceneJSON {
     pub lights: SceneLights,
     pub materials: SceneMaterials,
     pub objects: SceneObjects,
-    pub textures: Textures,
+    pub textures: Option<Textures>,
 }
 
 impl SceneJSON {
