@@ -71,6 +71,7 @@ struct ImageTexmap {
     interpolation: Interpolation,
     decal_mode: DecalMode,    
     normalizer: Float,
+    bump_factor: Float, 
 }
 
 impl<'de> Deserialize<'de> for ImageTexmap {
@@ -92,6 +93,10 @@ impl<'de> Deserialize<'de> for ImageTexmap {
             #[serde(deserialize_with = "deser_float")]
             #[default = 1.0] // WARNING: I assume default for normalizer is 1.
             normalizer: Float,
+
+            #[serde(deserialize_with = "deser_float")]
+            #[default = 1.0]
+            bump_factor: Float, // TODO: is it safe to assume 1 here?
         }
         debug!("Calling helper deserializer for 'Image' type texture map...");
         let h = Helper::deserialize(deserializer)?;
@@ -101,10 +106,9 @@ impl<'de> Deserialize<'de> for ImageTexmap {
             _id: h._id,
             image_index: h.image_id - 1,
             decal_mode: parse_decal(&h.decal_mode).unwrap(),
-                //.map_err(serde::de::Error::custom)?,
             interpolation: parse_interp(&h.interpolation).unwrap(),
-                //.map_err(serde::de::Error::custom)?,
             normalizer: h.normalizer,
+            bump_factor: h.bump_factor,
         })
     }
 }
