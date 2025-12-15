@@ -612,7 +612,7 @@ pub fn parse_transform_expression(
     out
 }
 
-use crate::image::{DecalMode, Interpolation};
+use crate::image::{DecalMode, Interpolation, NoiseConversion};
 pub(crate) fn parse_decal(s: &str) -> Result<DecalMode, String> {
     match s {
         "replace_all" => Ok(DecalMode::ReplaceAll),
@@ -628,6 +628,15 @@ pub(crate) fn parse_interp(s: &str) -> Result<Interpolation, String> {
         "nearest" => Ok(Interpolation::Nearest),
         "bilinear" => Ok(Interpolation::Bilinear),
         "trilinear" => Ok(Interpolation::Trilinear),
+        other => Err(format!("Unknown interpolation: {}", other)),
+    }
+}
+
+
+pub(crate) fn parse_noise_conversion(s: &str) -> Result<NoiseConversion, String> {
+    match s {
+        "absval" => Ok(NoiseConversion::AbsoluteVal),
+        "linear" => Ok(NoiseConversion::Linear),
         other => Err(format!("Unknown interpolation: {}", other)),
     }
 }

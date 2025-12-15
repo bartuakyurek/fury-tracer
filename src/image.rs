@@ -113,10 +113,12 @@ impl<'de> Deserialize<'de> for ImageTexmap {
 
 
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct PerlinTexmap {
+    id: usize, 
     noise_conversion: NoiseConversion,
     decal_mode: DecalMode,
+    noise_scale: Float,
 
 }
 
@@ -125,28 +127,35 @@ impl<'de> Deserialize<'de> for PerlinTexmap {
     where
         D: Deserializer<'de>,
     {
-        #[derive(Deserialize)]
+        #[derive(Deserialize, SmartDefault)]
         #[serde(rename_all = "PascalCase")]
         struct Helper {
-            #[serde(default)]
+           
+            #[serde(rename = "_id", deserialize_with = "deser_usize")]
+            _id: usize,
+
             decal_mode: String,
-            //#[serde(default)]
             noise_conversion: String,
+
+            #[serde(deserialize_with = "deser_float")]
+            #[default = 1.0]
+            noise_scale: Float,
         }
 
         let h = Helper::deserialize(deserializer)?;
 
         Ok(PerlinTexmap {
-            decal_mode: parse_decal(&h.decal_mode)
-                .map_err(serde::de::Error::custom)?,
-            noise_conversion: NoiseConversion::AbsoluteVal, 
+            id: h._id,
+            decal_mode: parse_decal(&h.decal_mode).unwrap(),
+            noise_conversion: parse_noise_conversion(&h.noise_conversion).unwrap(),
+            noise_scale: h.noise_scale,
         })
     }
 }
 
 
 #[derive(Debug)]
-enum NoiseConversion {
+pub(crate) enum NoiseConversion {
     AbsoluteVal,
     Linear,
 }
