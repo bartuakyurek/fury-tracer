@@ -632,6 +632,10 @@ pub(crate) fn parse_interp(s: &str) -> Result<Interpolation, String> {
         "nearest" => Ok(Interpolation::Nearest),
         "bilinear" => Ok(Interpolation::Bilinear),
         "trilinear" => Ok(Interpolation::Trilinear),
+        "" => {
+                debug!("Interpolation field not specified, using default (nearest)..."); 
+                Ok(Interpolation::Nearest)  
+              },
         other => Err(format!("Unknown interpolation: {}", other)),
     }
 }
