@@ -377,12 +377,12 @@ pub struct SceneMaterials {
     raw_materials: SingleOrVec<serde_json::Value>, // Parse the json value later separately
 
     #[serde(skip)]
-    pub materials: Vec<HeapAllocMaterial>,
+    pub data: Vec<HeapAllocMaterial>,
 }
 
 impl SceneMaterials {
     pub fn finalize(&mut self) {
-        self.materials = self.raw_materials
+        self.data = self.raw_materials
                         .all()
                         .into_iter()
                         .flat_map(parse_material)
@@ -390,11 +390,11 @@ impl SceneMaterials {
     }
 
     pub fn all(&mut self) -> &Vec<HeapAllocMaterial> {
-        if self.materials.is_empty() && !self.raw_materials.all().is_empty() {
+        if self.data.is_empty() && !self.raw_materials.all().is_empty() {
             warn!("Calling SceneMaterials.finalize() to fully deserialize materials from JSON file...");
             self.finalize(); 
         }
-        &self.materials
+        &self.data
     }
 }
 

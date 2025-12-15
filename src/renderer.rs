@@ -69,7 +69,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
    let t_interval = Interval::positive(scene.data.intersection_test_epsilon);
    if let Some(hit_record) = scene.hit_bvh(ray_in, &t_interval, false) {
         
-        let mat: &HeapAllocMaterial = &scene.data.materials.materials[hit_record.material - 1];
+        let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
         let mut color = Vector3::ZERO;
         let mat_type = mat.get_type();
         let epsilon = scene.data.intersection_test_epsilon;  
