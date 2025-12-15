@@ -63,16 +63,13 @@ impl Default for TextureMap {
     }
 }
 
-//#[derive(SmartDefault)]
-#[derive(Debug, SmartDefault)]
+#[derive(Debug)]
 struct ImageTexmap {
    
     id: usize, 
     image_index: usize,
     interpolation: Interpolation,
-    decal_mode: DecalMode,
-    
-    //#[default = 1.]
+    decal_mode: DecalMode,    
     normalizer: Float,
 }
 
@@ -83,6 +80,8 @@ impl<'de> Deserialize<'de> for ImageTexmap {
     {
         #[derive(Deserialize, SmartDefault)]
         #[serde(rename_all = "PascalCase")]
+        #[serde(default)]
+
         struct Helper {
             #[serde(rename = "_id", deserialize_with = "deser_usize")]
             _id: usize,
