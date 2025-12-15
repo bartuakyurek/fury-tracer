@@ -10,14 +10,45 @@ use image::{GenericImageView}; // TODO: right now png crate is used to save the 
 use crate::json_structs::SingleOrVec;
 use crate::prelude::*;
 
-#[derive(Debug, Deserialize, SmartDefault)]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+//#[serde(default)]
 pub struct Textures {
-    images: SingleOrVec<ImageData>, // WARNING: I assume Image _id corresponds to its index in the Images vector
+    images: TextureImages, // WARNING: I assume Image _id corresponds to its index in the Images vector
     texture_map: SingleOrVec<TextureMap>,
 }
 
+
 #[derive(Debug, Deserialize)]
-#[serde(tag = "_type", content = "content", rename_all = "lowercase")]
+//#[serde(default)]
+pub struct TextureImages {
+    #[serde(rename = "Image")] 
+    raw_images: SingleOrVec<TextureImageHelper>,
+    #[serde(skip)]
+    pub data: Vec<ImageData>, 
+} // Currently trying to make it similar to SceneMaterials deserialization 
+
+#[derive(Debug, Deserialize)]
+struct TextureImageHelper {
+
+    _data: String,
+
+    #[serde(deserialize_with = "deser_usize")]
+    _id: usize,
+}
+
+impl TextureImages {
+    pub fn setup(&mut self) {
+        todo!()
+        // Vec with capacity
+        // iterate over images and push:
+        // ImageData::new_from_file(helper._data)
+    }
+}
+
+// See https://serde.rs/enum-representations.html for internally tagged representation
+#[derive(Debug, Deserialize)]
+#[serde(tag = "_type", rename_all = "lowercase")] // content = "content", 
 enum TextureMap {
     Image(ImageTexmap),
     Perlin(PerlinTexmap),
@@ -35,7 +66,7 @@ impl Default for TextureMap {
 //#[derive(SmartDefault)]
 #[derive(Debug, SmartDefault)]
 struct ImageTexmap {
-    
+   
     id: usize, 
     image_id: usize,
     interpolation: Interpolation,
@@ -53,16 +84,20 @@ impl<'de> Deserialize<'de> for ImageTexmap {
         #[derive(Deserialize, SmartDefault)]
         #[serde(rename_all = "PascalCase")]
         struct Helper {
+            #[serde(rename = "_id", deserialize_with = "deser_usize")]
             _id: usize,
+            #[serde(deserialize_with = "deser_usize")]
             image_id: usize,
             decal_mode: String,
             interpolation: String,
+
+            #[serde(deserialize_with = "deser_float")]
             #[default = 1.0] // WARNING: I assume default for normalizer is 1.
             normalizer: Float,
         }
-
+        debug!("Calling helper deserializer for 'Image' type texture map...");
         let h = Helper::deserialize(deserializer)?;
-
+        debug!("Deserialized image texture map.");
         Ok(ImageTexmap {
             id: h._id,
             image_id: h.image_id,
@@ -94,7 +129,7 @@ impl<'de> Deserialize<'de> for PerlinTexmap {
         struct Helper {
             #[serde(default)]
             decal_mode: String,
-            #[serde(default)]
+            //#[serde(default)]
             noise_conversion: String,
         }
 
@@ -103,7 +138,7 @@ impl<'de> Deserialize<'de> for PerlinTexmap {
         Ok(PerlinTexmap {
             decal_mode: parse_decal(&h.decal_mode)
                 .map_err(serde::de::Error::custom)?,
-            noise_conversion: NoiseConversion::AbsoluteVal, // extend later if needed
+            noise_conversion: NoiseConversion::AbsoluteVal, 
         })
     }
 }
@@ -127,6 +162,7 @@ pub(crate) enum DecalMode {
     ReplaceKd,
     ReplaceKs,
     BlendKd,
+    ReplaceAll,
 }
 
 
@@ -142,6 +178,7 @@ impl Default for DecalMode {
 pub(crate) enum Interpolation {
     Nearest,
     Bilinear,
+    Trilinear,
 }
 
 
@@ -165,22 +202,22 @@ pub struct ImageData {
 }
 
 
-impl<'de> Deserialize<'de> for ImageData {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        #[derive(Deserialize)]
-        struct Helper {
-            _data: String,
-            #[serde(deserialize_with = "deser_usize")]
-            _id: usize, // TODO: WARNING here I assume _id aligns with order of these images in the json file, unused field here.
-        }
-
-        let helper = Helper::deserialize(deserializer)?;
-        Ok(Self::new_from_file(helper._data))
-    }
-}
+//impl<'de> Deserialize<'de> for ImageData {
+//    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+//    where
+//        D: Deserializer<'de>,
+//    {
+//        #[derive(Deserialize)]
+//        struct Helper {
+//            _data: String,
+//            #[serde(deserialize_with = "deser_usize")]
+//            _id: usize, // TODO: WARNING here I assume _id aligns with order of these images in the json file, unused field here.
+//        }
+//
+//        let helper = Helper::deserialize(deserializer)?;
+//        Ok(Self::new_from_file(helper._data))
+//    }
+//}
 
 
 
