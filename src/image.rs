@@ -66,7 +66,7 @@ impl Default for TextureMap {
 #[derive(Debug)]
 struct ImageTexmap {
    
-    id: usize, 
+    _id: usize, 
     image_index: usize,
     interpolation: Interpolation,
     decal_mode: DecalMode,    
@@ -81,7 +81,6 @@ impl<'de> Deserialize<'de> for ImageTexmap {
         #[derive(Deserialize, SmartDefault)]
         #[serde(rename_all = "PascalCase")]
         #[serde(default)]
-
         struct Helper {
             #[serde(rename = "_id", deserialize_with = "deser_usize")]
             _id: usize,
@@ -99,7 +98,7 @@ impl<'de> Deserialize<'de> for ImageTexmap {
         debug!("Deserialized image texture map.");
         debug!("Assumes ImageId starts from 1, and subtracts 1 to store ImageTexmap.image_index...");
         Ok(ImageTexmap {
-            id: h._id,
+            _id: h._id,
             image_index: h.image_id - 1,
             decal_mode: parse_decal(&h.decal_mode).unwrap(),
                 //.map_err(serde::de::Error::custom)?,
