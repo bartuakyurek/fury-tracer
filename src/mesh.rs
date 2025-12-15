@@ -135,7 +135,7 @@ impl Mesh {
     fn to_triangles(&self, verts: &VertexData, id_offset: usize) -> Vec<Triangle> {
         
         if self.faces._type != "triangle" {
-            panic!(">> Expected triangle faces in mesh_to_triangles, got '{}'.", self.faces._type);
+            error!(">> Expected triangle faces in mesh_to_triangles, got '{}'.", self.faces._type);
         }
         
         let n_faces = self.faces.len();

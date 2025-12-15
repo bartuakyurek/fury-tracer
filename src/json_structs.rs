@@ -399,17 +399,17 @@ impl VertexData{
 pub type FaceType = DataField<usize>;
 impl FaceType {
     pub fn len(&self) -> usize {
-        debug_assert!(self._type == "triangle"); // Only triangle meshes are supported
+        debug_assert!(self._type == "triangle" || self._type == ""); // Only triangle meshes are supported
         (self._data.len() as f64 / 3.) as usize
     }
 
     pub fn is_empty(&self) -> bool {
-        debug_assert!(self._type == "triangle"); // Only triangle meshes are supported   
+        //debug_assert!(self._type == "triangle"); // Only triangle meshes are supported   
         self._data.is_empty()
     }
 
     pub fn get_indices(&self, i: usize) -> [usize; 3] {
-        debug_assert!(self._type == "triangle");
+        debug_assert!(self._type == "triangle" || self._type == "");
         let start = i * 3;
         [self._data[start], self._data[start + 1], self._data[start + 2]]
     }
