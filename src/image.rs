@@ -14,7 +14,7 @@ use crate::prelude::*;
 #[serde(rename_all = "PascalCase")]
 //#[serde(default)]
 pub struct Textures {
-    images: TextureImages, // WARNING: I assume Image _id corresponds to its index in the Images vector
+    images: Option<TextureImages>, // WARNING: I assume Image _id corresponds to its index in the Images vector
     texture_map: SingleOrVec<TextureMap>,
 }
 
@@ -68,7 +68,7 @@ impl Default for TextureMap {
 struct ImageTexmap {
    
     id: usize, 
-    image_id: usize,
+    image_index: usize,
     interpolation: Interpolation,
     decal_mode: DecalMode,
     
@@ -98,9 +98,10 @@ impl<'de> Deserialize<'de> for ImageTexmap {
         debug!("Calling helper deserializer for 'Image' type texture map...");
         let h = Helper::deserialize(deserializer)?;
         debug!("Deserialized image texture map.");
+        debug!("Assumes ImageId starts from 1, and subtracts 1 to store ImageTexmap.image_index...");
         Ok(ImageTexmap {
             id: h._id,
-            image_id: h.image_id,
+            image_index: h.image_id - 1,
             decal_mode: parse_decal(&h.decal_mode)
                 .map_err(serde::de::Error::custom)?,
             interpolation: parse_interp(&h.interpolation)
