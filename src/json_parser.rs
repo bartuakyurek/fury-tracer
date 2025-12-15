@@ -619,6 +619,7 @@ pub(crate) fn parse_decal(s: &str) -> Result<DecalMode, String> {
         "replace_kd" => Ok(DecalMode::ReplaceKd),
         "replace_ks" => Ok(DecalMode::ReplaceKs),
         "blend_kd"   => Ok(DecalMode::BlendKd),
+        "bump_normal" => Ok(DecalMode::BumpNormal),
         other => Err(format!("Unknown decal mode: {}", other)),
     }
 }

@@ -172,6 +172,7 @@ pub(crate) enum DecalMode {
     ReplaceKd,
     ReplaceKs,
     BlendKd,
+    BumpNormal,
     ReplaceAll,
 }
 
