@@ -11,6 +11,7 @@
 */
 
 use serde::{self, Deserialize, de::{Deserializer}};
+use tracing_subscriber::registry::Data;
 use std::{ops::Index, str::FromStr};
 use tracing::{warn};
 use void::Void;
@@ -395,10 +396,25 @@ impl VertexData{
     }
 }
 
+pub type TexCoordData = DataField<usize>; // Similar to VertexData and FaceType
+impl TexCoordData {
+    // length of uv field (since FaceType is also DataField<usize> duplicate defns error was occuring for len() function so I renamed it as a quick fix..)
+    pub fn len_uv(&self) -> usize {
+        debug_assert!(self._type == "uv"); // || self._type == ""); // Only uv supported
+        (self._data.len() as f64 / 2.) as usize
+    }
+
+    pub fn get_uv_indices(&self, i: usize) -> [usize; 2] {
+        debug_assert!(self._type == "uv"); // || self._type == "");
+        let start = i * 2;
+        [self._data[start], self._data[start + 1]]
+    }
+    
+}
 
 pub type FaceType = DataField<usize>;
 impl FaceType {
-    pub fn len(&self) -> usize {
+    pub fn len_tris(&self) -> usize {
         debug_assert!(self._type == "triangle" || self._type == ""); // Only triangle meshes are supported
         (self._data.len() as f64 / 3.) as usize
     }
@@ -408,7 +424,7 @@ impl FaceType {
         self._data.is_empty()
     }
 
-    pub fn get_indices(&self, i: usize) -> [usize; 3] {
+    pub fn get_tri_indices(&self, i: usize) -> [usize; 3] {
         debug_assert!(self._type == "triangle" || self._type == "");
         let start = i * 3;
         [self._data[start], self._data[start + 1], self._data[start + 2]]

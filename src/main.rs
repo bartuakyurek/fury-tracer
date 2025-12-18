@@ -66,11 +66,14 @@ fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Er
     let scene = Scene::new_from(&mut root.scene, &json_path); 
     debug!("Scene is setup successfully.");
     
-    // UPDATE: If environment variable is given, just load the json, print it and exit.
+    // UPDATE: If environment variable is given, just load the json, print it and exit. ---------------------------------------------------------
     if std::env::var("JUST_LOAD").is_ok() {
         dbg!(&scene.data.textures); // TODO https://github.com/casey/just see this one to have commands like "just print textures"
+        dbg!("-------------------");
+        dbg!("Texture Coords:\n",&scene.data.tex_coord_data);
         std::process::exit(0);
     }
+    // ------------------------------------------------------------------------------------------------------------------------------------------
 
     // Render images and return array of RGB
     let images = renderer::render(&scene)?;

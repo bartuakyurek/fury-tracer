@@ -42,7 +42,7 @@ pub struct Triangle {
     #[serde(deserialize_with = "deser_usize")]
     pub _id: usize,
     #[serde(rename = "Indices", deserialize_with = "deser_usize_array")]
-    pub indices: [usize; 3],
+    pub vert_indices: [usize; 3],
     #[serde(rename = "Material", deserialize_with = "deser_usize")]
     pub material_idx: usize,
 
@@ -73,15 +73,15 @@ impl Shape for Triangle {
         // ----------------------------------
 
         let verts = &vertex_cache.vertex_data;
-        if let Some((u, v, t)) = moller_trumbore_intersection(ray, t_interval, self.indices, verts) {
+        if let Some((u, v, t)) = moller_trumbore_intersection(ray, t_interval, self.vert_indices, verts) {
             
             let p = ray.at(t); // Construct hit point p // TODO: would it be faster to use barycentric u,v here? 
             let tri_normal = {
                 
                 if self.is_smooth {
-                    let v1_n = vertex_cache.vertex_normals[self.indices[0]];
-                    let v2_n = vertex_cache.vertex_normals[self.indices[1]];
-                    let v3_n = vertex_cache.vertex_normals[self.indices[2]];
+                    let v1_n = vertex_cache.vertex_normals[self.vert_indices[0]];
+                    let v2_n = vertex_cache.vertex_normals[self.vert_indices[1]];
+                    let v3_n = vertex_cache.vertex_normals[self.vert_indices[2]];
                     let w = 1. - u - v;
                     (v1_n * w + v2_n * u + v3_n * v).normalize() // WARNING: Be careful with interpolation order!
                 } 
@@ -91,7 +91,7 @@ impl Shape for Triangle {
                 else {
                     // Occurs when triangle is not constructed from Mesh data
                     let verts = &vertex_cache.vertex_data;
-                    let [a, b, c] = self.indices.map(|i| verts[i]);
+                    let [a, b, c] = self.vert_indices.map(|i| verts[i]);
                     get_tri_normal(&a, &b, &c)
                 }
             };
@@ -116,7 +116,7 @@ impl Shape for Triangle {
 impl BBoxable for Triangle {
     fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
         let (mut xint, mut yint, mut zint) = (Interval::EMPTY, Interval::EMPTY, Interval::EMPTY);
-        for &i in &self.indices { // using & to borrow instead of move
+        for &i in &self.vert_indices { // using & to borrow instead of move
             let v = verts[i];
 
             xint.expand(v.x);

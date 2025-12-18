@@ -138,15 +138,15 @@ impl Mesh {
             error!(">> Expected triangle faces in mesh_to_triangles, got '{}'.", self.faces._type);
         }
         
-        let n_faces = self.faces.len();
+        let n_faces = self.faces.len_tris();
         let mut triangles = Vec::with_capacity(n_faces);
         
         for i in 0..n_faces {
-            let indices = self.faces.get_indices(i);
-            let [v1, v2, v3] = indices.map(|i| verts[i]);
+            let face_indices = self.faces.get_tri_indices(i);
+            let [v1, v2, v3] = face_indices.map(|i| verts[i]);
             triangles.push(Triangle {
                 _id: id_offset + i, 
-                indices,
+                vert_indices: face_indices,
                 material_idx: self.material_idx,
                 is_smooth: self._shading_mode.eq_ignore_ascii_case("smooth"),
                 normal: get_tri_normal(&v1, &v2, &v3),

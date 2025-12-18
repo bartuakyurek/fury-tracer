@@ -59,6 +59,9 @@ pub struct SceneJSON {
     #[serde(deserialize_with = "deser_string_or_struct")]
     pub vertex_data: VertexData, 
 
+    #[serde(default)]
+    pub tex_coord_data: Option<TexCoordData>,
+
     pub transformations: Transformations,
     pub cameras: Cameras,
     pub lights: SceneLights,
@@ -634,7 +637,7 @@ impl VertexCache {
         let vertex_data = verts.clone();
         let mut vertex_normals: Vec<Vector3> = vec![Vector3::ZERO; vertex_data._data.len()];
         for tri in triangles.iter() {
-            let indices = tri.indices;
+            let indices = tri.vert_indices;
             // Check if indices are in bounds of vertex_data
             if indices.iter().any(|&i| i >= vertex_data._data.len()) {
                 continue;
