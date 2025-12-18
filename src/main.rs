@@ -68,10 +68,7 @@ fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Er
     
     // UPDATE: If environment variable is given, just load the json, print it and exit. ---------------------------------------------------------
     if std::env::var("JUST_LOAD").is_ok() {
-        dbg!(&scene.data.textures); // TODO https://github.com/casey/just see this one to have commands like "just print textures"
-        dbg!("-------------------");
-        dbg!("Texture Coords:\n",&scene.data.tex_coord_data);
-        std::process::exit(0);
+        print_my_dummy_debug(&scene);
     }
     // ------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -88,6 +85,16 @@ fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Er
     }
 
     Ok(())
+}
+
+fn print_my_dummy_debug(scene: &Scene) {
+    dbg!("-------------------");
+    dbg!("Texture Coords:");
+    dbg!(&scene.data.tex_coord_data);
+    dbg!("-------------------");
+    dbg!(&scene.data.textures); // TODO https://github.com/casey/just see this one to have commands like "just print textures"
+    dbg!("-------------------");
+    std::process::exit(0);
 }
 
 /// Given the JSON file path, and its parent name ("inputs" in our case), return the output path to be used while saving .png image
