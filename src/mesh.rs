@@ -10,7 +10,7 @@ UPDATE: Acceleration structure added Mesh::bvh
 
 use crate::json_structs::{FaceType, SingleOrVec, VertexData};
 use crate::geometry::{get_tri_normal};
-use crate::shapes::{Shape, Triangle};
+use crate::shapes::{CommonPrimitiveData, Shape, Triangle};
 use crate::ray::{Ray, HitRecord};
 use crate::interval::Interval;
 use crate::bbox::{BBoxable, BBox};
@@ -144,14 +144,17 @@ impl Mesh {
         for i in 0..n_faces {
             let face_indices = self.faces.get_tri_indices(i);
             let [v1, v2, v3] = face_indices.map(|i| verts[i]);
-            triangles.push(Triangle {
+
+            let cpd = CommonPrimitiveData{
                 _id: id_offset + i, 
-                vert_indices: face_indices,
                 material_idx: self.material_idx,
+                transformation_names: None, 
+            };
+            triangles.push(Triangle {
+                _data: cpd,
+                vert_indices: face_indices,
                 is_smooth: self._shading_mode.eq_ignore_ascii_case("smooth"),
                 normal: get_tri_normal(&v1, &v2, &v3),
-                //motionblur: self.motionblur,
-                transformation_names: None,//self.transformation_names.clone(),
                 matrix: None, //Some(Arc::new(self.matrix)), // NOTE: here it is ok to .clone( ) because it just increases Arc's counter, not cloning the whole data
             });
         }

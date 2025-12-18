@@ -462,7 +462,7 @@ fn resolve_all_mesh_instances(
 
 impl SceneObjects {
 
-    fn setup_transforms(&mut self, transforms: &Transformations) {
+    fn setup_transforms(&mut self, transforms: &Transformations) { // TODO: What's the deal with setting matrices within scene? these could be impl in shapes.rs 
 
         for mesh in self.meshes.iter_mut() {
             mesh.matrix = if mesh.transformation_names.is_some() {
@@ -486,23 +486,23 @@ impl SceneObjects {
         }
 
         for tri in self.triangles.iter_mut() {
-            debug!("Setting up transforms for mesh._id '{}'", tri._id.clone());
+            debug!("Setting up transforms for mesh._id '{}'", tri._data._id.clone());
             tri.matrix = Some(Arc::new(parse_transform_expression(
-                    tri.transformation_names.as_deref().unwrap_or(""),
+                    tri._data.transformation_names.as_deref().unwrap_or(""),
                     transforms,  
             )));
         }
 
         for sphere in self.spheres.iter_mut() {
             sphere.matrix = Some(Arc::new(parse_transform_expression(
-                sphere.transformation_names.as_deref().unwrap_or(""), 
+                sphere._data.transformation_names.as_deref().unwrap_or(""), 
                 transforms)));
         }
 
         for plane in self.planes.iter_mut() {
-            debug!("Setting up transforms for mesh._id '{}'", plane._id.clone());
+            debug!("Setting up transforms for mesh._id '{}'", plane._data._id.clone());
             plane.matrix = Some(Arc::new(parse_transform_expression(
-                    plane.transformation_names.as_deref().unwrap_or(""),
+                    plane._data.transformation_names.as_deref().unwrap_or(""),
                     transforms,  
             )));
         }

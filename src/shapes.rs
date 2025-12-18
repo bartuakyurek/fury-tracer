@@ -30,6 +30,17 @@ pub trait Shape : Debug + Send + Sync + BBoxable {
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord>;
 }
 
+#[derive(Debug, Deserialize, Clone, SmartDefault)]
+pub(crate) struct CommonPrimitiveData {
+    #[serde(deserialize_with = "deser_usize")]
+    pub _id: usize,
+
+    #[serde(rename = "Material", deserialize_with = "deser_usize")]
+    pub material_idx: usize,
+
+    #[serde(rename = "Transformations", default)]
+    pub transformation_names: Option<String>,
+}
 
 // =======================================================================================================
 // Triangle (impl Shape + BBoxable)
@@ -39,16 +50,12 @@ pub trait Shape : Debug + Send + Sync + BBoxable {
 // WARNING: it assumes vertex indices start from 1
 #[derive(Debug, Deserialize, Clone, SmartDefault)]
 pub struct Triangle {
-    #[serde(deserialize_with = "deser_usize")]
-    pub _id: usize,
+    
+    pub _data: CommonPrimitiveData, 
+
     #[serde(rename = "Indices", deserialize_with = "deser_usize_array")]
     pub vert_indices: [usize; 3],
-    #[serde(rename = "Material", deserialize_with = "deser_usize")]
-    pub material_idx: usize,
-
-    #[serde(rename = "Transformations", default)]
-    pub transformation_names: Option<String>,
-
+    
     #[serde(skip)]
     pub matrix: Option<Arc<Matrix4>>, // Arc here to share Transformations with Mesh, I didn't want to clone the same transform while creating triangles for mesh
 
@@ -100,7 +107,7 @@ impl Shape for Triangle {
             let normal = if front_face { tri_normal } else { -tri_normal };
 
             // ------ Create hitrecord wrt transform ------------------
-            let mut rec = HitRecord::new_from(ray.origin, p, normal, t, self.material_idx, front_face);
+            let mut rec = HitRecord::new_from(ray.origin, p, normal, t, self._data.material_idx, front_face);
             rec.to_world(&viewmat);
             Some(rec) 
             // --------------------------------------------------------
@@ -143,17 +150,13 @@ impl BBoxable for Triangle {
 // =======================================================================================================
 #[derive(Debug, Deserialize, Clone, Default)]
 pub struct Sphere {
-    #[serde(deserialize_with = "deser_usize")]
-    pub _id: usize,
+   
+    pub _data: CommonPrimitiveData, 
+
     #[serde(rename = "Center", deserialize_with = "deser_usize")]
     pub center_idx: usize, // Refers to VertexData
     #[serde(rename = "Radius", deserialize_with = "deser_float")]
     pub radius: Float,
-    #[serde(rename = "Material", deserialize_with = "deser_usize")]
-    pub material_idx: usize,
-
-    #[serde(rename = "Transformations", default)]
-    pub transformation_names: Option<String>,
 
     #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3", default)]
     pub(crate) motionblur: Vector3, 
@@ -213,7 +216,7 @@ impl Shape for Sphere {
         // Check front face and build hitrecord (I was transforming hitrecord::to_world( ) but here it is already transformed.)
         let front_face = ray.is_front_face(world_normal);
         let final_normal = if front_face { world_normal } else { -world_normal };
-        let rec = HitRecord::new_from(ray.origin, p_world, final_normal, t_world, self.material_idx, front_face);
+        let rec = HitRecord::new_from(ray.origin, p_world, final_normal, t_world, self._data.material_idx, front_face);
         Some(rec)
     }
 }
@@ -249,18 +252,12 @@ impl BBoxable for Sphere {
 
 #[derive(Debug, Deserialize, Clone, Default)]
 pub struct Plane {
-    #[serde(deserialize_with = "deser_usize")]
-    pub _id: usize,
+    pub _data: CommonPrimitiveData, 
+
     #[serde(rename = "Point", deserialize_with = "deser_usize")]
     pub point_idx: usize,
     #[serde(rename = "Normal", deserialize_with = "deser_vec3")]
     pub normal: Vector3,
-    #[serde(rename = "Material", deserialize_with = "deser_usize")]
-    pub material_idx: usize,
-
-    #[serde(rename = "Transformations", default)]
-    pub transformation_names: Option<String>,
-
     #[serde(rename = "MotionBlur", deserialize_with = "deser_vec3", default)]
     pub(crate) motionblur: Vector3, 
 
@@ -309,7 +306,7 @@ impl Shape for Plane {
         // Construct Hit Record
         let front_face = ray.is_front_face(n);
         let normal = if front_face { n } else { -n };
-        let mut rec = HitRecord::new_from(ray.origin, ray.at(t), normal, t, self.material_idx, front_face);
+        let mut rec = HitRecord::new_from(ray.origin, ray.at(t), normal, t, self._data.material_idx, front_face);
 
         // transform hitpoint and normal (04, p.53) -----
         rec.to_world(&viewmat);
