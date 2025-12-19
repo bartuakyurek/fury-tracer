@@ -47,11 +47,11 @@ impl Default for BRDFData {
 
 impl BRDFData {
 
-    fn ambient(&self) -> Vector3 {
+    pub fn ambient(&self) -> Vector3 {
         self.ambient_rf  
     }
 
-    fn diffuse(&self, w_i: Vector3, n: Vector3) -> Vector3 {
+    pub fn diffuse(&self, w_i: Vector3, n: Vector3) -> Vector3 {
         // Returns outgoing radiance (see Slides 01_B, p.73)        
         debug_assert!(w_i.is_normalized());
         debug_assert!(n.is_normalized());
@@ -60,7 +60,7 @@ impl BRDFData {
         self.diffuse_rf * cos_theta  
     }
 
-    fn specular(&self, w_o: Vector3, w_i: Vector3, n: Vector3) -> Vector3 {
+    pub fn specular(&self, w_o: Vector3, w_i: Vector3, n: Vector3) -> Vector3 {
         // Returns outgoing radiance (see Slides 01_B, p.80)
         debug_assert!(w_o.is_normalized());
         debug_assert!(w_i.is_normalized());
@@ -94,6 +94,8 @@ pub trait Material : Debug + Send + Sync  {
             }
         }
     }
+
+    fn brdf(&self) -> &BRDFData;
     fn get_type(&self) -> &str; 
     fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)>; //(Ray, attenuation)
 }
@@ -142,6 +144,10 @@ impl Material for DiffuseMaterial{
 
     fn get_type(&self) -> &str {
         "diffuse"
+    }
+
+    fn brdf(&self) -> &BRDFData {
+        &self.brdf
     }
 
     fn interact(&self, _: &Ray, _: &HitRecord, _: Float, _: bool) -> Option<(Ray, Vector3)> {
@@ -223,7 +229,10 @@ impl Material for MirrorMaterial {
         "mirror"
     }
 
-    
+    fn brdf(&self) -> &BRDFData {
+        &self.brdf
+    }
+
     fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)> {
         if !does_reflect {
             warn!("Mirror material assumed to always reflect but interact( ) got does_reflect=False. Ignoring...");
@@ -428,6 +437,10 @@ impl Material for DielectricMaterial {
     fn get_type(&self) -> &str {
         "dielectric"
     }
+
+    fn brdf(&self) -> &BRDFData {
+        &self.brdf
+    }
     
     fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)> {
         if does_reflect {
@@ -556,6 +569,10 @@ impl Material for ConductorMaterial {
 
     fn get_type(&self) -> &str {
         "conductor"
+    }
+
+    fn brdf(&self) -> &BRDFData {
+        &self.brdf
     }
     
     fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)> {

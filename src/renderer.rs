@@ -40,7 +40,9 @@ pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, ray_in: &Ray, e
 }
 
 pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, mat: &HeapAllocMaterial) -> Vector3 {
-    let mut color = mat.ambient() * scene.data.lights.ambient_light; 
+
+    let brdf = mat.brdf();
+    let mut color = brdf.ambient() * scene.data.lights.ambient_light; 
     for light in scene.data.lights.all_nonambient().iter() {
             
             let (shadow_ray, interval) = get_shadow_ray(&light, hit_record, ray_in, scene.data.shadow_ray_epsilon);
@@ -53,8 +55,8 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, mat: &
                 let n = hit_record.normal;
                 let w_i = shadow_ray.direction;
                 let w_o = -ray_in.direction;
-                color += mat.diffuse(w_i, n) * irradiance;
-                color += mat.specular(w_o, w_i, n) * irradiance; 
+                color += brdf.diffuse(w_i, n) * irradiance;
+                color += brdf.specular(w_o, w_i, n) * irradiance; 
             }
     }
     color
