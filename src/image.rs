@@ -14,12 +14,21 @@ use crate::prelude::*;
 #[serde(rename_all = "PascalCase")]
 //#[serde(default)]
 pub struct Textures {
-    images: Option<TextureImages>, // WARNING: I assume Image _id corresponds to its index in the Images vector
-    texture_map: SingleOrVec<TextureMap>,
+    pub images: Option<TextureImages>, // WARNING: I assume Image _id corresponds to its index in the Images vector
+    pub texture_map: SingleOrVec<TextureMap>,
 }
 
-
-#[derive(Debug, Deserialize)]
+impl Textures {
+    /// Given texture map index (assuming json ids are sorted and starting from 1 because I directly push them in a vector),
+    /// return the color of the corresponding texture pixel from the texture (image or procedural).
+    /// TODO: should we use hashmaps instead of vecs to avoid the assumption described above?
+    /// uv: texture coordinates (currently only uv is supported, I am not sure how to generalize it atm) 
+    pub fn get_texel_color(&self, texmap_idx: usize, uv: [usize; 2], interpolation: &Interpolation) -> Vector3 {
+        //let texmap = self.texture_map.all()... --> how to access it efficiently?
+        todo!()
+    }
+}
+#[derive(Debug, Clone, Deserialize)]
 //#[serde(default)]
 pub struct TextureImages {
     #[serde(rename = "Image")] 
@@ -28,7 +37,7 @@ pub struct TextureImages {
     pub data: Vec<ImageData>, 
 } // Currently trying to make it similar to SceneMaterials deserialization 
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 struct TextureImageHelper {
 
     _data: String,
@@ -38,11 +47,21 @@ struct TextureImageHelper {
 }
 
 impl TextureImages {
-    pub fn setup(&mut self) {
-        todo!()
-        // Vec with capacity
-        // iterate over images and push:
-        // ImageData::new_from_file(helper._data)
+    pub fn setup(&mut self, base_dir: &Path) {
+        
+        let mut helpers = self.raw_images.all();
+
+        // Sort by _id (I assume they are given sorted in jsons though maybe I should've considered hashmaps instead of vec)
+        helpers.sort_by_key(|h| h._id);
+        self.data = Vec::with_capacity(helpers.len());
+
+        for helper in helpers {
+            let full_path = base_dir.join(&helper._data);
+            debug!("Loading texture image id={} from '{}'", helper._id, full_path.display() );
+
+            let img = ImageData::new_from_file(&full_path); 
+            self.data.push(img);
+        }
     }
 }
 
@@ -245,10 +264,10 @@ pub struct ImageData {
 impl ImageData {
     // TODO: now that we use image crate, should we rename this module or even remove it?
     /// Read from .jpg or .png (for other supported file formats see https://docs.rs/image )
-    pub fn new_from_file(path: String) -> Self {
+    pub fn new_from_file(path: &PathBuf) -> Self {
         
-        let img = image::open(&path)
-            .unwrap_or_else(|e| panic!("Failed to read image '{}': {}", path, e));
+        let img = image::open(path)
+            .unwrap_or_else(|e| panic!("Failed to read image '{}': {}", path.display(), e));
 
         let (width, height) = img.dimensions();
         let width = width as usize;

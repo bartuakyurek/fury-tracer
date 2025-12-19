@@ -59,7 +59,6 @@ pub struct SceneJSON {
     #[serde(deserialize_with = "deser_string_or_struct")]
     pub vertex_data: VertexData, 
 
-    //#[serde(default)]
     pub tex_coord_data: Option<TexCoordData>,
     pub textures: Option<Textures>,
 
@@ -98,6 +97,17 @@ impl SceneJSON {
 
         // 6 - Setup scene lights transforms
         self.lights.setup(&self.transformations);
+
+        // 7 - Setup texture images (read from image files and store)
+        if let textures = self.textures.as_mut().unwrap() { // TODO: rust analyzer says this is irrefutable if let but how to make it idiomatic rust?
+            if let texture_images = textures.images.as_mut().unwrap() {
+                let base_dir = jsonpath
+                                        .parent()
+                                        .ok_or("WARNING: JSON path has no parent directory")?;
+                texture_images.setup(base_dir);
+            }
+        }
+        
 
         Ok(cache)
     }
