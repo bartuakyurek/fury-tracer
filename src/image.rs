@@ -10,12 +10,16 @@ use image::{GenericImageView}; // TODO: right now png crate is used to save the 
 use crate::json_structs::SingleOrVec;
 use crate::prelude::*;
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "PascalCase")]
-//#[serde(default)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Textures {
+    #[serde(rename = "Images")]
     pub images: Option<TextureImages>, // WARNING: I assume Image _id corresponds to its index in the Images vector
-    pub texture_map: SingleOrVec<TextureMap>,
+
+    #[serde(rename = "TextureMap")]
+    pub texture_maps: SingleOrVec<TextureMap>,
+
+    //#[serde(skip)]
+    //pub texture_maps: Vec<TextureMap>, // To avoid calling .all( ) on SingleOrVec deserialization
 }
 
 impl Textures {
@@ -23,11 +27,36 @@ impl Textures {
     /// return the color of the corresponding texture pixel from the texture (image or procedural).
     /// TODO: should we use hashmaps instead of vecs to avoid the assumption described above?
     /// uv: texture coordinates (currently only uv is supported, I am not sure how to generalize it atm) 
-    pub fn get_texel_color(&self, texmap_idx: usize, uv: [usize; 2], interpolation: &Interpolation) -> Vector3 {
-        //let texmap = self.texture_map.all()... --> how to access it efficiently?
-        todo!()
+    pub fn get_texel_color(&self, texmap_idx: usize, uv: [Float; 2], interpolation: &Interpolation) -> Vector3 {
+        
+        let texmap = self.texture_maps.all_ref()[texmap_idx];
+        match texmap {
+            TextureMap::Image(image_texmap) => {
+                let images = self.images
+                    .as_ref()
+                    .expect("Image texture used but no Images section present");
+
+                let image = &images.data[image_texmap.image_index];
+                let (i, j) = (uv[0] * image.width as Float, uv[1] * image.height as Float); // image coordinate (see slides 06, p.8)
+                image.interpolate(i, j, interpolation)
+            },
+            TextureMap::Perlin(perlin_texmap) => {
+                todo!("Perlin texture map not implemented at get_texel_color( ) yet!");
+            },
+            //TextureMap::Empty => {
+            //    debug!("Found texturemap empty....");
+            //    Vector3::ZERO
+            //},
+            _ => {
+                todo!("I am not ready to get texel color of this texmap type yet...");
+            }
+        }
+        
     }
 }
+
+
+
 #[derive(Debug, Clone, Deserialize)]
 //#[serde(default)]
 pub struct TextureImages {
@@ -66,7 +95,7 @@ impl TextureImages {
 }
 
 // See https://serde.rs/enum-representations.html for internally tagged representation
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "_type", rename_all = "lowercase")] // content = "content", 
 pub enum TextureMap {
     Image(ImageTexmap),
@@ -82,7 +111,7 @@ impl Default for TextureMap {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct ImageTexmap {
    
     _id: usize, 
@@ -134,7 +163,7 @@ impl<'de> Deserialize<'de> for ImageTexmap {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct PerlinTexmap {
     id: usize, 
     noise_conversion: NoiseConversion,
@@ -181,7 +210,7 @@ impl<'de> Deserialize<'de> for PerlinTexmap {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) enum NoiseConversion {
     AbsoluteVal,
     Linear,
@@ -194,7 +223,7 @@ impl Default for NoiseConversion {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) enum DecalMode {
     ReplaceKd,
     BlendKd,
@@ -214,7 +243,7 @@ impl Default for DecalMode {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) enum Interpolation {
     Nearest,
     Bilinear,
@@ -392,6 +421,12 @@ impl ImageData {
         writer.write_image_data(&data)?; // Save
         info!("Image saved to {}", path.to_str().unwrap());
         Ok(())
+    }
+
+    /// Given image coordinates (i, j), and interpolation choice, 
+    /// retrieve the image color (note that i, j can be fractional, see slides 06, p.8)
+    pub fn interpolate(&self, i: Float, j: Float, style: &Interpolation) -> Vector3 {
+        todo!()
     }
 }
 

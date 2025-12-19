@@ -234,7 +234,7 @@ impl Shape for Sphere {
                                         Some([u, v])
                                    };
 
-        let texs = self._data.texture_idxs;
+        let texs = self._data.texture_idxs.clone(); // TODO: I keep cloning texture indices "because Vec<usize> does not implement copy trait" but I dont want to impl Copy and let clone occur under the hood, any better solution?
         let rec = HitRecord::new_from(ray.origin, p_world, final_normal, t_world, self._data.material_idx, front_face, texs, uv);
         Some(rec)
     }
