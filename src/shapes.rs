@@ -50,8 +50,8 @@ pub(crate) struct CommonPrimitiveData {
 // WARNING: it assumes vertex indices start from 1
 #[derive(Debug, Deserialize, Clone, SmartDefault)]
 pub struct Triangle {
-    
-    pub _data: CommonPrimitiveData, 
+    #[serde(flatten)]
+    pub(crate) _data: CommonPrimitiveData, 
 
     #[serde(rename = "Indices", deserialize_with = "deser_usize_array")]
     pub vert_indices: [usize; 3],
@@ -150,8 +150,8 @@ impl BBoxable for Triangle {
 // =======================================================================================================
 #[derive(Debug, Deserialize, Clone, Default)]
 pub struct Sphere {
-   
-    pub _data: CommonPrimitiveData, 
+    #[serde(flatten)]
+    pub(crate) _data: CommonPrimitiveData, 
 
     #[serde(rename = "Center", deserialize_with = "deser_usize")]
     pub center_idx: usize, // Refers to VertexData
@@ -252,7 +252,8 @@ impl BBoxable for Sphere {
 
 #[derive(Debug, Deserialize, Clone, Default)]
 pub struct Plane {
-    pub _data: CommonPrimitiveData, 
+    #[serde(flatten)]
+    pub(crate) _data: CommonPrimitiveData, 
 
     #[serde(rename = "Point", deserialize_with = "deser_usize")]
     pub point_idx: usize,
