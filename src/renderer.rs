@@ -18,7 +18,7 @@ use std::{self, time::Instant};
 use crate::material::{HeapAllocMaterial};
 use crate::ray::{HitRecord, Ray};
 use crate::scene::{LightKind, Scene};
-use crate::image::{ImageData};
+use crate::image::{DecalMode, ImageData};
 use crate::interval::{Interval};
 use crate::prelude::*;
 
@@ -41,7 +41,23 @@ pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, ray_in: &Ray, e
 
 pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, mat: &HeapAllocMaterial) -> Vector3 {
 
-    let brdf = mat.brdf();
+    let mut brdf = mat.brdf();
+
+    // HW4 Update: apply textures if provided to change brdf -----------
+    hit_record.textures.iter().map(|texmap_idx| 
+        {
+            match scene.data.textures.unwrap().texture_maps.as_slice()[texmap_idx].decal_mode {
+                DecalMode::BlendKd => { todo!() },
+                DecalMode::ReplaceKd => { todo!() },
+                DecalMode::ReplaceKs => { todo!() },
+                DecalMode::ReplaceAll => { todo!() },
+                _ => { debug!("Nothing to update in shade_diffuse() BRDF..."); }
+            }
+        }
+    ); 
+    // -----------------------------------------------------------------
+
+
     let mut color = brdf.ambient() * scene.data.lights.ambient_light; 
     for light in scene.data.lights.all_nonambient().iter() {
             
