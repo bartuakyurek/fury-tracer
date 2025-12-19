@@ -19,6 +19,29 @@ use crate::ray::{Ray, HitRecord};
 use crate::prelude::*;
 
 
+#[derive(Debug, Deserialize, Clone)]
+#[serde(default)]
+pub struct BRDFData {
+    #[serde(rename = "AmbientReflectance", deserialize_with = "deser_vec3")]
+    pub ambient_rf: Vector3,
+    #[serde(rename = "DiffuseReflectance", deserialize_with = "deser_vec3")]
+    pub diffuse_rf: Vector3,
+    #[serde(rename = "SpecularReflectance", deserialize_with = "deser_vec3")]
+    pub specular_rf: Vector3,
+}
+
+
+impl Default for BRDFData {
+    fn default() -> Self {
+        debug!("Defaulting BRDF...");
+        BRDFData {
+            ambient_rf: Vector3::new(0.0, 0.0, 0.0),
+            diffuse_rf: Vector3::new(1.0, 1.0, 1.0),
+            specular_rf: Vector3::new(0.0, 0.0, 0.0),
+        }
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// 
 /// MATERIAL TRAIT
@@ -61,12 +84,10 @@ pub type HeapAllocMaterial = Box<dyn Material>; // Box, Rc, Arc -> Probably will
 pub struct DiffuseMaterial {
     #[serde(deserialize_with = "deser_usize")]
     pub _id: usize,
-    #[serde(rename = "AmbientReflectance", deserialize_with = "deser_vec3")]
-    pub ambient_rf: Vector3,
-    #[serde(rename = "DiffuseReflectance", deserialize_with = "deser_vec3")]
-    pub diffuse_rf: Vector3,
-    #[serde(rename = "SpecularReflectance", deserialize_with = "deser_vec3")]
-    pub specular_rf: Vector3,
+    
+    #[serde(flatten)]
+    pub brdf: BRDFData,
+
     #[serde(rename = "PhongExponent", deserialize_with = "deser_float")]
     pub phong_exponent: Float,
 }
@@ -76,9 +97,11 @@ impl Default for DiffuseMaterial {
     fn default() -> Self {
         DiffuseMaterial {
             _id: 0,
-            ambient_rf: Vector3::new(0.0, 0.0, 0.0),
-            diffuse_rf: Vector3::new(1.0, 1.0, 1.0),
-            specular_rf: Vector3::new(0.0, 0.0, 0.0),
+            brdf: BRDFData {
+                ambient_rf: Vector3::new(0.0, 0.0, 0.0),
+                diffuse_rf: Vector3::new(1.0, 1.0, 1.0),
+                specular_rf: Vector3::new(0.0, 0.0, 0.0),
+                },
             phong_exponent: 1.0,
         }
     }
@@ -144,12 +167,10 @@ impl Material for DiffuseMaterial{
 pub struct MirrorMaterial {
     #[serde(deserialize_with = "deser_usize")]
     pub _id: usize,
-    #[serde(rename = "AmbientReflectance", deserialize_with = "deser_vec3")]
-    pub ambient_rf: Vector3,
-    #[serde(rename = "DiffuseReflectance", deserialize_with = "deser_vec3")]
-    pub diffuse_rf: Vector3,
-    #[serde(rename = "SpecularReflectance", deserialize_with = "deser_vec3")]
-    pub specular_rf: Vector3,
+
+    #[serde(flatten)]
+    pub brdf: BRDFData,
+
     #[serde(rename = "MirrorReflectance", deserialize_with = "deser_vec3")]
     pub mirror_rf: Vector3,
     #[serde(rename = "PhongExponent", deserialize_with = "deser_float")]
@@ -162,9 +183,11 @@ impl Default for MirrorMaterial {
     fn default() -> Self {
         Self {
             _id: 0,
-            ambient_rf: Vector3::new(0.0, 0.0, 0.0),
-            diffuse_rf: Vector3::new(0.5, 0.5, 0.5),
-            specular_rf: Vector3::new(0.0, 0.0, 0.0),
+            brdf: BRDFData {
+                    ambient_rf: Vector3::new(0.0, 0.0, 0.0),
+                    diffuse_rf: Vector3::new(0.5, 0.5, 0.5),
+                    specular_rf: Vector3::new(0.0, 0.0, 0.0),
+                },
             mirror_rf: Vector3::new(0.5, 0.5, 0.5),
             phong_exponent: 1.0,
             roughness: 0.0, // Perfect mirror
@@ -265,12 +288,10 @@ struct FresnelData {
 pub struct DielectricMaterial {
     #[serde(deserialize_with = "deser_usize")]
     pub _id: usize,
-    #[serde(rename = "AmbientReflectance", deserialize_with = "deser_vec3")]
-    pub ambient_rf: Vector3,
-    #[serde(rename = "DiffuseReflectance", deserialize_with = "deser_vec3")]
-    pub diffuse_rf: Vector3,
-    #[serde(rename = "SpecularReflectance", deserialize_with = "deser_vec3")]
-    pub specular_rf: Vector3,
+    
+    #[serde(flatten)]
+    pub brdf: BRDFData,
+
     #[serde(rename = "MirrorReflectance", deserialize_with = "deser_vec3")]
     pub mirror_rf: Vector3,
     #[serde(rename = "PhongExponent", deserialize_with = "deser_float")]
@@ -287,9 +308,11 @@ impl Default for DielectricMaterial {
     fn default() -> Self {
         Self {
             _id: 0,
-            ambient_rf: Vector3::new(0.0, 0.0, 0.0),
-            diffuse_rf: Vector3::new(0.5, 0.5, 0.5),
-            specular_rf: Vector3::new(0.0, 0.0, 0.0),
+            brdf: BRDFData{
+                    ambient_rf: Vector3::new(0.0, 0.0, 0.0),
+                    diffuse_rf: Vector3::new(0.5, 0.5, 0.5),
+                    specular_rf: Vector3::new(0.0, 0.0, 0.0),
+                },
             mirror_rf: Vector3::new(0.5, 0.5, 0.5),
             phong_exponent: 1.0,
             absorption_coeff: Vector3::new(0.01, 0.01, 0.01),
@@ -499,12 +522,10 @@ impl Material for DielectricMaterial {
 pub struct ConductorMaterial {
     #[serde(deserialize_with = "deser_usize")]
     pub _id: usize,
-    #[serde(rename = "AmbientReflectance", deserialize_with = "deser_vec3")]
-    pub ambient_rf: Vector3,
-    #[serde(rename = "DiffuseReflectance", deserialize_with = "deser_vec3")]
-    pub diffuse_rf: Vector3,
-    #[serde(rename = "SpecularReflectance", deserialize_with = "deser_vec3")]
-    pub specular_rf: Vector3,
+
+    #[serde(flatten)]
+    pub brdf: BRDFData,
+    
     #[serde(rename = "MirrorReflectance", deserialize_with = "deser_vec3")]
     pub mirror_rf: Vector3,
     #[serde(rename = "PhongExponent", deserialize_with = "deser_float")]
@@ -521,9 +542,11 @@ impl Default for ConductorMaterial {
     fn default() -> Self {
         Self {
             _id: 0,
-            ambient_rf: Vector3::new(0., 0., 0.),
-            diffuse_rf: Vector3::new(0., 0., 0.),
-            specular_rf: Vector3::new(0., 0., 0.),
+            brdf: BRDFData {
+                    ambient_rf: Vector3::new(0., 0., 0.),
+                    diffuse_rf: Vector3::new(0., 0., 0.),
+                    specular_rf: Vector3::new(0., 0., 0.),
+                },
             mirror_rf: Vector3::new(1., 1., 1.),
             phong_exponent: 1., // TODO: Is that a good default? WARNING: cornellbox_recursive missing phong 
             absorption_index: 2.82,
