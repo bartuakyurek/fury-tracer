@@ -44,17 +44,21 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, mat: &
     let mut brdf = mat.brdf();
 
     // HW4 Update: apply textures if provided to change brdf -----------
-    hit_record.textures.iter().map(|texmap_idx| 
-        {
-            match scene.data.textures.unwrap().texture_maps.as_slice()[texmap_idx].decal_mode {
-                DecalMode::BlendKd => { todo!() },
-                DecalMode::ReplaceKd => { todo!() },
-                DecalMode::ReplaceKs => { todo!() },
-                DecalMode::ReplaceAll => { todo!() },
-                _ => { debug!("Nothing to update in shade_diffuse() BRDF..."); }
+    if let Some(textures) = &scene.data.textures {
+        for texmap_idx in &hit_record.textures {
+            let texmap = &textures.texture_maps.as_slice()[*texmap_idx]; // TODO: I am not sure if as_slice( ) is still relevant here, it resolved a rustc error before I change the implementation though
+            
+            if let Some(decal_mode) = texmap.decal_mode() {
+                match decal_mode {
+                    DecalMode::BlendKd => { todo!() },
+                    DecalMode::ReplaceKd => { todo!() },
+                    DecalMode::ReplaceKs => { todo!() },
+                    DecalMode::ReplaceAll => { todo!() },
+                    _ => { debug!("Nothing to update in shade_diffuse() BRDF..."); }
+                }
             }
         }
-    ); 
+    }; 
     // -----------------------------------------------------------------
 
 

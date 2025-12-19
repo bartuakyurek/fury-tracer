@@ -111,6 +111,23 @@ impl Default for TextureMap {
     }
 }
 
+impl TextureMap {
+    pub fn decal_mode(&self) -> Option<&DecalMode> {
+        match self {
+            TextureMap::Image(img) => Some(&img.decal_mode),
+            TextureMap::Perlin(perlin) => Some(&perlin.decal_mode),
+            TextureMap::Empty => None,
+        }
+    }
+
+    pub fn interpolation(&self) -> Option<&Interpolation> {
+        match self {
+            TextureMap::Image(img) => Some(&img.interpolation), // Only image textures have interpolation I assume
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 struct ImageTexmap {
    
