@@ -28,6 +28,8 @@ pub struct BRDFData {
     pub diffuse_rf: Vector3,
     #[serde(rename = "SpecularReflectance", deserialize_with = "deser_vec3")]
     pub specular_rf: Vector3,
+    #[serde(rename = "PhongExponent", deserialize_with = "deser_float")]
+    pub phong_exponent: Float,
 }
 
 
@@ -38,8 +40,39 @@ impl Default for BRDFData {
             ambient_rf: Vector3::new(0.0, 0.0, 0.0),
             diffuse_rf: Vector3::new(1.0, 1.0, 1.0),
             specular_rf: Vector3::new(0.0, 0.0, 0.0),
+            phong_exponent: 1.0,
         }
     }
+}
+
+impl BRDFData {
+
+    fn ambient(&self) -> Vector3 {
+        self.ambient_rf  
+    }
+
+    fn diffuse(&self, w_i: Vector3, n: Vector3) -> Vector3 {
+        // Returns outgoing radiance (see Slides 01_B, p.73)        
+        debug_assert!(w_i.is_normalized());
+        debug_assert!(n.is_normalized());
+
+        let cos_theta = w_i.dot(n).max(0.0);
+        self.diffuse_rf * cos_theta  
+    }
+
+    fn specular(&self, w_o: Vector3, w_i: Vector3, n: Vector3) -> Vector3 {
+        // Returns outgoing radiance (see Slides 01_B, p.80)
+        debug_assert!(w_o.is_normalized());
+        debug_assert!(w_i.is_normalized());
+        debug_assert!(n.is_normalized());
+
+        let h = (w_i + w_o).normalize(); //(w_i + w_o) / (w_i + w_o).norm();
+        debug_assert!(h.is_normalized());
+        
+        let p = self.phong_exponent;
+        let cos_a = n.dot(h).max(0.0);
+        self.specular_rf * cos_a.powf(p)  
+    }   
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -61,12 +94,7 @@ pub trait Material : Debug + Send + Sync  {
             }
         }
     }
-    fn get_type(&self) -> &str;
-    fn diffuse(&self, w_i: Vector3, n: Vector3) -> Vector3;
-    fn specular(&self, w_o: Vector3, w_i: Vector3, n: Vector3) -> Vector3;
-    fn ambient(&self) -> Vector3; 
-
-    
+    fn get_type(&self) -> &str; 
     fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)>; //(Ray, attenuation)
 }
 
@@ -88,8 +116,6 @@ pub struct DiffuseMaterial {
     #[serde(flatten)]
     pub brdf: BRDFData,
 
-    #[serde(rename = "PhongExponent", deserialize_with = "deser_float")]
-    pub phong_exponent: Float,
 }
 
 
@@ -101,8 +127,8 @@ impl Default for DiffuseMaterial {
                 ambient_rf: Vector3::new(0.0, 0.0, 0.0),
                 diffuse_rf: Vector3::new(1.0, 1.0, 1.0),
                 specular_rf: Vector3::new(0.0, 0.0, 0.0),
+                phong_exponent: 1.0,
                 },
-            phong_exponent: 1.0,
         }
     }
 }
@@ -114,7 +140,6 @@ impl DiffuseMaterial {
 
 impl Material for DiffuseMaterial{
 
-
     fn get_type(&self) -> &str {
         "diffuse"
     }
@@ -123,36 +148,6 @@ impl Material for DiffuseMaterial{
         warn!("Diffuse material assumed to only use shadow rays, rays are not meant to be scattered here.");
         None
     }
-
-    fn ambient(&self) -> Vector3 {
-        // Returns outgoing radiance (see Slides 01_B, p.75)
-        // e.g. for test.json it is [25, 25, 25]
-        self.ambient_rf 
-    }
-
-    fn diffuse(&self, w_i: Vector3, n: Vector3) -> Vector3 {
-        // Returns outgoing radiance (see Slides 01_B, p.73)        
-        debug_assert!(w_i.is_normalized());
-        debug_assert!(n.is_normalized());
-
-        let cos_theta = w_i.dot(n).max(0.0);
-        self.diffuse_rf * cos_theta 
-    }
-
-    fn specular(&self, w_o: Vector3, w_i: Vector3, n: Vector3) -> Vector3 {
-        // Returns outgoing radiance (see Slides 01_B, p.80)
-        debug_assert!(w_o.is_normalized());
-        debug_assert!(w_i.is_normalized());
-        debug_assert!(n.is_normalized());
-
-        let h = (w_i + w_o).normalize(); //(w_i + w_o) / (w_i + w_o).norm();
-        debug_assert!(h.is_normalized());
-        
-        let p = self.phong_exponent;
-        let cos_a = n.dot(h).max(0.0);
-        self.specular_rf * cos_a.powf(p)
-    }   
-    
 
 }
 
@@ -173,8 +168,7 @@ pub struct MirrorMaterial {
 
     #[serde(rename = "MirrorReflectance", deserialize_with = "deser_vec3")]
     pub mirror_rf: Vector3,
-    #[serde(rename = "PhongExponent", deserialize_with = "deser_float")]
-    pub phong_exponent: Float,
+    
     #[serde(rename = "Roughness", deserialize_with = "deser_float")]
     pub roughness: Float,
 }
@@ -187,9 +181,9 @@ impl Default for MirrorMaterial {
                     ambient_rf: Vector3::new(0.0, 0.0, 0.0),
                     diffuse_rf: Vector3::new(0.5, 0.5, 0.5),
                     specular_rf: Vector3::new(0.0, 0.0, 0.0),
+                    phong_exponent: 1.0,
                 },
             mirror_rf: Vector3::new(0.5, 0.5, 0.5),
-            phong_exponent: 1.0,
             roughness: 0.0, // Perfect mirror
         }
     }
@@ -238,34 +232,7 @@ impl Material for MirrorMaterial {
     }
 
     
-    fn ambient(&self) -> Vector3 {
-        self.ambient_rf  
-    }
-
-    fn diffuse(&self, w_i: Vector3, n: Vector3) -> Vector3 {
-        // Returns outgoing radiance (see Slides 01_B, p.73)
-        // TODO: reduce the verbosity here
-        
-        debug_assert!(w_i.is_normalized());
-        debug_assert!(n.is_normalized());
-
-        let cos_theta = w_i.dot(n).max(0.0);
-        self.diffuse_rf * cos_theta  
-    }
-
-    fn specular(&self, w_o: Vector3, w_i: Vector3, n: Vector3) -> Vector3 {
-        // Returns outgoing radiance (see Slides 01_B, p.80)
-        debug_assert!(w_o.is_normalized());
-        debug_assert!(w_i.is_normalized());
-        debug_assert!(n.is_normalized());
-
-        let h = (w_i + w_o).normalize(); //(w_i + w_o) / (w_i + w_o).norm();
-        debug_assert!(h.is_normalized());
-        
-        let p = self.phong_exponent;
-        let cos_a = n.dot(h).max(0.0);
-        self.specular_rf * cos_a.powf(p)  
-    }   
+    
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -294,8 +261,7 @@ pub struct DielectricMaterial {
 
     #[serde(rename = "MirrorReflectance", deserialize_with = "deser_vec3")]
     pub mirror_rf: Vector3,
-    #[serde(rename = "PhongExponent", deserialize_with = "deser_float")]
-    pub phong_exponent: Float,
+   
     #[serde(rename = "AbsorptionCoefficient", deserialize_with = "deser_vec3")]
     pub absorption_coeff: Vector3,
     #[serde(rename = "RefractionIndex", deserialize_with = "deser_float")]
@@ -312,9 +278,9 @@ impl Default for DielectricMaterial {
                     ambient_rf: Vector3::new(0.0, 0.0, 0.0),
                     diffuse_rf: Vector3::new(0.5, 0.5, 0.5),
                     specular_rf: Vector3::new(0.0, 0.0, 0.0),
+                    phong_exponent: 1.0,
                 },
             mirror_rf: Vector3::new(0.5, 0.5, 0.5),
-            phong_exponent: 1.0,
             absorption_coeff: Vector3::new(0.01, 0.01, 0.01),
             refraction_index: 1.5,
             roughness: 0.0,
@@ -472,41 +438,6 @@ impl Material for DielectricMaterial {
         }
     }
     
-    fn ambient(&self) -> Vector3 {
-        self.ambient_rf  
-    }
-
-    fn diffuse(&self, w_i: Vector3, n: Vector3) -> Vector3 {
-        // TODO: these are copy paste from Diffuse material,
-        // should we refactor them into a single function within
-        // this crate?
-        // Actually a better implementation would be to create a struct
-        // for diffuse, specular, ambient, and phong as these four are common
-        // and then just store them in material, that way you can move diffuse
-        // and other common functions inside Material trait! I believe this is 
-        // a Rusty way to implement it but before that I better decouple json
-        // parser from these material structs...
-        
-        debug_assert!(w_i.is_normalized());
-        debug_assert!(n.is_normalized());
-
-        let cos_theta = w_i.dot(n).max(0.0);
-        self.diffuse_rf * cos_theta  
-    }
-
-    fn specular(&self, w_o: Vector3, w_i: Vector3, n: Vector3) -> Vector3 {
-        // Returns outgoing radiance (see Slides 01_B, p.80)
-        debug_assert!(w_o.is_normalized());
-        debug_assert!(w_i.is_normalized());
-        debug_assert!(n.is_normalized());
-
-        let h = (w_i + w_o).normalize(); //(w_i + w_o) / (w_i + w_o).norm();
-        debug_assert!(h.is_normalized());
-        
-        let p = self.phong_exponent;
-        let cos_a = n.dot(h).max(0.0);
-        self.specular_rf * cos_a.powf(p)  
-    }   
 }
 
 
@@ -528,8 +459,6 @@ pub struct ConductorMaterial {
     
     #[serde(rename = "MirrorReflectance", deserialize_with = "deser_vec3")]
     pub mirror_rf: Vector3,
-    #[serde(rename = "PhongExponent", deserialize_with = "deser_float")]
-    pub phong_exponent: Float,
     #[serde(rename = "AbsorptionIndex", deserialize_with = "deser_float")]
     pub absorption_index: Float,
     #[serde(rename = "RefractionIndex", deserialize_with = "deser_float")]
@@ -546,9 +475,9 @@ impl Default for ConductorMaterial {
                     ambient_rf: Vector3::new(0., 0., 0.),
                     diffuse_rf: Vector3::new(0., 0., 0.),
                     specular_rf: Vector3::new(0., 0., 0.),
+                    phong_exponent: 1., // TODO: Is that a good default? WARNING: cornellbox_recursive missing phong 
                 },
             mirror_rf: Vector3::new(1., 1., 1.),
-            phong_exponent: 1., // TODO: Is that a good default? WARNING: cornellbox_recursive missing phong 
             absorption_index: 2.82,
             refraction_index: 0.37,
             roughness: 0.0,
@@ -639,39 +568,4 @@ impl Material for ConductorMaterial {
         
     }    
 
-    fn ambient(&self) -> Vector3 {
-        self.ambient_rf  
-    }
-
-    fn diffuse(&self, w_i: Vector3, n: Vector3) -> Vector3 {
-        // TODO: these are copy paste from Diffuse material,
-        // should we refactor them into a single function within
-        // this crate?
-        // Actually a better implementation would be to create a struct
-        // for diffuse, specular, ambient, and phong as these four are common
-        // and then just store them in material, that way you can move diffuse
-        // and other common functions inside Material trait! I believe this is 
-        // a Rusty way to implement it but before that I better decouple json
-        // parser from these material structs...
-        
-        debug_assert!(w_i.is_normalized());
-        debug_assert!(n.is_normalized());
-
-        let cos_theta = w_i.dot(n).max(0.0);
-        self.diffuse_rf * cos_theta  
-    }
-
-    fn specular(&self, w_o: Vector3, w_i: Vector3, n: Vector3) -> Vector3 {
-        // Returns outgoing radiance (see Slides 01_B, p.80)
-        debug_assert!(w_o.is_normalized());
-        debug_assert!(w_i.is_normalized());
-        debug_assert!(n.is_normalized());
-
-        let h = (w_i + w_o).normalize(); //(w_i + w_o) / (w_i + w_o).norm();
-        debug_assert!(h.is_normalized());
-        
-        let p = self.phong_exponent;
-        let cos_a = n.dot(h).max(0.0);
-        self.specular_rf * cos_a.powf(p)  
-    }   
 }
