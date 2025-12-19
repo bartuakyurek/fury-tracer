@@ -99,8 +99,8 @@ impl SceneJSON {
         self.lights.setup(&self.transformations);
 
         // 7 - Setup texture images (read from image files and store)
-        if let textures = self.textures.as_mut().unwrap() { // TODO: rust analyzer says this is irrefutable if let but how to make it idiomatic rust?
-            if let texture_images = textures.images.as_mut().unwrap() {
+        if let Some(textures) = self.textures.as_mut() {
+            if let Some(texture_images) = textures.images.as_mut() {
                 let base_dir = jsonpath
                                         .parent()
                                         .ok_or("WARNING: JSON path has no parent directory")?;

@@ -41,7 +41,7 @@ pub(crate) struct CommonPrimitiveData {
     #[serde(rename = "Transformations", default)]
     pub transformation_names: Option<String>,
 
-    #[serde(rename = "Textures", deserialize_with = "deser_usize_vec")]
+    #[serde(rename = "Textures", deserialize_with = "deser_usize_vec", default)]
     pub texture_idxs: Vec<usize>,
 }
 
