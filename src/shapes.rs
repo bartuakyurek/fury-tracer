@@ -14,7 +14,7 @@ use crate::geometry::{get_tri_normal, moller_trumbore_intersection};
 
 use crate::bbox::{BBox, BBoxable};
 use crate::ray::{Ray, HitRecord}; // TODO: Can we create a small crate for gathering shapes.rs, ray.rs?
-use crate::interval::{Interval};
+use crate::interval::{FloatConst, Interval};
 use crate::json_structs::{VertexData};
 use crate::scene::HeapAllocatedVerts;
 use crate::prelude::*;
@@ -224,7 +224,16 @@ impl Shape for Sphere {
         let final_normal = if front_face { world_normal } else { -world_normal };
         
         // Check texture uv coords
-        let uv = None; todo!("Create uv for Sphere hits!");
+        let uv = if self._data.texture_idxs.is_empty() { None }
+                                   else {
+                                        // See slides 06, p.6-7
+                                        let theta = (p_world.y / self.radius).acos();
+                                        let phi = p_world.z.atan2(p_world.x);
+                                        let u = (-phi + Float::PI) / (2. * Float::PI);
+                                        let v = theta / Float::PI;
+                                        Some([u, v])
+                                   };
+
         let texs = self._data.texture_idxs;
         let rec = HitRecord::new_from(ray.origin, p_world, final_normal, t_world, self._data.material_idx, front_face, texs, uv);
         Some(rec)
