@@ -40,6 +40,8 @@ pub(crate) struct CommonPrimitiveData {
 
     #[serde(rename = "Transformations", default)]
     pub transformation_names: Option<String>,
+
+    
 }
 
 // =======================================================================================================
@@ -107,7 +109,10 @@ impl Shape for Triangle {
             let normal = if front_face { tri_normal } else { -tri_normal };
 
             // ------ Create hitrecord wrt transform ------------------
-            let mut rec = HitRecord::new_from(ray.origin, p, normal, t, self._data.material_idx, front_face);
+
+            let uv = None; todo!("Create uv for Triangle hits!");
+            
+            let mut rec = HitRecord::new_from(ray.origin, p, normal, t, self._data.material_idx, front_face, uv);
             rec.to_world(&viewmat);
             Some(rec) 
             // --------------------------------------------------------
@@ -216,7 +221,11 @@ impl Shape for Sphere {
         // Check front face and build hitrecord (I was transforming hitrecord::to_world( ) but here it is already transformed.)
         let front_face = ray.is_front_face(world_normal);
         let final_normal = if front_face { world_normal } else { -world_normal };
-        let rec = HitRecord::new_from(ray.origin, p_world, final_normal, t_world, self._data.material_idx, front_face);
+        
+        // Check texture uv coords
+        let uv = None; todo!("Create uv for Sphere hits!");
+
+        let rec = HitRecord::new_from(ray.origin, p_world, final_normal, t_world, self._data.material_idx, front_face, uv);
         Some(rec)
     }
 }
@@ -307,7 +316,11 @@ impl Shape for Plane {
         // Construct Hit Record
         let front_face = ray.is_front_face(n);
         let normal = if front_face { n } else { -n };
-        let mut rec = HitRecord::new_from(ray.origin, ray.at(t), normal, t, self._data.material_idx, front_face);
+
+        // Check texture uv coords
+        let uv = None; todo!("Create uv for Plane hits (i guess we leave it None for planes, no?)!");
+
+        let mut rec = HitRecord::new_from(ray.origin, ray.at(t), normal, t, self._data.material_idx, front_face, uv);
 
         // transform hitpoint and normal (04, p.53) -----
         rec.to_world(&viewmat);

@@ -92,7 +92,7 @@ fn print_my_dummy_debug(scene: &Scene) {
     dbg!("Texture Coords:");
     dbg!(&scene.data.tex_coord_data);
     dbg!("-------------------");
-    dbg!(&scene.data.textures); // TODO https://github.com/casey/just see this one to have commands like "just print textures"
+    dbg!(&scene.data.textures.as_ref().unwrap().texture_map); // TODO https://github.com/casey/just see this one to have commands like "just print textures"
     dbg!("-------------------");
     std::process::exit(0);
 }

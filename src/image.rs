@@ -68,7 +68,7 @@ impl TextureImages {
 // See https://serde.rs/enum-representations.html for internally tagged representation
 #[derive(Debug, Deserialize)]
 #[serde(tag = "_type", rename_all = "lowercase")] // content = "content", 
-enum TextureMap {
+pub enum TextureMap {
     Image(ImageTexmap),
     Perlin(PerlinTexmap),
     Empty,
