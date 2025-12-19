@@ -59,15 +59,16 @@ pub struct SceneJSON {
     #[serde(deserialize_with = "deser_string_or_struct")]
     pub vertex_data: VertexData, 
 
-    #[serde(default)]
+    //#[serde(default)]
     pub tex_coord_data: Option<TexCoordData>,
+    pub textures: Option<Textures>,
 
     pub transformations: Transformations,
     pub cameras: Cameras,
     pub lights: SceneLights,
     pub materials: SceneMaterials,
     pub objects: SceneObjects,
-    pub textures: Option<Textures>,
+    
 }
 
 impl SceneJSON {
