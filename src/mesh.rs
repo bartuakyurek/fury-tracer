@@ -37,6 +37,9 @@ pub struct MeshInstanceField {
 
     #[serde(rename = "Material", deserialize_with = "deser_opt_usize", default)]
     pub(crate) material_id: Option<usize>,
+
+    #[serde(rename = "Textures", deserialize_with = "deser_usize_vec", default)]
+    pub texture_idxs: Vec<usize>,
     
     #[serde(rename = "Transformations")]
     pub(crate) transformation_names: String,
@@ -84,6 +87,9 @@ pub struct Mesh {
     
     #[serde(rename = "Material", deserialize_with = "deser_usize")]
     pub material_idx: usize,
+
+    #[serde(rename = "Textures", deserialize_with = "deser_usize_vec")]
+    pub texture_idxs: Vec<usize>,
 
     #[serde(rename = "Faces")]
     pub faces: FaceType,
@@ -149,6 +155,7 @@ impl Mesh {
                 _id: id_offset + i, 
                 material_idx: self.material_idx,
                 transformation_names: None, 
+                texture_idxs: self.texture_idxs.clone(),
             };
             triangles.push(Triangle {
                 _data: cpd,
@@ -279,6 +286,7 @@ impl Shape for MeshInstanceField {
             // Intersect without applying base mesh's transform
             if let Some(mut hit) = base_mesh.intersect_bvh(&local_ray, t_interval, vertex_cache) {
                 hit.material = self.material_id.unwrap_or(self.base_mesh.clone().unwrap().material_idx);
+                hit.textures = self.texture_idxs.clone();
                 hit.to_world(&self.matrix);  // this transforms normals and hitpoints p.53
                 hit.ray_t = (hit.hit_point - ray.origin).length(); //TODO: it's so easy to forget it, how to refactor?
 
@@ -296,6 +304,7 @@ impl Shape for MeshInstanceField {
             // Intersect with BVH 
             if let Some(mut hit) = base_mesh.intersect_bvh(&local_ray, t_interval, vertex_cache) {
                 hit.material = self.material_id.unwrap_or(self.base_mesh.clone().unwrap().material_idx);
+                hit.textures = self.texture_idxs.clone();
                 hit.to_world(&composite_matrix);  // this transforms normals and hitpoints p.53
                 hit.ray_t = (hit.hit_point - ray.origin).length(); //TODO: it's so easy to forget it, how to refactor?
 

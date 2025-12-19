@@ -109,12 +109,13 @@ pub struct HitRecord {
     pub ray_t: Float,  // To check which HitRecord has smaller t 
     
     pub material: usize, // TODO: Should we hold the index of material or actually Option<Rc<dyn Material>> as in here https://the-ray-tracing-road-to-rust.vercel.app/9-metal? Or Arc instead of Rc if we use rayon in future.
+    pub textures: Vec<usize>,
     pub texture_uv: Option<[Float; 2]>,
 }
 
 impl HitRecord {
-
-    pub fn new_from(entry_point: Vector3, hit_point: Vector3, normal: Vector3, ray_t: Float, material: usize, is_front_face: bool, uv: Option<[Float;2]>) -> Self {
+    // TODO: would it be better to use refs here instead of cloning?
+    pub fn new_from(entry_point: Vector3, hit_point: Vector3, normal: Vector3, ray_t: Float, material: usize, is_front_face: bool, texs: Vec<usize>, uv: Option<[Float;2]>) -> Self {
         Self {
             entry_point,
             hit_point,
@@ -122,6 +123,7 @@ impl HitRecord {
             ray_t,
             material,
             is_front_face,
+            textures: texs,
             texture_uv: uv,
         }
     }
