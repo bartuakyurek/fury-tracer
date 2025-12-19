@@ -213,6 +213,30 @@ impl<'de> Deserialize<'de> for DataField<usize> {
     }
 }
 
+impl<'de> Deserialize<'de> for DataField<Float> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct Helper {
+            #[serde(rename = "_data", default, deserialize_with = "deser_float_vec")]
+            _data: Vec<Float>,
+            #[serde(rename = "_type", default)]
+            _type: String,
+            #[serde(rename = "_plyFile", default)]
+            _ply_file: String,
+        }
+
+        let helper = Helper::deserialize(deserializer)?;
+        Ok(DataField {
+            _data: helper._data,
+            _type: helper._type,
+            _ply_file: helper._ply_file,
+        })
+    }
+} // TODO: These deserializations are boilerplate (and _plyFile is not even used for e.g. TextureCoords, but I'm not sure how to re-use DataField properly atm)
+
 
 // To handle JSON file having a single <object>
 // or an array of <object>s 
@@ -396,7 +420,7 @@ impl VertexData{
     }
 }
 
-pub type TexCoordData = DataField<usize>; // Similar to VertexData and FaceType
+pub type TexCoordData = DataField<Float>; // Similar to VertexData and FaceType
 impl TexCoordData {
     // length of uv field (since FaceType is also DataField<usize> duplicate defns error was occuring for len() function so I renamed it as a quick fix..)
     pub fn len_uv(&self) -> usize {
@@ -404,7 +428,7 @@ impl TexCoordData {
         (self._data.len() as f64 / 2.) as usize
     }
 
-    pub fn get_uv_indices(&self, i: usize) -> [usize; 2] {
+    pub fn get_uv_coords(&self, i: usize) -> [Float; 2] {
         debug_assert!(self._type == "uv"); // || self._type == "");
         let start = i * 2;
         [self._data[start], self._data[start + 1]]
