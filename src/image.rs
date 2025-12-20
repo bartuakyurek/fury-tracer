@@ -42,7 +42,6 @@ impl Textures {
                 debug_assert!(uv[0] >= 0.0 && uv[1] >= 0.0, "Failed (u, v) >= 0, found uv : ({}, {})", uv[0], uv[1]);
 
                 let (i, j) = (uv[0] * image.width as Float, uv[1] * image.height as Float); // image coordinate (see slides 06, p.8)
-               
                 let color = image.interpolate(i, j, interpolation);
                 color / image_texmap.normalizer // By default divide by 255
             },
@@ -459,6 +458,10 @@ impl ImageData {
     /// Given image coordinates (i, j), and interpolation choice, 
     /// retrieve the image color (note that i, j can be fractional, see slides 06, p.8)
     pub fn interpolate(&self, i: Float, j: Float, style: &Interpolation) -> Vector3 {
+
+        debug_assert!(i < self.width as Float);
+        debug_assert!(j < self.height as Float);
+       
         match style {
             Interpolation::Nearest => {
                 self.lerp(i, j)
@@ -488,10 +491,13 @@ impl ImageData {
         let dx = i - p as Float;
         let dy = j - q as Float;
 
+        let p_next = (p + 1).min(self.width - 1); // TODO: Clamping resolved index out of bounds error but is this even correct?
+        let q_next = (q + 1).min(self.height - 1);
+
         self.fetch_color(p, q) * (1. - dx) * (1. - dy) +
-        self.fetch_color(p + 1, q) * (dx) * (1. - dy) +
-        self.fetch_color(p, q + 1) * (1. - dx) * (dy) +
-        self.fetch_color(p + 1, q + 1) * (dx) * (dy) 
+        self.fetch_color(p_next, q) * (dx) * (1. - dy) +
+        self.fetch_color(p, q_next) * (1. - dx) * (dy) +
+        self.fetch_color(p_next, q_next) * (dx) * (dy) 
     }
 
     fn trilinear(&self, i: Float, j: Float) -> Vector3 {
