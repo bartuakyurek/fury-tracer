@@ -383,8 +383,8 @@ impl ImageData {
     }
 
     pub fn fetch_color(&self, row: usize, col: usize) -> Vector3 {
-        debug_assert!(row < self.height);
-        debug_assert!(col < self.width);
+        debug_assert!(row < self.height, "Row {} must be smaller than image height {}", row, self.height);
+        debug_assert!(col < self.width, "Column {} must be smaller than image width {}", col, self.width);
         self.pixel_colors[(row * self.width) + col]
     }
 

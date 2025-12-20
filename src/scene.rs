@@ -92,15 +92,10 @@ impl SceneJSON {
         // 4 - Setup object transformations WARNING: Order of this is important unfortunately..
         self.objects.setup_transforms(&self.transformations);
 
-        // 5 - Get cache per vertex (objects.setup appends PLY data to vertex_data)
-        let cache = self.objects.setup_and_get_cache(&mut self.vertex_data,  jsonpath)?;
-
-        // 6 - Setup scene lights transforms
-        self.lights.setup(&self.transformations);
-
-        // 7 - Setup texture images (read from image files and store)
+        // 5 - Setup texture images (read from image files and store)
         if let Some(tex_coords) = self.tex_coord_data.as_mut() {
-            tex_coords.insert_dummy_at_the_beginning();
+            tex_coords.insert_dummy_at(0);
+            tex_coords.insert_dummy_at(0); // two dummies as (u_dummy, v_dummy) pair (DataField<Float> has flattened _data field)
         }
         if let Some(textures) = self.textures.as_mut() {
             if let Some(texture_images) = textures.images.as_mut() {
@@ -111,6 +106,11 @@ impl SceneJSON {
             }
         }
         
+        // 6 - Get cache per vertex (objects.setup appends PLY data to vertex_data)
+        let cache = self.objects.setup_and_get_cache(&mut self.vertex_data, &self.tex_coord_data, jsonpath)?;
+
+        // 7 - Setup scene lights transforms
+        self.lights.setup(&self.transformations);
 
         Ok(cache)
     }
@@ -522,7 +522,7 @@ impl SceneObjects {
         }
     }
 
-    pub fn setup_and_get_cache(&mut self, verts: &mut VertexData, jsonpath: &Path) -> Result<VertexCache, Box<dyn Error>> {
+    pub fn setup_and_get_cache(&mut self, verts: &mut VertexData, texture_coords: &Option<TexCoordData>, jsonpath: &Path) -> Result<VertexCache, Box<dyn Error>> {
         // NOTE: Vec::extend( ) pushes a collection of data all at once, 
         // if you have a single object to push, then use Vec::push( )
 
@@ -605,8 +605,13 @@ impl SceneObjects {
         info!(">> There are {} vertices in the scene (excluding {} instance mesh). Meshes have {} faces in total.", verts._data.len(), self.mesh_instances.len(), tot_mesh_faces);
         self.bboxable_shapes = bboxable_shapes;
         self.unbboxable_shapes = unbboxable_shapes;
-        //info!(">> There are {} shapes in the scene.", self.bboxable_shapes.len());
-        let cache = VertexCache::build(verts, &all_triangles);   
+        let normals_cache = VertexCache::build_normals(verts, &all_triangles);
+        
+        // Build uv coords (deserialized JSON is converted to cache data for ease of use but I'm not sure how to organize all this cache setup pipeline better)
+        let n_verts = verts._data.len();
+        let uv_coords = VertexCache::build_uv(n_verts, texture_coords);  
+        
+        let cache = VertexCache { vertex_data: verts.clone(), vertex_normals: normals_cache, uv_coords }; 
         Ok(cache)
     }
 
@@ -624,6 +629,7 @@ impl SceneObjects {
 pub struct VertexCache {
     pub vertex_data: VertexData,
     pub vertex_normals: Vec<Vector3>,
+    pub uv_coords: Vec<Option<[Float;2]>>,
 }
 
 impl Default for VertexCache {
@@ -632,6 +638,7 @@ impl Default for VertexCache {
         Self {
             vertex_data: VertexData::default(),
             vertex_normals: Vec::new(),
+            uv_coords: Vec::new(),
         }
     }
 }
@@ -646,9 +653,44 @@ impl Default for VertexCache {
 // shape refers to this data for their coordinates. 
 impl VertexCache {
     
-    pub fn build(verts: &VertexData, triangles: &[Triangle]) -> VertexCache {
+    pub fn build_uv(n_verts: usize, tex_coords: &Option<TexCoordData>) -> Vec<Option<[Float; 2]>> {
+        // Assumes:
+        // - dummy texcoord already inserted
+        // - texcoords are aligned with vertex_data indices
+
+        if let Some(tc) = tex_coords {
+                
+            let raw = &tc._data;
+            debug_assert!(tc._type == "uv" || tc._type == ""); // Only uv supported currently
+            debug_assert!(
+                raw.len() % 2 == 0,
+                "TexCoordData length must be even (because we assume u,v pairs), got length {}", raw.len()
+            );
+
+            let mut out: Vec<Option<[Float; 2]>> = Vec::with_capacity(n_verts);
+
+            // Group the texture coordinates into pairs (assuming uv type)
+            for chunk in raw.chunks_exact(2) {
+                out.push(Some([chunk[0], chunk[1]]));
+            }
+
+            // Fill the remaining fields with none, (e.g. if ply file will be used to insert more coords)
+            while out.len() < n_verts {
+                debug!("Pushing none to texcoords...");
+                out.push(None);
+            }
+            assert!(out.len() == n_verts);
+            
+            out
+        } 
+        else {
+            vec![None; n_verts] // If no texture coordinates are given, just fill all with None
+        }
+    }
+
+    pub fn build_normals(verts: &VertexData, triangles: &[Triangle]) -> Vec<Vector3> {
         // Compute per-vertex normal from neighbouring triangles
-        let vertex_data = verts.clone();
+        let vertex_data = verts;//.clone();
         let mut vertex_normals: Vec<Vector3> = vec![Vector3::ZERO; vertex_data._data.len()];
         for tri in triangles.iter() {
             let indices = tri.vert_indices;
@@ -677,10 +719,6 @@ impl VertexCache {
                 *n = n.normalize();
             }
         }
-
-        VertexCache {
-            vertex_data,
-            vertex_normals,
-        }
+        vertex_normals
     }
 }

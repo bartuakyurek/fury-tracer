@@ -115,11 +115,11 @@ impl Shape for Triangle {
             let texs = self._data.texture_idxs.clone(); // TODO: any better ideas to avoid clone?
             if !texs.is_empty() {
                 // See slides 06, p.20
-                let uv_a = vertex_cache.tex_coords[self.vert_indices[0]];
-                let uv_b = vertex_cache.tex_coords[self.vert_indices[1]];
-                let uv_c = vertex_cache.tex_coords[self.vert_indices[2]];
-                let tex_u = uv_a[0] + (bary_beta * (uv_b[0] - uv_a[0])) + (bary_gamma * (uv_c[0] - uv_a[0]));
-                let tex_v = uv_a[1] + (bary_beta * (uv_b[1] - uv_a[1])) + (bary_gamma * (uv_c[1] - uv_a[1]));
+                let uv_a: [Float; 2] = vertex_cache.uv_coords[self.vert_indices[0]].unwrap();
+                let uv_b: [Float; 2] = vertex_cache.uv_coords[self.vert_indices[1]].unwrap();
+                let uv_c: [Float; 2] = vertex_cache.uv_coords[self.vert_indices[2]].unwrap();
+                let tex_u: Float = uv_a[0] + (bary_beta * (uv_b[0] - uv_a[0])) + (bary_gamma * (uv_c[0] - uv_a[0]));
+                let tex_v: Float = uv_a[1] + (bary_beta * (uv_b[1] - uv_a[1])) + (bary_gamma * (uv_c[1] - uv_a[1]));
                 texture_uv = Some([tex_u, tex_v]);
             }
             let mut rec = HitRecord::new_from(ray.origin, p, normal, t, self._data.material_idx, front_face, texs, texture_uv);
