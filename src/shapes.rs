@@ -146,8 +146,8 @@ impl Shape for Triangle {
                 let tx_bx = inverse_mat2 * x_axis;
                 let ty_by = inverse_mat2 * y_axis;
                 let tz_bz = inverse_mat2 * z_axis;
-                let t_vec = Vector3::new(tx_bx.x, ty_by.x, tz_bz.x);
-                let b_vec = Vector3::new(tx_bx.y, ty_by.y, tz_bz.y);
+                let t_vec = Vector3::new(tx_bx.x, ty_by.x, tz_bz.x).normalize();
+                let b_vec = Vector3::new(tx_bx.y, ty_by.y, tz_bz.y).normalize();
                 tbn = Some(Matrix3::from_cols(t_vec, b_vec, tri_normal));
             }
             let mut rec = HitRecord::new_from(ray.origin, p, tri_normal, t, self._data.material_idx, front_face, texs, texture_uv, tbn);
