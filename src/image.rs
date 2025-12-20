@@ -343,6 +343,7 @@ impl ImageData {
             .unwrap_or("image")
             .to_string();
 
+        debug!("Loading ImageData from {}... with dimensions ({}, {})", path.display(), width, height);
         Self {
             pixel_colors,
             width,

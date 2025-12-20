@@ -118,6 +118,9 @@ impl Shape for Triangle {
                 let uv_a: [Float; 2] = vertex_cache.uv_coords[self.vert_indices[0]].unwrap();
                 let uv_b: [Float; 2] = vertex_cache.uv_coords[self.vert_indices[1]].unwrap();
                 let uv_c: [Float; 2] = vertex_cache.uv_coords[self.vert_indices[2]].unwrap();
+                debug_assert!(uv_a[0] >= 0.0 && uv_a[1] >= 0.0, "Failed uv_a: ({}, {})", uv_a[0], uv_a[1]);
+                debug_assert!(uv_b[0] >= 0.0 && uv_b[1] >= 0.0, "Failed uv_b: ({}, {})", uv_b[0], uv_b[1]);
+                debug_assert!(uv_c[0] >= 0.0 && uv_c[1] >= 0.0, "Failed uv_c: ({}, {})", uv_c[0], uv_c[1]);
                 let tex_u: Float = uv_a[0] + (bary_beta * (uv_b[0] - uv_a[0])) + (bary_gamma * (uv_c[0] - uv_a[0]));
                 let tex_v: Float = uv_a[1] + (bary_beta * (uv_b[1] - uv_a[1])) + (bary_gamma * (uv_c[1] - uv_a[1]));
                 texture_uv = Some([tex_u, tex_v]);
