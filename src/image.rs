@@ -62,11 +62,36 @@ impl Textures {
     pub fn get_bump_mapping(&self, texmap: &TextureMap, hit_record: &HitRecord) -> Vector3 {
         match texmap {
             TextureMap::Image(image_texmap) => {
+
+                
+
                 let dp_du = hit_record.tbn_matrix.unwrap().x_axis; // T and B vectors (see slides 07, p.13)
                 let dp_dv = hit_record.tbn_matrix.unwrap().y_axis; 
                 let nuv = dp_dv.cross(dp_du); // slides 07, p.24
-                                
-                todo!()
+                
+                let images_ref = &self.images.as_ref().expect("Image texture is required but no Images found");
+                let img = &images_ref.data[image_texmap.image_index];
+                let delta_u = 1. / img.width as Float;
+                let delta_v = 1. / img.height as Float; // slides 07, p.27
+
+                let (u, v) = (hit_record.texture_uv.unwrap()[0], hit_record.texture_uv.unwrap()[1]);
+
+                fn helper_height_func(img_color: Vector3, u: Float, v: Float) -> Float {
+                    // TODO: should this func return a Float or Vector3?
+                    let gray = img_color.element_sum() / 3.;
+                    gray / 255.
+                    //Vector3::new(gray, gray, gray) / 255.
+                }
+
+                
+                let dh_du = (helper_height_func(u + delta_u, v)) / delta_u;
+                let dh_dv = (helper_height_func(u, v + delta_v)) / delta_v; // slides 07, p.27
+
+                let (dn_du, dn_dv) = (1.0, 1.0); // we ignore these terms (slides 07, p.28)
+                let dq_du = dp_du + (dh_du * nuv) + (dn_du * helper_height_func(u, v));
+                let dq_dv = dp_dv + (dh_dv * nuv) + (dn_dv * helper_height_func(u, v)); // slides 07, p.26
+
+                dq_dv.cross(dq_du) // new surface normal (slides 07, p.25)
             },
             TextureMap::Perlin(perlin_texmap) => {
               todo!();
