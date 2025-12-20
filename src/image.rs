@@ -48,12 +48,8 @@ impl Textures {
             TextureMap::Perlin(perlin_texmap) => {
                 todo!("Perlin texture map not implemented at get_texel_color( ) yet!");
             },
-            //TextureMap::Empty => {
-            //    debug!("Found texturemap empty....");
-            //    Vector3::ZERO
-            //},
             _ => {
-                todo!("I am not ready to get texel color of this texmap type yet...");
+                todo!("I am not ready to get texel color of this texmap type '{:?}' yet...", texmap);
             }
         }
         
@@ -161,7 +157,7 @@ impl<'de> Deserialize<'de> for ImageTexmap {
             interpolation: String,
 
             #[serde(deserialize_with = "deser_float")]
-            #[default = 1.] // WARNING: I assume default for normalizer is 255 ("by default divide the texture value by 255")
+            #[default = 255.] // WARNING: I assume default for normalizer is 255 ("by default divide the texture value by 255")
             normalizer: Float,
 
             #[serde(deserialize_with = "deser_float")]
