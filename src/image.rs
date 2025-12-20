@@ -92,7 +92,8 @@ impl Textures {
                 let dq_du = dp_du + (dh_du * nuv) + (dn_du * h_uv);
                 let dq_dv = dp_dv + (dh_dv * nuv) + (dn_dv * h_uv); // slides 07, p.26
 
-                dq_dv.cross(dq_du) // new surface normal (slides 07, p.25)
+                let new_normal = dq_dv.cross(dq_du); // new surface normal (slides 07, p.25)
+                new_normal.normalize()
             },
             TextureMap::Perlin(perlin_texmap) => {
               todo!();
