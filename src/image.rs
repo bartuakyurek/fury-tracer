@@ -7,7 +7,7 @@ use std::fs::File;
 use image::{GenericImageView}; // TODO: right now png crate is used to save the final image but as of hw4, this crate is added to read texture images, so mayb we can remove png crate and just use image crate?
 
 
-use crate::json_structs::SingleOrVec;
+use crate::{json_structs::SingleOrVec, ray::HitRecord};
 use crate::prelude::*;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -27,7 +27,7 @@ impl Textures {
     /// return the color of the corresponding texture pixel from the texture (image or procedural).
     /// TODO: should we use hashmaps instead of vecs to avoid the assumption described above?
     /// uv: texture coordinates (currently only uv is supported, I am not sure how to generalize it atm) 
-    pub fn get_texel_color(&self, texmap_idx: usize, uv: [Float; 2], interpolation: &Interpolation, apply_normalization: bool) -> Vector3 {
+    pub fn get_texture_color(&self, texmap_idx: usize, uv: [Float; 2], interpolation: &Interpolation, apply_normalization: bool) -> Vector3 {
         
         let texmap = self.texture_maps.all_ref()[texmap_idx];
         match texmap {
@@ -57,6 +57,24 @@ impl Textures {
             }
         }
         
+    }
+
+    pub fn get_bump_mapping(&self, texmap: &TextureMap, hit_record: &HitRecord) -> Vector3 {
+        match texmap {
+            TextureMap::Image(image_texmap) => {
+                let dp_du = hit_record.tbn_matrix.unwrap().x_axis; // T and B vectors (see slides 07, p.13)
+                let dp_dv = hit_record.tbn_matrix.unwrap().y_axis; 
+                let nuv = dp_dv.cross(dp_du); // slides 07, p.24
+                                
+                todo!()
+            },
+            TextureMap::Perlin(perlin_texmap) => {
+              todo!();
+            },
+            _ => {
+              todo!("I am not ready for the bump mapping of this texmap type '{:?}' yet...", texmap);
+            },
+        }
     }
 }
 
