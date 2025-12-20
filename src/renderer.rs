@@ -71,6 +71,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
         
         let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
         let mut brdf = mat.brdf().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
+        
         // HW4 Update: apply textures if provided to change brdf -----------
         if let Some(textures) = &scene.data.textures {
             for texmap_id in &hit_record.textures {
@@ -86,7 +87,10 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
                                                     brdf.specular_rf = tex_color;
                                                     brdf.ambient_rf = tex_color;
                                                 },
-                        _ => { debug!("Nothing to update in shade_diffuse() BRDF..."); }
+                        DecalMode::ReplaceNormal => {todo!()},
+                        DecalMode::BumpNormal => {todo!()},
+                        DecalMode::ReplaceBackground => {todo!()},
+                        _ => { debug!("Unexpeced decalibration mode {:?}...", decal_mode); }
                     }
                 }
             }
