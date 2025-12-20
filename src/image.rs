@@ -76,11 +76,11 @@ impl Textures {
 
                 // Helper height function for images (as Perlin noise will differ... I am not sure if this needs to be relocated)
                 fn height(u: Float, v: Float, img: &ImageData, interp: &Interpolation, normalizer: Float, bump_factor: Float) -> Float {
-                    let u = u.clamp(0.0, 1.0);
-                    let v = v.clamp(0.0, 1.0);
-                    
-                    let i = u * img.width as Float;
-                    let j = v * img.height as Float;
+                    let mut i = u * img.width as Float;
+                    let mut j = v * img.height as Float;
+                    i = i.min((img.width - 1) as Float);
+                    j = j.min((img.height - 1) as Float); // Clamping to be safe
+
                     let c = img.interpolate(i, j, interp);
                     let gray = (c.x + c.y + c.z) / 3.;
                     
