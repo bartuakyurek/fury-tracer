@@ -87,10 +87,14 @@ impl Textures {
                     
                     (gray / normalizer) * bump_factor
                 }   
+                
                 let interp_choice = &image_texmap.interpolation; //Interpolation::Bilinear; // TODO: is it ok?
                 let nzr = image_texmap.normalizer;
                 let bf = image_texmap.bump_factor;
+                
                 let h_uv = height(u, v, img, &interp_choice, nzr, bf);
+                debug_assert!(h_uv >= 0.0 && h_uv <= 1.0);
+
                 let dh_du = (height(u + delta_u, v, img, &interp_choice, nzr, bf) - h_uv) / delta_u;
                 let dh_dv = (height(u, v + delta_v, img, &interp_choice, nzr, bf) - h_uv) / delta_v; // slides 07, p.27
 
