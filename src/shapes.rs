@@ -115,14 +115,21 @@ impl Shape for Triangle {
             let texs = self._data.texture_idxs.clone(); // TODO: any better ideas to avoid clone?
             if !texs.is_empty() {
                 // See slides 06, p.20
-                let uv_a: [Float; 2] = vertex_cache.uv_coords[self.vert_indices[0]].unwrap();
-                let uv_b: [Float; 2] = vertex_cache.uv_coords[self.vert_indices[1]].unwrap();
-                let uv_c: [Float; 2] = vertex_cache.uv_coords[self.vert_indices[2]].unwrap();
-                debug_assert!(uv_a[0] >= 0.0 && uv_a[1] >= 0.0, "Failed uv_a: ({}, {})", uv_a[0], uv_a[1]);
-                debug_assert!(uv_b[0] >= 0.0 && uv_b[1] >= 0.0, "Failed uv_b: ({}, {})", uv_b[0], uv_b[1]);
-                debug_assert!(uv_c[0] >= 0.0 && uv_c[1] >= 0.0, "Failed uv_c: ({}, {})", uv_c[0], uv_c[1]);
+                let (a, b, c) = (self.vert_indices[0], self.vert_indices[1], self.vert_indices[2]);
+                debug_assert!(a > 0 && b > 0 && c > 0, "Assumption of vertex indices starting from 1 failed!");
+                let uv_a: [Float; 2] = vertex_cache.uv_coords[a].unwrap();
+                let uv_b: [Float; 2] = vertex_cache.uv_coords[b].unwrap();
+                let uv_c: [Float; 2] = vertex_cache.uv_coords[c].unwrap();
+                debug_assert!(uv_a[0] <= 1.0 && uv_a[1] <= 1.0, "Failed uv_a > 1: ({}, {})", uv_a[0], uv_a[1]);
+                debug_assert!(uv_b[0] <= 1.0 && uv_b[1] <= 1.0, "Failed uv_b > 1: ({}, {})", uv_b[0], uv_b[1]);
+                debug_assert!(uv_c[0] <= 1.0 && uv_c[1] <= 1.0, "Failed uv_c > 1: ({}, {})", uv_c[0], uv_c[1]);
+                debug_assert!(uv_a[0] >= 0.0 && uv_a[1] >= 0.0, "Failed uv_a < 0: ({}, {})", uv_a[0], uv_a[1]);
+                debug_assert!(uv_b[0] >= 0.0 && uv_b[1] >= 0.0, "Failed uv_b < 0: ({}, {})", uv_b[0], uv_b[1]);
+                debug_assert!(uv_c[0] >= 0.0 && uv_c[1] >= 0.0, "Failed uv_c < 0: ({}, {})", uv_c[0], uv_c[1]);
                 let tex_u: Float = uv_a[0] + (bary_beta * (uv_b[0] - uv_a[0])) + (bary_gamma * (uv_c[0] - uv_a[0]));
                 let tex_v: Float = uv_a[1] + (bary_beta * (uv_b[1] - uv_a[1])) + (bary_gamma * (uv_c[1] - uv_a[1]));
+                debug_assert!(tex_u <= 1.0 && tex_u >= 0.0);
+                debug_assert!(tex_v <= 1.0 && tex_v >= 0.0);
                 texture_uv = Some([tex_u, tex_v]);
             }
             let mut rec = HitRecord::new_from(ray.origin, p, normal, t, self._data.material_idx, front_face, texs, texture_uv);

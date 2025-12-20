@@ -37,6 +37,10 @@ impl Textures {
                     .expect("Image texture is required but no Images section found");
 
                 let image = &images.data[image_texmap.image_index];
+
+                debug_assert!(uv[0] <= 1.0 && uv[1] <= 1.0, "Failed condition (u, v) <= 1, found uv : ({}, {})", uv[0], uv[1]);
+                debug_assert!(uv[0] >= 0.0 && uv[1] >= 0.0, "Failed (u, v) >= 0, found uv : ({}, {})", uv[0], uv[1]);
+
                 let (i, j) = (uv[0] * image.width as Float, uv[1] * image.height as Float); // image coordinate (see slides 06, p.8)
                
                 let color = image.interpolate(i, j, interpolation);
@@ -474,6 +478,10 @@ impl ImageData {
     }
 
     fn bilinear(&self, i: Float, j: Float) -> Vector3 {
+
+        debug_assert!(i > 0.0);
+        debug_assert!(j > 0.0);
+
         // see slides 06, p.9
         let p = i.floor() as usize;
         let q = j.floor() as usize;
