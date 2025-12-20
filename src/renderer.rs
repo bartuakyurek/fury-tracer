@@ -90,6 +90,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
                         DecalMode::ReplaceNormal => { 
                                                         let dir = ImageData::color_to_direction(tex_color);
                                                         hit_record.normal = hit_record.tbn_matrix.unwrap() * dir;
+                                                        debug_assert!(hit_record.normal.is_normalized());
                                                     },
                         DecalMode::BumpNormal => {todo!()},
                         DecalMode::ReplaceBackground => {todo!()},

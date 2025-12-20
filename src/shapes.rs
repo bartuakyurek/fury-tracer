@@ -133,7 +133,7 @@ impl Shape for Triangle {
                 debug_assert!(tex_v <= 1.0 && tex_v >= 0.0);
                 texture_uv = Some([tex_u, tex_v]);
 
-                // Compute TBN matrix for triangle (see slides 07, pp.10-16)
+                // Compute TBN matrix for triangle (see slides 07, pp.10-16) ---------------------------------------------
                 let u_col = Vector2::new(uv_b[0] - uv_a[0], uv_c[0] - uv_a[0]);
                 let v_col = Vector2::new(uv_b[1] - uv_a[1], uv_c[1] - uv_a[1]);
                 let first_mat2 = Matrix2::from_cols(u_col, v_col); // p.13
@@ -148,7 +148,10 @@ impl Shape for Triangle {
                 let tz_bz = inverse_mat2 * z_axis;
                 let t_vec = Vector3::new(tx_bx.x, ty_by.x, tz_bz.x).normalize();
                 let b_vec = Vector3::new(tx_bx.y, ty_by.y, tz_bz.y).normalize();
+                debug_assert!(approx_zero(t_vec.dot(b_vec))); // Orthogonality
+                debug_assert!(approx_zero(t_vec.dot(tri_normal)));
                 tbn = Some(Matrix3::from_cols(t_vec, b_vec, tri_normal));
+                // -------------------------------------------------------------------------------------------------------
             }
             let mut rec = HitRecord::new_from(ray.origin, p, tri_normal, t, self._data.material_idx, front_face, texs, texture_uv, tbn);
             rec.to_world(&viewmat);
