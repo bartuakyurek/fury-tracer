@@ -83,7 +83,7 @@ impl Shape for Triangle {
         // ----------------------------------
 
         let verts = &vertex_cache.vertex_data;
-        if let Some((u, v, t)) = moller_trumbore_intersection(ray, t_interval, self.vert_indices, verts) {
+        if let Some((bary_beta, bary_gamma, t)) = moller_trumbore_intersection(ray, t_interval, self.vert_indices, verts) {
             
             let p = ray.at(t); // Construct hit point p // TODO: would it be faster to use barycentric u,v here? 
             let tri_normal = {
@@ -92,8 +92,8 @@ impl Shape for Triangle {
                     let v1_n = vertex_cache.vertex_normals[self.vert_indices[0]];
                     let v2_n = vertex_cache.vertex_normals[self.vert_indices[1]];
                     let v3_n = vertex_cache.vertex_normals[self.vert_indices[2]];
-                    let w = 1. - u - v;
-                    (v1_n * w + v2_n * u + v3_n * v).normalize() // WARNING: Be careful with interpolation order!
+                    let bary_w = 1. - bary_beta - bary_gamma;
+                    (v1_n * bary_w + v2_n * bary_beta + v3_n * bary_gamma).normalize() // WARNING: Be careful with interpolation order!
                 } 
                 else if self.normal.norm_squared() > 0.0 {
                     self.normal
@@ -111,9 +111,18 @@ impl Shape for Triangle {
 
             // ------ Create hitrecord wrt transform ------------------
 
-            let uv = None; todo!("Create uv for Triangle hits!");
-            let texs = self._data.texture_idxs;
-            let mut rec = HitRecord::new_from(ray.origin, p, normal, t, self._data.material_idx, front_face, texs, uv);
+            let mut texture_uv = None; 
+            let texs = self._data.texture_idxs.clone(); // TODO: any better ideas to avoid clone?
+            if !texs.is_empty() {
+                // See slides 06, p.20
+                let uv_a = vertex_cache.tex_coords[self.vert_indices[0]];
+                let uv_b = vertex_cache.tex_coords[self.vert_indices[1]];
+                let uv_c = vertex_cache.tex_coords[self.vert_indices[2]];
+                let tex_u = uv_a[0] + (bary_beta * (uv_b[0] - uv_a[0])) + (bary_gamma * (uv_c[0] - uv_a[0]));
+                let tex_v = uv_a[1] + (bary_beta * (uv_b[1] - uv_a[1])) + (bary_gamma * (uv_c[1] - uv_a[1]));
+                texture_uv = Some([tex_u, tex_v]);
+            }
+            let mut rec = HitRecord::new_from(ray.origin, p, normal, t, self._data.material_idx, front_face, texs, texture_uv);
             rec.to_world(&viewmat);
             Some(rec) 
             // --------------------------------------------------------
@@ -228,7 +237,7 @@ impl Shape for Sphere {
                                    else {
                                         // See slides 06, p.6-7
                                         // (assumes sphere center is at origin, so we translate hitpoint by the center)
-                                        let p = (p_local - center); // self.radius; // TODO: should it be p_world or p_local?
+                                        let p = p_local - center; 
                                         
                                         let theta = ( p.y / self.radius ).acos();
                                         let phi = p.z.atan2(p.x);
