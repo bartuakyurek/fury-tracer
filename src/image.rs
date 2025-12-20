@@ -98,8 +98,8 @@ impl Textures {
                 let dh_du = (height(u + delta_u, v, img, &interp_choice, nzr, bf) - h_uv) / delta_u;
                 let dh_dv = (height(u, v + delta_v, img, &interp_choice, nzr, bf) - h_uv) / delta_v; // slides 07, p.27
 
-                let dq_du = dp_du + (dh_du * nuv) + (h_uv); // here ignore partial derivatives of surface normal (slides 07, p.28)
-                let dq_dv = dp_dv + (dh_dv * nuv) + (h_uv); // slides 07, p.26
+                let dq_du = dp_du + (dh_du * nuv); //+ (h_uv); // here ignore partial derivatives of surface normal (slides 07, p.28)
+                let dq_dv = dp_dv + (dh_dv * nuv); //+ (h_uv); // slides 07, p.26
 
                 let new_normal = dq_dv.cross(dq_du); // new surface normal (slides 07, p.25)
                 new_normal.normalize()
