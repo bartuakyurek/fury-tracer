@@ -15,7 +15,7 @@ use rayon::prelude::*;
 use bevy_math::{NormedVectorSpace};
 use std::{self, time::Instant};
 
-use crate::material::{HeapAllocMaterial};
+use crate::material::{BRDFData, HeapAllocMaterial};
 use crate::ray::{HitRecord, Ray};
 use crate::scene::{LightKind, Scene};
 use crate::image::{DecalMode, ImageData};
@@ -39,33 +39,7 @@ pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, ray_in: &Ray, e
     (shadow_ray, interval)
 }
 
-pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, mat: &HeapAllocMaterial) -> Vector3 {
-
-    let mut brdf = mat.brdf().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume
-
-    // HW4 Update: apply textures if provided to change brdf -----------
-    if let Some(textures) = &scene.data.textures {
-        for texmap_id in &hit_record.textures {
-            let texmap = &textures.texture_maps.as_slice()[*texmap_id - 1]; // TODO: I am not sure if as_slice( ) is still relevant here, it resolved a rustc error before I change the implementation though            
-            let tex_color = textures.get_texel_color(texmap_id - 1, hit_record.texture_uv.unwrap(), texmap.interpolation().unwrap());
-            if let Some(decal_mode) = texmap.decal_mode() {
-                match decal_mode {
-                    DecalMode::BlendKd => { brdf.diffuse_rf = (0.5 * brdf.diffuse_rf) + (0.5 * tex_color); }, // in blendKd do we mix by 0.5 weights or just add them together? could there be multilpe blendkd?
-                    DecalMode::ReplaceKd => { brdf.diffuse_rf = tex_color;  },
-                    DecalMode::ReplaceKs => { brdf.specular_rf = tex_color; },
-                    DecalMode::ReplaceAll => { 
-                                                brdf.diffuse_rf = tex_color;   
-                                                brdf.specular_rf = tex_color;
-                                                brdf.ambient_rf = tex_color;
-                                             },
-                    _ => { debug!("Nothing to update in shade_diffuse() BRDF..."); }
-                }
-            }
-        }
-    }; 
-    // -----------------------------------------------------------------
-
-
+pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, brdf: &BRDFData) -> Vector3 {
     let mut color = brdf.ambient() * scene.data.lights.ambient_light; 
     for light in scene.data.lights.all_nonambient().iter() {
             
@@ -96,16 +70,39 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
    if let Some(hit_record) = scene.hit_bvh(ray_in, &t_interval, false) {
         
         let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
+        let mut brdf = mat.brdf().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
+        // HW4 Update: apply textures if provided to change brdf -----------
+        if let Some(textures) = &scene.data.textures {
+            for texmap_id in &hit_record.textures {
+                let texmap = &textures.texture_maps.as_slice()[*texmap_id - 1]; // TODO: I am not sure if as_slice( ) is still relevant here, it resolved a rustc error before I change the implementation though            
+                let tex_color = textures.get_texel_color(texmap_id - 1, hit_record.texture_uv.unwrap(), texmap.interpolation().unwrap());
+                if let Some(decal_mode) = texmap.decal_mode() {
+                    match decal_mode {
+                        DecalMode::BlendKd => { brdf.diffuse_rf = (0.5 * brdf.diffuse_rf) + (0.5 * tex_color); }, // in blendKd do we mix by 0.5 weights or just add them together? could there be multilpe blendkd?
+                        DecalMode::ReplaceKd => { brdf.diffuse_rf = tex_color;  },
+                        DecalMode::ReplaceKs => { brdf.specular_rf = tex_color; },
+                        DecalMode::ReplaceAll => { 
+                                                    brdf.diffuse_rf = tex_color;   
+                                                    brdf.specular_rf = tex_color;
+                                                    brdf.ambient_rf = tex_color;
+                                                },
+                        _ => { debug!("Nothing to update in shade_diffuse() BRDF..."); }
+                    }
+                }
+            }
+        }; 
+        // -----------------------------------------------------------------
+
         let mut color = Vector3::ZERO;
         let mat_type = mat.get_type();
         let epsilon = scene.data.intersection_test_epsilon;  
         color += match mat_type{ 
             "diffuse" => {
-                shade_diffuse(scene, &hit_record, ray_in, mat)
+                shade_diffuse(scene, &hit_record, ray_in, &brdf)
             },
             "mirror" | "conductor" => { 
                     if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        shade_diffuse(scene,  &hit_record, ray_in, mat) + attenuation * get_color(&reflected_ray, scene, depth + 1) 
+                        shade_diffuse(scene,  &hit_record, ray_in, &brdf) + attenuation * get_color(&reflected_ray, scene, depth + 1) 
                     }
                     else {
                         warn!("Material not reflecting...");
@@ -117,7 +114,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
                 
                 // Only add diffuse, specular, and ambient components if front face (see slides 02, p.29)
                 if hit_record.is_front_face { 
-                    tot_radiance += shade_diffuse(scene, &hit_record, ray_in, mat);
+                    tot_radiance += shade_diffuse(scene, &hit_record, ray_in, &brdf);
                 }
  
                 // Reflected 
