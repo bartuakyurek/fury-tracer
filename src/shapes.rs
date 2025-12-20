@@ -227,8 +227,11 @@ impl Shape for Sphere {
         let uv = if self._data.texture_idxs.is_empty() { None }
                                    else {
                                         // See slides 06, p.6-7
-                                        let theta = (p_world.y / self.radius).acos();
-                                        let phi = p_world.z.atan2(p_world.x);
+                                        // (assumes sphere center is at origin, so we translate hitpoint by the center)
+                                        let p = (p_local - center); // self.radius; // TODO: should it be p_world or p_local?
+                                        
+                                        let theta = ( p.y / self.radius ).acos();
+                                        let phi = p.z.atan2(p.x);
                                         let u = (-phi + Float::PI) / (2. * Float::PI);
                                         let v = theta / Float::PI;
                                         Some([u, v])

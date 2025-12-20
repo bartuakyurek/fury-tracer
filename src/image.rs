@@ -38,6 +38,7 @@ impl Textures {
 
                 let image = &images.data[image_texmap.image_index];
                 let (i, j) = (uv[0] * image.width as Float, uv[1] * image.height as Float); // image coordinate (see slides 06, p.8)
+               
                 let color = image.interpolate(i, j, interpolation);
                 color / image_texmap.normalizer // By default divide by 255
             },
@@ -382,8 +383,8 @@ impl ImageData {
     }
 
     pub fn fetch_color(&self, row: usize, col: usize) -> Vector3 {
-        debug_assert!(row < self.width);
-        debug_assert!(col < self.height);
+        debug_assert!(row < self.height);
+        debug_assert!(col < self.width);
         self.pixel_colors[(row * self.width) + col]
     }
 
