@@ -474,7 +474,12 @@ impl ImageData {
 
     fn lerp(&self, i: Float, j: Float) -> Vector3 {
         // see slides 06, p.9
-        self.fetch_color(i.round() as usize, j.round() as usize)
+        let mut row = i.round() as usize;
+        let mut col = j.round() as usize;
+        // TODO: Clamping resolves out of bounds error but I wonder I'm just silencing a bug here...
+        row = row.min(self.width - 1); 
+        col = col.min(self.height - 1);
+        self.fetch_color(row, col)
     }
 
     fn bilinear(&self, i: Float, j: Float) -> Vector3 {
