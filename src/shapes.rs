@@ -266,7 +266,7 @@ impl Shape for Sphere {
             let sin_phi = phi.sin();
 
             let t_vec = Vector3::new(2. * Float::PI * p.z, 0., - 2. * Float::PI * p.x).normalize();
-            let b_vec = Vector3::new(Float::PI * p.y * cos_phi, - Float::PI * self.radius * sin_theta, Float::PI * p.y * sin_phi);
+            let b_vec = Vector3::new(Float::PI * p.y * cos_phi, - Float::PI * self.radius * sin_theta, Float::PI * p.y * sin_phi).normalize();
             let n_vec = b_vec.cross(t_vec); // see slides 07, p.18
             // Compute TBN matrix for sphere (see slides 07, pp.10-16)
             tbn = Some(Matrix3::from_cols(t_vec, b_vec, n_vec));
