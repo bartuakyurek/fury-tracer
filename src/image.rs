@@ -457,20 +457,20 @@ impl ImageData {
 
     /// Given image coordinates (i, j), and interpolation choice, 
     /// retrieve the image color (note that i, j can be fractional, see slides 06, p.8)
-    pub fn interpolate(&self, i: Float, j: Float, style: &Interpolation) -> Vector3 {
+    pub fn interpolate(&self, row: Float, col: Float,  style: &Interpolation) -> Vector3 {
 
-        debug_assert!(i < self.width as Float);
-        debug_assert!(j < self.height as Float);
+        debug_assert!(col < self.width as Float);
+        debug_assert!(row < self.height as Float);
        
         match style {
             Interpolation::Nearest => {
-                self.lerp(i, j)
+                self.lerp(col, row)
             },
             Interpolation::Bilinear => {
-                self.bilinear(i, j)
+                self.bilinear(col, row)
             },
             Interpolation::Trilinear => {
-                self.trilinear(i, j)
+                self.trilinear(col, row)
             }
         }
     }
