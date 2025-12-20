@@ -38,7 +38,8 @@ impl Textures {
 
                 let image = &images.data[image_texmap.image_index];
                 let (i, j) = (uv[0] * image.width as Float, uv[1] * image.height as Float); // image coordinate (see slides 06, p.8)
-                image.interpolate(i, j, interpolation)
+                let color = image.interpolate(i, j, interpolation);
+                color / image_texmap.normalizer // By default divide by 255
             },
             TextureMap::Perlin(perlin_texmap) => {
                 todo!("Perlin texture map not implemented at get_texel_color( ) yet!");
@@ -126,6 +127,9 @@ impl TextureMap {
             _ => None,
         }
     }
+
+    
+    
 }
 
 #[derive(Debug, Clone)]
@@ -156,7 +160,7 @@ impl<'de> Deserialize<'de> for ImageTexmap {
             interpolation: String,
 
             #[serde(deserialize_with = "deser_float")]
-            #[default = 1.0] // WARNING: I assume default for normalizer is 1.
+            #[default = 255.] // WARNING: I assume default for normalizer is 255 ("by default divide the texture value by 255")
             normalizer: Float,
 
             #[serde(deserialize_with = "deser_float")]
