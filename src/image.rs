@@ -34,7 +34,7 @@ impl Textures {
             TextureMap::Image(image_texmap) => {
                 let images = self.images
                     .as_ref()
-                    .expect("Image texture used but no Images section present");
+                    .expect("Image texture is required but no Images section found");
 
                 let image = &images.data[image_texmap.image_index];
                 let (i, j) = (uv[0] * image.width as Float, uv[1] * image.height as Float); // image coordinate (see slides 06, p.8)
@@ -381,6 +381,12 @@ impl ImageData {
         self.pixel_colors.into_iter().flat_map(|v| [v.x, v.y, v.z]).collect()
     }
 
+    pub fn fetch_color(&self, row: usize, col: usize) -> Vector3 {
+        debug_assert!(row < self.width);
+        debug_assert!(col < self.height);
+        self.pixel_colors[(row * self.width) + col]
+    }
+
     /// Clamp colors and return a flattened array of R G B values per pixel 
     pub fn to_rgb(self) -> Vec<u8> {
         
@@ -447,7 +453,39 @@ impl ImageData {
     /// Given image coordinates (i, j), and interpolation choice, 
     /// retrieve the image color (note that i, j can be fractional, see slides 06, p.8)
     pub fn interpolate(&self, i: Float, j: Float, style: &Interpolation) -> Vector3 {
-        todo!()
+        match style {
+            Interpolation::Nearest => {
+                self.lerp(i, j)
+            },
+            Interpolation::Bilinear => {
+                self.bilinear(i, j)
+            },
+            Interpolation::Trilinear => {
+                self.trilinear(i, j)
+            }
+        }
+    }
+
+    fn lerp(&self, i: Float, j: Float) -> Vector3 {
+        // see slides 06, p.9
+        self.fetch_color(i.round() as usize, j.round() as usize)
+    }
+
+    fn bilinear(&self, i: Float, j: Float) -> Vector3 {
+        // see slides 06, p.9
+        let p = i.floor() as usize;
+        let q = j.floor() as usize;
+        let dx = i - p as Float;
+        let dy = j - q as Float;
+
+        self.fetch_color(p, q) * (1. - dx) * (1. - dy) +
+        self.fetch_color(p + 1, q) * (dx) * (1. - dy) +
+        self.fetch_color(p, q + 1) * (1. - dx) * (dy) +
+        self.fetch_color(p + 1, q + 1) * (dx) * (dy) 
+    }
+
+    fn trilinear(&self, i: Float, j: Float) -> Vector3 {
+        todo!("Trilinear interpolation to be implemented...");
     }
 }
 

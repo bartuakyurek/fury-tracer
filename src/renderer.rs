@@ -41,17 +41,19 @@ pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, ray_in: &Ray, e
 
 pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, mat: &HeapAllocMaterial) -> Vector3 {
 
-    let mut brdf = mat.brdf();
+    let mut brdf = mat.brdf().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume
 
     // HW4 Update: apply textures if provided to change brdf -----------
     if let Some(textures) = &scene.data.textures {
-        for texmap_idx in &hit_record.textures {
-            let texmap = &textures.texture_maps.as_slice()[*texmap_idx]; // TODO: I am not sure if as_slice( ) is still relevant here, it resolved a rustc error before I change the implementation though
+        for texmap_id in &hit_record.textures {
+            let texmap = &textures.texture_maps.as_slice()[*texmap_id - 1]; // TODO: I am not sure if as_slice( ) is still relevant here, it resolved a rustc error before I change the implementation though
             
+            //let img = &textures.images.unwrap()[texmap] --> should I retrieve here or...
+            let tex_color = textures.get_texel_color(texmap_id - 1, hit_record.texture_uv.unwrap(), texmap.interpolation().unwrap());
             if let Some(decal_mode) = texmap.decal_mode() {
                 match decal_mode {
-                    DecalMode::BlendKd => { todo!() },
-                    DecalMode::ReplaceKd => { todo!() },
+                    DecalMode::BlendKd => { todo!() }, // in blendKd do we mix by 0.5 weights or just add them together? could there be multilpe blendkd?
+                    DecalMode::ReplaceKd => { brdf.diffuse_rf = tex_color  },
                     DecalMode::ReplaceKs => { todo!() },
                     DecalMode::ReplaceAll => { todo!() },
                     _ => { debug!("Nothing to update in shade_diffuse() BRDF..."); }
