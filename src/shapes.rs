@@ -86,7 +86,7 @@ impl Shape for Triangle {
         if let Some((bary_beta, bary_gamma, t)) = moller_trumbore_intersection(ray, t_interval, self.vert_indices, verts) {
             
             let p = ray.at(t); // Construct hit point p // TODO: would it be faster to use barycentric u,v here? 
-            let tri_normal = {
+            let mut tri_normal = {
                 
                 if self.is_smooth {
                     let v1_n = vertex_cache.vertex_normals[self.vert_indices[0]];
@@ -107,7 +107,7 @@ impl Shape for Triangle {
             };
            
             let front_face = ray.is_front_face(tri_normal);
-            let normal = if front_face { tri_normal } else { -tri_normal };
+            tri_normal = if front_face { tri_normal } else { -tri_normal };
 
             // ------ Create hitrecord wrt transform ------------------
 
@@ -136,7 +136,7 @@ impl Shape for Triangle {
                 // Compute TBN matrix for triangle (see slides 07, pp.10-16)
                 tbn = todo!();
             }
-            let mut rec = HitRecord::new_from(ray.origin, p, normal, t, self._data.material_idx, front_face, texs, texture_uv, tbn);
+            let mut rec = HitRecord::new_from(ray.origin, p, tri_normal, t, self._data.material_idx, front_face, texs, texture_uv, tbn);
             rec.to_world(&viewmat);
             Some(rec) 
             // --------------------------------------------------------
