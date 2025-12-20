@@ -99,6 +99,9 @@ impl SceneJSON {
         self.lights.setup(&self.transformations);
 
         // 7 - Setup texture images (read from image files and store)
+        if let Some(tex_coords) = self.tex_coord_data.as_mut() {
+            tex_coords.insert_dummy_at_the_beginning();
+        }
         if let Some(textures) = self.textures.as_mut() {
             if let Some(texture_images) = textures.images.as_mut() {
                 let base_dir = jsonpath

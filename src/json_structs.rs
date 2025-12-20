@@ -422,6 +422,11 @@ impl VertexData{
 
 pub type TexCoordData = DataField<Float>; // Similar to VertexData and FaceType
 impl TexCoordData {
+    // TODO: avoid this dummy solution 
+    pub fn insert_dummy_at_the_beginning(&mut self) {
+        self._data.insert(0, -9999.);
+    }
+
     // length of uv field (since FaceType is also DataField<usize> duplicate defns error was occuring for len() function so I renamed it as a quick fix..)
     pub fn len_uv(&self) -> usize {
         debug_assert!(self._type == "uv"); // || self._type == ""); // Only uv supported
