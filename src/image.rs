@@ -63,8 +63,6 @@ impl Textures {
         match texmap {
             TextureMap::Image(image_texmap) => {
 
-                
-
                 let dp_du = hit_record.tbn_matrix.unwrap().x_axis; // T and B vectors (see slides 07, p.13)
                 let dp_dv = hit_record.tbn_matrix.unwrap().y_axis; 
                 let nuv = dp_dv.cross(dp_du); // slides 07, p.24
@@ -86,12 +84,13 @@ impl Textures {
                     gray / 255.
                 }   
                 let interp_choice = Interpolation::Bilinear; // TODO: is it ok?
-                let dh_du = (height(u + delta_u, v, img, &interp_choice)) / delta_u;
-                let dh_dv = (height(u, v + delta_v, img, &interp_choice)) / delta_v; // slides 07, p.27
+                let h_uv = height(u, v, img, &interp_choice);
+                let dh_du = (height(u + delta_u, v, img, &interp_choice) - h_uv) / delta_u;
+                let dh_dv = (height(u, v + delta_v, img, &interp_choice) - h_uv) / delta_v; // slides 07, p.27
 
                 let (dn_du, dn_dv) = (1.0, 1.0); // we ignore these terms (slides 07, p.28)
-                let dq_du = dp_du + (dh_du * nuv) + (dn_du * height(u, v, img, &interp_choice));
-                let dq_dv = dp_dv + (dh_dv * nuv) + (dn_dv * height(u, v, img, &interp_choice)); // slides 07, p.26
+                let dq_du = dp_du + (dh_du * nuv) + (dn_du * h_uv);
+                let dq_dv = dp_dv + (dh_dv * nuv) + (dn_dv * h_uv); // slides 07, p.26
 
                 dq_dv.cross(dq_du) // new surface normal (slides 07, p.25)
             },
