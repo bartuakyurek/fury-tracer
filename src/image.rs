@@ -76,6 +76,9 @@ impl Textures {
 
                 // Helper height function for images (as Perlin noise will differ... I am not sure if this needs to be relocated)
                 fn height(u: Float, v: Float, img: &ImageData, interp: &Interpolation, normalizer: Float, bump_factor: Float) -> Float {
+                    let u = u.clamp(0.0, 1.0);
+                    let v = v.clamp(0.0, 1.0);
+                    
                     let i = u * img.width as Float;
                     let j = v * img.height as Float;
                     let c = img.interpolate(i, j, interp);
@@ -83,16 +86,15 @@ impl Textures {
                     
                     (gray / normalizer) * bump_factor
                 }   
-                let interp_choice = Interpolation::Bilinear; // TODO: is it ok?
+                let interp_choice = &image_texmap.interpolation; //Interpolation::Bilinear; // TODO: is it ok?
                 let nzr = image_texmap.normalizer;
                 let bf = image_texmap.bump_factor;
                 let h_uv = height(u, v, img, &interp_choice, nzr, bf);
                 let dh_du = (height(u + delta_u, v, img, &interp_choice, nzr, bf) - h_uv) / delta_u;
                 let dh_dv = (height(u, v + delta_v, img, &interp_choice, nzr, bf) - h_uv) / delta_v; // slides 07, p.27
 
-                let (dn_du, dn_dv) = (1.0, 1.0); // we ignore these terms (slides 07, p.28)
-                let dq_du = dp_du + (dh_du * nuv) + (dn_du * h_uv);
-                let dq_dv = dp_dv + (dh_dv * nuv) + (dn_dv * h_uv); // slides 07, p.26
+                let dq_du = dp_du + (dh_du * nuv) + (h_uv); // here ignore partial derivatives of surface normal (slides 07, p.28)
+                let dq_dv = dp_dv + (dh_dv * nuv) + (h_uv); // slides 07, p.26
 
                 let new_normal = dq_dv.cross(dq_du); // new surface normal (slides 07, p.25)
                 new_normal.normalize()
