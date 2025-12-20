@@ -131,9 +131,6 @@ impl TextureMap {
             _ => None,
         }
     }
-
-    
-    
 }
 
 #[derive(Debug, Clone)]
@@ -164,7 +161,7 @@ impl<'de> Deserialize<'de> for ImageTexmap {
             interpolation: String,
 
             #[serde(deserialize_with = "deser_float")]
-            #[default = 255.] // WARNING: I assume default for normalizer is 255 ("by default divide the texture value by 255")
+            #[default = 1.] // WARNING: I assume default for normalizer is 255 ("by default divide the texture value by 255")
             normalizer: Float,
 
             #[serde(deserialize_with = "deser_float")]
@@ -506,7 +503,9 @@ impl ImageData {
 
     /// See slides 07, p.9
     pub fn color_to_direction(rgb: Vector3) -> Vector3 {
-        (rgb / 127.5) - Vector3::ONE
+        let dir = (rgb / 127.5) - Vector3::ONE;
+        //dir.map(|x| x.min(1.0).max(-1.0)) // Clamping in range [-1, 1] (note: it didnt solve acne)
+        dir.normalize() // Don't forget to normalize ...
     }
 }
 
