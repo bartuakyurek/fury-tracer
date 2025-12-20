@@ -67,6 +67,9 @@ impl Textures {
                 let dp_dv = hit_record.tbn_matrix.unwrap().y_axis; 
                 let nuv = dp_dv.cross(dp_du); // slides 07, p.24
                 debug_assert!(nuv.is_normalized());
+                debug_assert!(dp_du.is_normalized());
+                debug_assert!(dp_dv.is_normalized());
+                debug_assert!(hit_record.normal.is_normalized());
 
                 let images_ref = &self.images.as_ref().expect("Image texture is required but no Images found");
                 let img = &images_ref.data[image_texmap.image_index];
