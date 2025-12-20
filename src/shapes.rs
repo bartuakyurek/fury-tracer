@@ -260,9 +260,17 @@ impl Shape for Sphere {
             let v = theta / Float::PI;
             uv = Some([u, v]);
 
+            // TODO: avoid trigonometry calls here
+            let cos_phi = phi.cos();
+            let sin_theta = theta.sin();
+            let sin_phi = phi.sin();
+
+            let t_vec = Vector3::new(2. * Float::PI * p.z, 0., - 2. * Float::PI * p.x).normalize();
+            let b_vec = Vector3::new(Float::PI * p.y * cos_phi, - Float::PI * self.radius * sin_theta, Float::PI * p.y * sin_phi);
+            let n_vec = b_vec.cross(t_vec); // see slides 07, p.18
             // Compute TBN matrix for sphere (see slides 07, pp.10-16)
-            tbn = todo!();
-        };
+            tbn = Some(Matrix3::from_cols(t_vec, b_vec, n_vec));
+        }
         
         let texs = self._data.texture_idxs.clone(); // TODO: I keep cloning texture indices "because Vec<usize> does not implement copy trait" but I dont want to impl Copy and let clone occur under the hood, any better solution?
         let rec = HitRecord::new_from(ray.origin, p_world, final_normal, t_world, self._data.material_idx, front_face, texs, uv, tbn);
