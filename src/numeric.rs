@@ -14,7 +14,7 @@
     @author: Bartu
 */
 
-use bevy_math::{DMat3, DMat4, DVec3, DVec4};
+use bevy_math::{DMat2, DMat3, DMat4, DVec2, DVec3, DVec4};
 use crate::prelude::*;
 
 pub type Int = i32;
@@ -23,6 +23,8 @@ pub type Vector3 = DVec3;
 pub type Matrix3 = DMat3;
 pub type Matrix4 = DMat4;
 pub type Vector4 = DVec4;
+pub type Matrix2 = DMat2;
+pub type Vector2 = DVec2;
 
 //#[derive(Clone, Copy, Debug, Default)]
 //pub struct Vector3(pub DVec3); // To declare a type and use impl traits on this type

@@ -134,7 +134,21 @@ impl Shape for Triangle {
                 texture_uv = Some([tex_u, tex_v]);
 
                 // Compute TBN matrix for triangle (see slides 07, pp.10-16)
-                tbn = todo!();
+                let u_col = Vector2::new(uv_b[0] - uv_a[0], uv_c[0] - uv_a[0]);
+                let v_col = Vector2::new(uv_b[1] - uv_a[1], uv_c[1] - uv_a[1]);
+                let first_mat2 = Matrix2::from_cols(u_col, v_col); // p.13
+                let inverse_mat2 = first_mat2.inverse();
+
+                let x_axis = Vector2::new(verts[b].x - verts[a].x, verts[c].x - verts[a].x);
+                let y_axis = Vector2::new(verts[b].y - verts[a].y, verts[c].y - verts[a].y);
+                let z_axis = Vector2::new(verts[b].z - verts[a].z, verts[c].z - verts[a].z);
+                // TODO: Since bevy does not support 2x3 matrices and I am lazy to convert all math to ndarray, here is a quick solution...
+                let tx_bx = inverse_mat2 * x_axis;
+                let ty_by = inverse_mat2 * y_axis;
+                let tz_bz = inverse_mat2 * z_axis;
+                let t_vec = Vector3::new(tx_bx.x, ty_by.x, tz_bz.x);
+                let b_vec = Vector3::new(tx_bx.y, ty_by.y, tz_bz.y);
+                tbn = Some(Matrix3::from_cols(t_vec, b_vec, tri_normal));
             }
             let mut rec = HitRecord::new_from(ray.origin, p, tri_normal, t, self._data.material_idx, front_face, texs, texture_uv, tbn);
             rec.to_world(&viewmat);
