@@ -76,7 +76,9 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
         if let Some(textures) = &scene.data.textures {
             for texmap_id in &hit_record.textures {
                 let texmap = &textures.texture_maps.as_slice()[*texmap_id - 1]; // TODO: I am not sure if as_slice( ) is still relevant here, it resolved a rustc error before I change the implementation though            
-                let tex_color = textures.get_texel_color(texmap_id - 1, hit_record.texture_uv.unwrap(), texmap.interpolation().unwrap());
+                
+               
+                let tex_color = textures.get_texel_color(texmap_id - 1, hit_record.texture_uv.unwrap(), texmap.interpolation().unwrap(), true);
                 if let Some(decal_mode) = texmap.decal_mode() {
                     match decal_mode {
                         DecalMode::BlendKd => { brdf.diffuse_rf = (0.5 * brdf.diffuse_rf) + (0.5 * tex_color); }, // in blendKd do we mix by 0.5 weights or just add them together? could there be multilpe blendkd?
@@ -88,6 +90,9 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
                                                     brdf.ambient_rf = tex_color;
                                                 },
                         DecalMode::ReplaceNormal => { 
+                                                        // TODO: better solution than "apply_normalization" parameter in retrieving colors...? 
+                                                        let tex_color = textures.get_texel_color(texmap_id - 1, hit_record.texture_uv.unwrap(), texmap.interpolation().unwrap(), false);
+
                                                         let dir = ImageData::color_to_direction(tex_color);
                                                         hit_record.normal = hit_record.tbn_matrix.unwrap() * dir;
                                                         debug_assert!(hit_record.normal.is_normalized());

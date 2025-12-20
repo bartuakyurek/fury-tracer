@@ -27,7 +27,7 @@ impl Textures {
     /// return the color of the corresponding texture pixel from the texture (image or procedural).
     /// TODO: should we use hashmaps instead of vecs to avoid the assumption described above?
     /// uv: texture coordinates (currently only uv is supported, I am not sure how to generalize it atm) 
-    pub fn get_texel_color(&self, texmap_idx: usize, uv: [Float; 2], interpolation: &Interpolation) -> Vector3 {
+    pub fn get_texel_color(&self, texmap_idx: usize, uv: [Float; 2], interpolation: &Interpolation, apply_normalization: bool) -> Vector3 {
         
         let texmap = self.texture_maps.all_ref()[texmap_idx];
         match texmap {
@@ -43,7 +43,11 @@ impl Textures {
 
                 let (i, j) = (uv[0] * image.width as Float, uv[1] * image.height as Float); // image coordinate (see slides 06, p.8)
                 let color = image.interpolate(i, j, interpolation);
-                color / image_texmap.normalizer // By default divide by 255
+                if apply_normalization {
+                    color / image_texmap.normalizer // By default divide by 255
+                } else {
+                    color
+                }
             },
             TextureMap::Perlin(perlin_texmap) => {
                 todo!("Perlin texture map not implemented at get_texel_color( ) yet!");
