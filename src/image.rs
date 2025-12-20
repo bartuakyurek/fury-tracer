@@ -66,7 +66,8 @@ impl Textures {
                 let dp_du = hit_record.tbn_matrix.unwrap().x_axis; // T and B vectors (see slides 07, p.13)
                 let dp_dv = hit_record.tbn_matrix.unwrap().y_axis; 
                 let nuv = dp_dv.cross(dp_du); // slides 07, p.24
-                
+                debug_assert!(nuv.is_normalized());
+
                 let images_ref = &self.images.as_ref().expect("Image texture is required but no Images found");
                 let img = &images_ref.data[image_texmap.image_index];
                 let delta_u = 1. / img.width as Float;
