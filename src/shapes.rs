@@ -112,6 +112,7 @@ impl Shape for Triangle {
             // ------ Create hitrecord wrt transform ------------------
 
             let mut texture_uv = None; 
+            let mut tbn = None;
             let texs = self._data.texture_idxs.clone(); // TODO: any better ideas to avoid clone?
             if !texs.is_empty() {
                 // See slides 06, p.20
@@ -131,8 +132,11 @@ impl Shape for Triangle {
                 debug_assert!(tex_u <= 1.0 && tex_u >= 0.0);
                 debug_assert!(tex_v <= 1.0 && tex_v >= 0.0);
                 texture_uv = Some([tex_u, tex_v]);
+
+                // Compute TBN matrix for triangle (see slides 07, pp.10-16)
+                tbn = todo!();
             }
-            let mut rec = HitRecord::new_from(ray.origin, p, normal, t, self._data.material_idx, front_face, texs, texture_uv);
+            let mut rec = HitRecord::new_from(ray.origin, p, normal, t, self._data.material_idx, front_face, texs, texture_uv, tbn);
             rec.to_world(&viewmat);
             Some(rec) 
             // --------------------------------------------------------
@@ -243,21 +247,25 @@ impl Shape for Sphere {
         let final_normal = if front_face { world_normal } else { -world_normal };
         
         // Check texture uv coords
-        let uv = if self._data.texture_idxs.is_empty() { None }
-                                   else {
-                                        // See slides 06, p.6-7
-                                        // (assumes sphere center is at origin, so we translate hitpoint by the center)
-                                        let p = p_local - center; 
-                                        
-                                        let theta = ( p.y / self.radius ).acos();
-                                        let phi = p.z.atan2(p.x);
-                                        let u = (-phi + Float::PI) / (2. * Float::PI);
-                                        let v = theta / Float::PI;
-                                        Some([u, v])
-                                   };
+        let mut tbn = None;
+        let mut uv = None;
+        if !self._data.texture_idxs.is_empty() { 
+            // See slides 06, p.6-7
+            // (assumes sphere center is at origin, so we translate hitpoint by the center)
+            let p = p_local - center; 
+            
+            let theta = ( p.y / self.radius ).acos();
+            let phi = p.z.atan2(p.x);
+            let u = (-phi + Float::PI) / (2. * Float::PI);
+            let v = theta / Float::PI;
+            uv = Some([u, v]);
 
+            // Compute TBN matrix for sphere (see slides 07, pp.10-16)
+            tbn = todo!();
+        };
+        
         let texs = self._data.texture_idxs.clone(); // TODO: I keep cloning texture indices "because Vec<usize> does not implement copy trait" but I dont want to impl Copy and let clone occur under the hood, any better solution?
-        let rec = HitRecord::new_from(ray.origin, p_world, final_normal, t_world, self._data.material_idx, front_face, texs, uv);
+        let rec = HitRecord::new_from(ray.origin, p_world, final_normal, t_world, self._data.material_idx, front_face, texs, uv, tbn);
         Some(rec)
     }
 }
@@ -351,8 +359,9 @@ impl Shape for Plane {
 
         // Check texture uv coords
         let uv = None; todo!("Create uv for Plane hits (i guess we leave it None for planes, no?)!");
+        let tbn = None; todo!("Construct TBN for plane!");
         let texs = self._data.texture_idxs;
-        let mut rec = HitRecord::new_from(ray.origin, ray.at(t), normal, t, self._data.material_idx, front_face, texs, uv);
+        let mut rec = HitRecord::new_from(ray.origin, ray.at(t), normal, t, self._data.material_idx, front_face, texs, uv, tbn);
 
         // transform hitpoint and normal (04, p.53) -----
         rec.to_world(&viewmat);

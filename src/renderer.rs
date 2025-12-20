@@ -67,7 +67,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
    }
    
    let t_interval = Interval::positive(scene.data.intersection_test_epsilon);
-   if let Some(hit_record) = scene.hit_bvh(ray_in, &t_interval, false) {
+   if let Some(mut hit_record) = scene.hit_bvh(ray_in, &t_interval, false) {
         
         let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
         let mut brdf = mat.brdf().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
@@ -87,7 +87,10 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
                                                     brdf.specular_rf = tex_color;
                                                     brdf.ambient_rf = tex_color;
                                                 },
-                        DecalMode::ReplaceNormal => {todo!()},
+                        DecalMode::ReplaceNormal => { 
+                                                        let dir = ImageData::color_to_direction(tex_color);
+                                                        hit_record.normal = hit_record.tbn_matrix.unwrap() * dir;
+                                                    },
                         DecalMode::BumpNormal => {todo!()},
                         DecalMode::ReplaceBackground => {todo!()},
                         _ => { debug!("Unexpeced decalibration mode {:?}...", decal_mode); }

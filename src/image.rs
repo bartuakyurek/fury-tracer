@@ -503,6 +503,11 @@ impl ImageData {
     fn trilinear(&self, i: Float, j: Float) -> Vector3 {
         todo!("Trilinear interpolation to be implemented...");
     }
+
+    /// See slides 07, p.9
+    pub fn color_to_direction(rgb: Vector3) -> Vector3 {
+        (rgb / 127.5) - Vector3::ONE
+    }
 }
 
 //////////////////////////// Sampling Pixels ///////////////////////////////////////////////////
