@@ -52,10 +52,14 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, mat: &
             let tex_color = textures.get_texel_color(texmap_id - 1, hit_record.texture_uv.unwrap(), texmap.interpolation().unwrap());
             if let Some(decal_mode) = texmap.decal_mode() {
                 match decal_mode {
-                    DecalMode::BlendKd => { todo!() }, // in blendKd do we mix by 0.5 weights or just add them together? could there be multilpe blendkd?
-                    DecalMode::ReplaceKd => { brdf.diffuse_rf = tex_color  },
-                    DecalMode::ReplaceKs => { todo!() },
-                    DecalMode::ReplaceAll => { todo!() },
+                    DecalMode::BlendKd => { brdf.diffuse_rf = (0.5 * brdf.diffuse_rf) + (0.5 * tex_color); }, // in blendKd do we mix by 0.5 weights or just add them together? could there be multilpe blendkd?
+                    DecalMode::ReplaceKd => { brdf.diffuse_rf = tex_color;  },
+                    DecalMode::ReplaceKs => { brdf.specular_rf = tex_color; },
+                    DecalMode::ReplaceAll => { 
+                                                brdf.diffuse_rf = tex_color;   
+                                                brdf.specular_rf = tex_color;
+                                                brdf.ambient_rf = tex_color;
+                                             },
                     _ => { debug!("Nothing to update in shade_diffuse() BRDF..."); }
                 }
             }
