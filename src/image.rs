@@ -76,20 +76,22 @@ impl Textures {
 
                 let (u, v) = (hit_record.texture_uv.unwrap()[0], hit_record.texture_uv.unwrap()[1]);
 
-                fn helper_height_func(img_color: Vector3, u: Float, v: Float) -> Float {
-                    // TODO: should this func return a Float or Vector3?
-                    let gray = img_color.element_sum() / 3.;
+                // Helper height function for images (as Perlin noise will differ... I am not sure if this needs to be relocated)
+                fn height(u: Float, v: Float, img: &ImageData, interp: &Interpolation) -> Float {
+                    let i = u * img.width as Float;
+                    let j = v * img.height as Float;
+                    let c = img.interpolate(i, j, interp);
+                    let gray = (c.x + c.y + c.z) / 3.;
+                    
                     gray / 255.
-                    //Vector3::new(gray, gray, gray) / 255.
-                }
-
-                
-                let dh_du = (helper_height_func(u + delta_u, v)) / delta_u;
-                let dh_dv = (helper_height_func(u, v + delta_v)) / delta_v; // slides 07, p.27
+                }   
+                let interp_choice = Interpolation::Bilinear; // TODO: is it ok?
+                let dh_du = (height(u + delta_u, v, img, &interp_choice)) / delta_u;
+                let dh_dv = (height(u, v + delta_v, img, &interp_choice)) / delta_v; // slides 07, p.27
 
                 let (dn_du, dn_dv) = (1.0, 1.0); // we ignore these terms (slides 07, p.28)
-                let dq_du = dp_du + (dh_du * nuv) + (dn_du * helper_height_func(u, v));
-                let dq_dv = dp_dv + (dh_dv * nuv) + (dn_dv * helper_height_func(u, v)); // slides 07, p.26
+                let dq_du = dp_du + (dh_du * nuv) + (dn_du * height(u, v, img, &interp_choice));
+                let dq_dv = dp_dv + (dh_dv * nuv) + (dn_dv * height(u, v, img, &interp_choice)); // slides 07, p.26
 
                 dq_dv.cross(dq_du) // new surface normal (slides 07, p.25)
             },
