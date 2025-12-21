@@ -22,6 +22,39 @@ pub struct Textures {
     //pub texture_maps: Vec<TextureMap>, // To avoid calling .all( ) on SingleOrVec deserialization
 }
 
+
+// ---------------------------------------------------------
+// Perlin Gradients (slides 06, p.52)
+// ---------------------------------------------------------
+use std::sync::OnceLock;
+
+static PERLIN_GRADIENTS: OnceLock<Vec<Vector3>> = OnceLock::new();
+
+fn perlin_gradients() -> &'static Vec<Vector3> {
+    PERLIN_GRADIENTS.get_or_init(|| {
+        vec![
+            Vector3::new( 1.,  1., 0.),
+            Vector3::new(-1.,  1., 0.),
+            Vector3::new( 1., -1., 0.),
+            Vector3::new(-1., -1., 0.),
+            Vector3::new( 1., 0., 1.),
+            Vector3::new(-1., 0., 1.),
+            Vector3::new( 1., 0., -1.),
+            Vector3::new(-1., 0., -1.),
+            Vector3::new( 0., 1., 1.),
+            Vector3::new( 0., -1., 1.),
+            Vector3::new( 0., 1., -1.),
+            Vector3::new( 0., -1., -1.),
+            Vector3::new( 1., 1., 0.),
+            Vector3::new( -1., 1., 0.),
+            Vector3::new( 0., -1., 1.),
+            Vector3::new( 0., -1., -1.),
+        ]
+    })
+}
+
+// ---------------------------------------------------------
+
 impl Textures {
     /// Given texture map index (assuming json ids are sorted and starting from 1 because I directly push them in a vector),
     /// return the color of the corresponding texture pixel from the texture (image or procedural).
