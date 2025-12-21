@@ -57,13 +57,13 @@ fn perlin_gradients() -> &'static Vec<Vector3> {
 
 /// See slides 06, p.53 
 /// i, j, k represent the lattice cell corners (see p. 60)
-fn perlin_table_idx(table: &Vec<usize>, i: Int, j: Int, k: Int) -> usize {
+fn perlin_table_idx(table: &Vec<Float>, i: Float, j: Float, k: Float) -> usize {
     
-    let mut idx: usize = table[(k.abs() % 16) as usize];
-    idx = table[((j + idx as Int).abs() % 16) as usize];
-    idx = table[((i + idx as Int).abs() % 16) as usize];
+    let mut idx: Float = table[(k.abs() % 16.) as usize];
+    idx = table[((j + idx).abs() % 16.) as usize];
+    idx = table[((i + idx).abs() % 16.) as usize];
 
-    idx
+    idx as usize
 } 
 
 /// Helper function for Perlin noise interpolation,
@@ -85,27 +85,27 @@ fn perlin_noise(xyz: Vector3, scale: Float, noise_conversion: &NoiseConversion) 
         let y: Float = xyz[1] * scale; //* perlin_texmap.noise_scale;
         let z: Float = xyz[2] * scale; // TODO: I assumed we should use 3D noise but then realized we are in u, v space... should xyz be hitpoints directly?
 
-        let i0 = x.floor() as Int;
-        let j0 = y.floor() as Int;
-        let k0 = z.floor() as Int;
+        let i0 = x.floor(); // as Int;
+        let j0 = y.floor();// as Int;
+        let k0 = z.floor();// as Int;
 
         // Create table
         let mut rng = StdRng::seed_from_u64(42); // see https://rust-random.github.io/book/
-        let mut table = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,];
+        let mut table = vec![0., 1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15.,];
         table.shuffle(&mut rng); // slides 06, p.53 "table can be shuffled prior to being used"
 
         // 8 corners for 3D lattice
         for di in 0..=1 {
             for dj in 0..=1 {
                 for dk in 0..=1 {
-                    let i = i0 + di;
-                    let j = j0 + dj;
-                    let k = k0 + dk;   
+                    let i = i0 + di as Float;
+                    let j = j0 + dj as Float;
+                    let k = k0 + dk as Float;   
 
                     let g = perlin_gradients()[perlin_table_idx(&table, i, j, k)]; // slides 06, p.54
-                    let dx: Float = x - i as Float;
-                    let dy: Float = y - j as Float;
-                    let dz: Float = z - k as Float;
+                    let dx: Float = x - i;
+                    let dy: Float = y - j;
+                    let dz: Float = z - k;
 
                     let d = Vector3::new(dx, dy, dz);
                     let c: Float = perlin_interp(dx) * perlin_interp(dy) * perlin_interp(dz) * g.dot(d); // p.55 
