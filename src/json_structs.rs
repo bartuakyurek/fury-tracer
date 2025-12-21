@@ -345,6 +345,12 @@ pub struct Vertex {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+
+    // UV coordinates from PLY file (not all of them have it though)
+    #[serde(default)]
+    pub u: Option<f32>,
+    #[serde(default)]
+    pub v: Option<f32>,
 }
 
 #[derive(Deserialize)]

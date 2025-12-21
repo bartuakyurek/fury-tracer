@@ -530,6 +530,8 @@ impl SceneObjects {
         let mut unbboxable_shapes: ShapeList = Vec::new();
         let mut all_triangles: Vec<Triangle> = self.triangles.all();
 
+        let mut ply_uv_coords: Vec<Option<[Float; 2]>> = Vec::new();
+
         bboxable_shapes.extend(self.triangles.all().into_iter().map(|t| Arc::new(t) as HeapAllocatedShape));
         bboxable_shapes.extend(self.spheres.all().into_iter().map(|s| Arc::new(s) as HeapAllocatedShape));
         unbboxable_shapes.extend(self.planes.all().into_iter().map(|p| Arc::new(p) as HeapAllocatedShape));
@@ -609,7 +611,7 @@ impl SceneObjects {
         
         // Build uv coords (deserialized JSON is converted to cache data for ease of use but I'm not sure how to organize all this cache setup pipeline better)
         let n_verts = verts._data.len();
-        let uv_coords = VertexCache::build_uv(n_verts, texture_coords);  
+        let uv_coords = VertexCache::build_uv(n_verts, texture_coords, &ply_uv_coords);  
         
         let cache = VertexCache { vertex_data: verts.clone(), vertex_normals: normals_cache, uv_coords }; 
         Ok(cache)
@@ -653,7 +655,10 @@ impl Default for VertexCache {
 // shape refers to this data for their coordinates. 
 impl VertexCache {
     
-    pub fn build_uv(n_verts: usize, tex_coords: &Option<TexCoordData>) -> Vec<Option<[Float; 2]>> {
+    pub fn build_uv(n_verts: usize, 
+                    tex_coords: &Option<TexCoordData>,
+                    ply_uv_coords: &[Option<[Float; 2]>]
+                ) -> Vec<Option<[Float; 2]>> {
         // Assumes:
         // - dummy texcoord already inserted
         // - texcoords are aligned with vertex_data indices
@@ -673,6 +678,9 @@ impl VertexCache {
             for chunk in raw.chunks_exact(2) {
                 out.push(Some([chunk[0], chunk[1]]));
             }
+
+            // Add uv coordinates coming from PLY
+            out.extend_from_slice(ply_uv_coords);
 
             // Fill the remaining fields with none, (e.g. if ply file will be used to insert more coords)
             while out.len() < n_verts {
