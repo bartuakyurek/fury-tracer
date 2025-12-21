@@ -256,7 +256,7 @@ impl Textures {
                 let g_parallel = (g.dot(n)) * n;
                 let g_perp = g - g_parallel; // This is the surface gradient in p.34
 
-                let new_normal = n - g_perp; //  Following p.34
+                let new_normal = n - (g_perp * perlin_texmap.bump_factor); //  Following p.34
                 new_normal.normalize()
             },
             _ => {
