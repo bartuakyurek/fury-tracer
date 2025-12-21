@@ -55,7 +55,8 @@ fn perlin_gradients() -> &'static Vec<Vector3> {
 
 static PERLIN_TABLE: OnceLock<Vec<usize>> = OnceLock::new();
 
-// See slides 06, p.53
+/// See slides 06, p.53 
+/// i, j, k represent the lattice cell corners (see p. 60)
 fn perlin_table_idx(i: Int, j: Int, k: Int) -> usize {
     let table = PERLIN_TABLE.get_or_init(|| {
         vec![
@@ -70,8 +71,15 @@ fn perlin_table_idx(i: Int, j: Int, k: Int) -> usize {
     idx
 } 
 
+/// Helper function for Perlin noise interpolation,
+/// i.e. f(x) in p.48
 fn perlin_interp(x: Float) -> Float {
-    todo!()
+    let x = x.abs();
+    if x < 1. {
+        -6. * x.powf(5.) + 15. * x.powf(4.) - 10. * x.powf(3.) + 1. 
+    } else {
+        0.
+    }
 }
 // ---------------------------------------------------------
 
