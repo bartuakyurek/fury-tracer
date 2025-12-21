@@ -354,6 +354,8 @@ struct PerlinTexmap {
     decal_mode: DecalMode,
     noise_scale: Float,
     bump_factor: Float,
+    num_octaves: usize,
+
 }
 
 impl<'de> Deserialize<'de> for PerlinTexmap {
@@ -379,6 +381,9 @@ impl<'de> Deserialize<'de> for PerlinTexmap {
             #[serde(deserialize_with = "deser_float")]
             #[default = 1.0]
             bump_factor: Float, // TODO: is it safe to assume 1 here?
+
+            #[default = 1]
+            num_octaves: usize,
         }
 
         let h = Helper::deserialize(deserializer)?;
@@ -389,6 +394,7 @@ impl<'de> Deserialize<'de> for PerlinTexmap {
             noise_conversion: parse_noise_conversion(&h.noise_conversion).unwrap(),
             noise_scale: h.noise_scale,
             bump_factor: h.bump_factor,
+            num_octaves: h.num_octaves,
         })
     }
 }
