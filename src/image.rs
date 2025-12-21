@@ -436,6 +436,7 @@ impl<'de> Deserialize<'de> for PerlinTexmap {
             #[default = 1.0]
             bump_factor: Float, // TODO: is it safe to assume 1 here?
 
+            #[serde(deserialize_with = "deser_usize")]
             #[default = 1]
             num_octaves: usize,
         }
