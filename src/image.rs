@@ -172,6 +172,21 @@ impl Textures {
                 let n = perlin_octave(perlin_texmap.num_octaves, xyz, perlin_texmap.noise_scale, &perlin_texmap.noise_conversion);
                 Vector3::new(n, n, n)  // Turn n into color (grayscale I assume here)
             },
+            TextureMap::Checkerboard(checker_texmap) => {
+                // For notation, see hw4 specifications, p.4
+                let scale = checker_texmap.scale;
+                let offset = checker_texmap.offset;
+                let x: bool = ((((xyz[0] + offset).floor() * scale) as Int) % 2) != 0;
+                let y: bool = ((((xyz[1] + offset).floor() * scale) as Int) % 2) != 0;
+                let z: bool = ((((xyz[2] + offset).floor() * scale) as Int) % 2) != 0;
+
+                let xor_xy: bool = x != y;
+                if xor_xy != z {
+                    checker_texmap.black
+                } else {
+                    checker_texmap.white
+                }
+            },
             _ => {
                 todo!("I am not ready to get texel color of this texmap type '{:?}' yet...", texmap);
             }
