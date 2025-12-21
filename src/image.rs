@@ -159,8 +159,8 @@ impl Textures {
                 debug_assert!(uv[0] <= 1.0 && uv[1] <= 1.0, "Failed condition (u, v) <= 1, found uv : ({}, {})", uv[0], uv[1]);
                 debug_assert!(uv[0] >= 0.0 && uv[1] >= 0.0, "Failed (u, v) >= 0, found uv : ({}, {})", uv[0], uv[1]);
 
-                let (i, j) = (uv[0] * image.width as Float, uv[1] * image.height as Float); // image coordinate (see slides 06, p.8)
-                let color = image.interpolate(i, j, interpolation);
+                let (col, row) = (uv[0] * image.width as Float, uv[1] * image.height as Float); // image coordinate (see slides 06, p.8)
+                let color = image.interpolate(row, col, interpolation);
                 if apply_normalization {
                     color / image_texmap.normalizer // By default divide by 255
                 } else {
@@ -690,13 +690,13 @@ impl ImageData {
        
         match style {
             Interpolation::Nearest => {
-                self.lerp(col, row)
+                self.lerp(row, col)
             },
             Interpolation::Bilinear => {
-                self.bilinear(col, row)
+                self.bilinear(row, col)
             },
             Interpolation::Trilinear => {
-                self.trilinear(col, row)
+                self.trilinear(row, col)
             }
         }
     }
