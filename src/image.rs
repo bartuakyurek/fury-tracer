@@ -57,12 +57,8 @@ fn perlin_gradients() -> &'static Vec<Vector3> {
 
 /// See slides 06, p.53 
 /// i, j, k represent the lattice cell corners (see p. 60)
-fn perlin_table_idx(i: Int, j: Int, k: Int) -> usize {
+fn perlin_table_idx(table: &Vec<usize>, i: Int, j: Int, k: Int) -> usize {
     
-    let mut rng = StdRng::seed_from_u64(42); // see https://rust-random.github.io/book/
-    let mut table = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,];
-    table.shuffle(&mut rng); // slides 06, p.53 "table can be shuffled prior to being used"
-
     let mut idx: usize = table[(k.abs() % 16) as usize];
     idx = table[((j + idx as Int).abs() % 16) as usize];
     idx = table[((i + idx as Int).abs() % 16) as usize];
@@ -93,6 +89,11 @@ fn perlin_noise(xyz: Vector3, scale: Float, noise_conversion: &NoiseConversion) 
         let j0 = y.floor() as Int;
         let k0 = z.floor() as Int;
 
+        // Create table
+        let mut rng = StdRng::seed_from_u64(42); // see https://rust-random.github.io/book/
+        let mut table = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,];
+        table.shuffle(&mut rng); // slides 06, p.53 "table can be shuffled prior to being used"
+
         // 8 corners for 3D lattice
         for di in 0..=1 {
             for dj in 0..=1 {
@@ -101,7 +102,7 @@ fn perlin_noise(xyz: Vector3, scale: Float, noise_conversion: &NoiseConversion) 
                     let j = j0 + dj;
                     let k = k0 + dk;   
 
-                    let g = perlin_gradients()[perlin_table_idx(i, j, k)]; // slides 06, p.54
+                    let g = perlin_gradients()[perlin_table_idx(&table, i, j, k)]; // slides 06, p.54
                     let dx: Float = x - i as Float;
                     let dy: Float = y - j as Float;
                     let dz: Float = z - k as Float;
