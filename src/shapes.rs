@@ -384,7 +384,7 @@ impl Shape for Plane {
         let normal = if front_face { n } else { -n };
 
         // Check texture uv coords
-        let uv = [-999999., -99999.]; // Dummy uv is set //todo!("Create uv for Plane hits (i guess we leave it None for planes, no?)!");
+        let uv = Some([-999999., -99999.]); // Dummy uv is set //todo!("Create uv for Plane hits (i guess we leave it None for planes, no?)!");
         let tbn = None; // todo!("Construct TBN for plane!");
         let texs = self._data.texture_idxs.clone();
         let mut rec = HitRecord::new_from(ray.origin, ray.at(t), normal, t, self._data.material_idx, front_face, texs, uv, tbn);
