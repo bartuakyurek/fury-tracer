@@ -113,23 +113,46 @@ impl Textures {
             TextureMap::Perlin(perlin_texmap) => {
                 let scale = perlin_texmap.noise_scale;
                 let mut n_prime: Float = 0.; // notation in p.49
-                for _ in 0..8 { // 8 corners for 3D lattice
-                    
-                    let g = perlin_gradients()[perlin_table_idx(i, j, k)]; // slides 06, p.54
-                    let dx: Float = x - i;
-                    let dy: Float = y - j;
-                    let dz: Float = z - k;
-
-                    let d = Vector3::new(dx, dy, dz);
-                    let c: Float = perlin_interp(dx * scale) * perlin_interp(dy * scale) * perlin_interp(dz * scale) * g.dot(d); // p.55 
-                    // scale corresponds to homework specification "multiply the input position that you give to the noise function with this value"
-                    
-                    n_prime += c;
-                }
                 
 
+                let i0 = x.floor() as Int;
+                let j0 = y.floor() as Int;
+                let k0 = z.floor() as Int;
+                
+                // 8 corners for 3D lattice
+                for di in 0..=1 {
+                    for dj in 0..=1 {
+                        for dk in 0..=1 {
+                            let i = i0 + di;
+                            let j = j0 + dj;
+                            let k = k0 + dk;   
 
-                todo!("Perlin texture map not implemented at get_texel_color( ) yet!");
+                            let g = perlin_gradients()[perlin_table_idx(i, j, k)]; // slides 06, p.54
+                            let dx: Float = x - i;
+                            let dy: Float = y - j;
+                            let dz: Float = z - k;
+
+                            let d = Vector3::new(dx, dy, dz);
+                            let c: Float = perlin_interp(dx * scale) * perlin_interp(dy * scale) * perlin_interp(dz * scale) * g.dot(d); // p.55 
+                            // scale corresponds to homework specification "multiply the input position that you give to the noise function with this value"
+
+                            n_prime += c;
+                        }
+                    }
+                }
+
+                // Return n given noise type (corresponds to options in slides 06, p.49)
+                let n: Float = match perlin_texmap.noise_conversion {
+                    NoiseConversion::AbsoluteVal => {
+                        n_prime.abs()
+                    },
+                    NoiseConversion::Linear => {
+                        (n_prime + 1.) / 2.
+                    },
+                };
+                
+                // Turn n into color (grayscale I assume here)
+                Vector3::new(n, n, n)
             },
             _ => {
                 todo!("I am not ready to get texel color of this texmap type '{:?}' yet...", texmap);
