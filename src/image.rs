@@ -72,11 +72,11 @@ fn perlin_table_idx(i: Int, j: Int, k: Int) -> usize {
 } 
 
 /// Helper function for Perlin noise interpolation,
-/// i.e. f(x) in p.48
+/// i.e. f(x) in slides 06, p.48
 fn perlin_interp(x: Float) -> Float {
     let x = x.abs();
     if x < 1. {
-        -6. * x.powf(5.) + 15. * x.powf(4.) - 10. * x.powf(3.) + 1. 
+        (-6. * x.powf(5.)) + (15. * x.powf(4.)) - (10. * x.powf(3.)) + 1. 
     } else {
         0.
     }
