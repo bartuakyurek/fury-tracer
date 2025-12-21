@@ -114,11 +114,14 @@ impl Textures {
                 let scale = perlin_texmap.noise_scale;
                 let mut n_prime: Float = 0.; // notation in p.49
                 
+                let x: Float = uv[0]; //* perlin_texmap.noise_scale;
+                let y: Float = uv[1]; //* perlin_texmap.noise_scale;
+                let z: Float = 0.0; // TODO: I assumed we should use 3D noise but then realized we are in u, v space... should xyz be hitpoints directly?
 
                 let i0 = x.floor() as Int;
                 let j0 = y.floor() as Int;
                 let k0 = z.floor() as Int;
-                
+
                 // 8 corners for 3D lattice
                 for di in 0..=1 {
                     for dj in 0..=1 {
@@ -128,9 +131,9 @@ impl Textures {
                             let k = k0 + dk;   
 
                             let g = perlin_gradients()[perlin_table_idx(i, j, k)]; // slides 06, p.54
-                            let dx: Float = x - i;
-                            let dy: Float = y - j;
-                            let dz: Float = z - k;
+                            let dx: Float = x - i as Float;
+                            let dy: Float = y - j as Float;
+                            let dz: Float = z - k as Float;
 
                             let d = Vector3::new(dx, dy, dz);
                             let c: Float = perlin_interp(dx * scale) * perlin_interp(dy * scale) * perlin_interp(dz * scale) * g.dot(d); // p.55 
