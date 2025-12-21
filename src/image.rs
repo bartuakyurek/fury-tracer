@@ -80,6 +80,51 @@ fn perlin_interp(x: Float) -> Float {
         0.
     }
 }
+
+// Scale determines frequency of perlin noise
+fn perlin_noise(xyz: Vector3, scale: Float, noise_conversion: &NoiseConversion) -> Float {
+        let mut n_prime: Float = 0.; // notation in p.49
+        
+        let x: Float = xyz[0] * scale; //* perlin_texmap.noise_scale;
+        let y: Float = xyz[1] * scale; //* perlin_texmap.noise_scale;
+        let z: Float = xyz[2] * scale; // TODO: I assumed we should use 3D noise but then realized we are in u, v space... should xyz be hitpoints directly?
+
+        let i0 = x.floor() as Int;
+        let j0 = y.floor() as Int;
+        let k0 = z.floor() as Int;
+
+        // 8 corners for 3D lattice
+        for di in 0..=1 {
+            for dj in 0..=1 {
+                for dk in 0..=1 {
+                    let i = i0 + di;
+                    let j = j0 + dj;
+                    let k = k0 + dk;   
+
+                    let g = perlin_gradients()[perlin_table_idx(i, j, k)]; // slides 06, p.54
+                    let dx: Float = x - i as Float;
+                    let dy: Float = y - j as Float;
+                    let dz: Float = z - k as Float;
+
+                    let d = Vector3::new(dx, dy, dz);
+                    let c: Float = perlin_interp(dx) * perlin_interp(dy) * perlin_interp(dz) * g.dot(d); // p.55 
+
+                    n_prime += c;
+                }
+            }
+        }
+
+        // Return n given noise type (corresponds to options in slides 06, p.49)
+        match noise_conversion {
+            NoiseConversion::AbsoluteVal => {
+                n_prime.abs()
+            },
+            NoiseConversion::Linear => {
+                (n_prime + 1.) / 2.
+            },
+        }
+            
+}
 // ---------------------------------------------------------
 
 impl Textures {
@@ -87,7 +132,7 @@ impl Textures {
     /// return the color of the corresponding texture pixel from the texture (image or procedural).
     /// TODO: should we use hashmaps instead of vecs to avoid the assumption described above?
     /// uv: texture coordinates (currently only uv is supported, I am not sure how to generalize it atm) 
-    pub fn get_texture_color(&self, texmap_idx: usize, uv: [Float; 2], interpolation: &Interpolation, apply_normalization: bool) -> Vector3 {
+    pub fn get_texture_color(&self, texmap_idx: usize, uv: [Float; 2], interpolation: &Interpolation, apply_normalization: bool, xyz: Vector3) -> Vector3 {
         
         let texmap = self.texture_maps.all_ref()[texmap_idx];
         match texmap {
@@ -110,47 +155,8 @@ impl Textures {
                 }
             },
             TextureMap::Perlin(perlin_texmap) => {
-                let scale = perlin_texmap.noise_scale;
-                let mut n_prime: Float = 0.; // notation in p.49
                 
-                let x: Float = uv[0] * scale; //* perlin_texmap.noise_scale;
-                let y: Float = uv[1] * scale; //* perlin_texmap.noise_scale;
-                let z: Float = 0.0 * scale; // TODO: I assumed we should use 3D noise but then realized we are in u, v space... should xyz be hitpoints directly?
-
-                let i0 = x.floor() as Int;
-                let j0 = y.floor() as Int;
-                let k0 = z.floor() as Int;
-
-                // 8 corners for 3D lattice
-                for di in 0..=1 {
-                    for dj in 0..=1 {
-                        for dk in 0..=1 {
-                            let i = i0 + di;
-                            let j = j0 + dj;
-                            let k = k0 + dk;   
-
-                            let g = perlin_gradients()[perlin_table_idx(i, j, k)]; // slides 06, p.54
-                            let dx: Float = x - i as Float;
-                            let dy: Float = y - j as Float;
-                            let dz: Float = z - k as Float;
-
-                            let d = Vector3::new(dx, dy, dz);
-                            let c: Float = perlin_interp(dx) * perlin_interp(dy) * perlin_interp(dz) * g.dot(d); // p.55 
-
-                            n_prime += c;
-                        }
-                    }
-                }
-
-                // Return n given noise type (corresponds to options in slides 06, p.49)
-                let n: Float = match perlin_texmap.noise_conversion {
-                    NoiseConversion::AbsoluteVal => {
-                        n_prime.abs()
-                    },
-                    NoiseConversion::Linear => {
-                        (n_prime + 1.) / 2.
-                    },
-                };
+                let n = perlin_noise(xyz, perlin_texmap.noise_scale, &perlin_texmap.noise_conversion);
                 
                 // Turn n into color (grayscale I assume here)
                 Vector3::new(n, n, n)
@@ -161,6 +167,8 @@ impl Textures {
         }
         
     }
+
+    
 
     pub fn get_bump_mapping(&self, texmap: &TextureMap, hit_record: &HitRecord) -> Vector3 {
         match texmap {
@@ -211,7 +219,10 @@ impl Textures {
                 new_normal.normalize()
             },
             TextureMap::Perlin(perlin_texmap) => {
-              todo!();
+                let n = hit_record.normal;
+                let (pu, pv) = (hit_record.texture_uv.unwrap()[0], hit_record.texture_uv.unwrap()[1]);
+                let p = hit_record.hit_point;
+                todo!();
             },
             _ => {
               todo!("I am not ready for the bump mapping of this texmap type '{:?}' yet...", texmap);
