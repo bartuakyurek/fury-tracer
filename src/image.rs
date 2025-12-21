@@ -360,6 +360,15 @@ impl TextureMap {
         }
     }
 
+    pub fn index(&self) -> usize {
+        match self {
+            TextureMap::Image(img) => img._id - 1, // Assuming id starts from 1 and index assumes 0 start
+            TextureMap::Perlin(perlin) => perlin.id - 1,
+            TextureMap::Checkerboard(checker) => checker._id - 1,
+            TextureMap::Empty => panic!("Empty TextureMap received, index unknown!"),
+        }
+    }
+
     pub fn interpolation(&self) -> Option<&Interpolation> {
         match self {
             TextureMap::Image(img) => Some(&img.interpolation), // Only image textures have interpolation I assume
