@@ -131,8 +131,9 @@ fn perlin_octave(n_octaves: usize, xyz: Vector3, scale: Float, noise_conversion:
     let mut s: Float = 0.;
     let base: Float = 2.;
     for k in 0..n_octaves {
-        let fade: Float = base.powi(-(k as Int));
-        s += fade * perlin_noise(xyz, scale, noise_conversion); 
+        let fade: Float = base.powi(-(k as Int)); 
+        let amplify: Float = base.powi(k as Int);   
+        s += fade * perlin_noise(xyz * amplify, scale, noise_conversion); 
     }
 
     s
