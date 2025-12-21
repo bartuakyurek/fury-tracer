@@ -323,6 +323,7 @@ impl TextureImages {
 pub enum TextureMap {
     Image(ImageTexmap),
     Perlin(PerlinTexmap),
+    Checkerboard(CheckerTexmap),
     Empty,
 }
 
@@ -339,6 +340,7 @@ impl TextureMap {
         match self {
             TextureMap::Image(img) => Some(&img.decal_mode),
             TextureMap::Perlin(perlin) => Some(&perlin.decal_mode),
+            TextureMap::Checkerboard(checker) => Some(&checker.decal_mode),
             TextureMap::Empty => None,
         }
     }
@@ -350,6 +352,55 @@ impl TextureMap {
         }
     }
 }
+
+#[derive(Debug, Clone)]
+struct CheckerTexmap {
+    _id: usize,
+    black: Vector3,
+    white: Vector3,
+    scale: Float,
+    offset: Float,
+    decal_mode: DecalMode,
+}
+
+
+impl<'de> Deserialize<'de> for CheckerTexmap {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize, SmartDefault)]
+        #[serde(rename_all = "PascalCase")]
+        #[serde(default)]
+        struct Helper {
+            #[serde(rename = "_id", deserialize_with = "deser_usize")]
+            _id: usize,
+            #[serde(deserialize_with = "deser_vec3")]
+            black_color: Vector3,
+            #[serde(deserialize_with = "deser_vec3")]
+            white_color: Vector3,
+            #[serde(deserialize_with = "deser_float")]
+            #[default = 1.]
+            scale: Float,            
+            #[serde(deserialize_with = "deser_float")]
+            offset: Float,
+            decal_mode: String,
+        }
+        debug!("Calling helper deserializer for 'Checkerboard' type texture map...");
+        let h = Helper::deserialize(deserializer)?;
+        debug!("Deserialized checkerboard texture map.");
+        Ok(CheckerTexmap {
+            _id: h._id,
+            black: h.black_color,
+            white: h.white_color,
+            scale:  h.scale,
+            offset: h.offset,
+            decal_mode: parse_decal(&h.decal_mode).unwrap(),
+        })
+    }
+}
+
+
 
 #[derive(Debug, Clone)]
 struct ImageTexmap {
