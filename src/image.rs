@@ -706,8 +706,8 @@ impl ImageData {
         let mut row = i.round() as usize;
         let mut col = j.round() as usize;
         // TODO: Clamping resolves out of bounds error but I wonder I'm just silencing a bug here...
-        row = row.min(self.width - 1); 
-        col = col.min(self.height - 1);
+        row = row.min(self.height - 1); 
+        col = col.min(self.width - 1);
         self.fetch_color(row, col)
     }
 
@@ -722,8 +722,8 @@ impl ImageData {
         let dx = i - p as Float;
         let dy = j - q as Float;
 
-        let p_next = (p + 1).min(self.width - 1); // TODO: Clamping resolved index out of bounds error but is this even correct?
-        let q_next = (q + 1).min(self.height - 1);
+        let p_next = (p + 1).min(self.height - 1); // TODO: Clamping resolved index out of bounds error but is this even correct?
+        let q_next = (q + 1).min(self.width - 1);
 
         self.fetch_color(p, q) * (1. - dx) * (1. - dy) +
         self.fetch_color(p_next, q) * (dx) * (1. - dy) +
