@@ -69,6 +69,10 @@ fn perlin_table_idx(i: Int, j: Int, k: Int) -> usize {
 
     idx
 } 
+
+fn perlin_interp(x: Float) -> Float {
+    todo!()
+}
 // ---------------------------------------------------------
 
 impl Textures {
@@ -99,6 +103,17 @@ impl Textures {
                 }
             },
             TextureMap::Perlin(perlin_texmap) => {
+                
+
+                // For one corner:
+                let g = perlin_gradients()[perlin_table_idx(i, j, k)]; // slides 06, p.54
+                let dx: Float = x - i;
+                let dy: Float = y - j;
+                let dz: Float = z - k;
+
+                let d = Vector3::new(dx, dy, dz);
+                let c: Float = perlin_interp(dx) * perlin_interp(dy) * perlin_interp(dz) * g.dot(d); // p.55
+
                 todo!("Perlin texture map not implemented at get_texel_color( ) yet!");
             },
             _ => {
