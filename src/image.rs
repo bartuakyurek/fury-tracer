@@ -111,16 +111,23 @@ impl Textures {
                 }
             },
             TextureMap::Perlin(perlin_texmap) => {
+                let scale = perlin_texmap.noise_scale;
+                let mut n_prime: Float = 0.; // notation in p.49
+                for _ in 0..8 { // 8 corners for 3D lattice
+                    
+                    let g = perlin_gradients()[perlin_table_idx(i, j, k)]; // slides 06, p.54
+                    let dx: Float = x - i;
+                    let dy: Float = y - j;
+                    let dz: Float = z - k;
+
+                    let d = Vector3::new(dx, dy, dz);
+                    let c: Float = perlin_interp(dx * scale) * perlin_interp(dy * scale) * perlin_interp(dz * scale) * g.dot(d); // p.55 
+                    // scale corresponds to homework specification "multiply the input position that you give to the noise function with this value"
+                    
+                    n_prime += c;
+                }
                 
 
-                // For one corner:
-                let g = perlin_gradients()[perlin_table_idx(i, j, k)]; // slides 06, p.54
-                let dx: Float = x - i;
-                let dy: Float = y - j;
-                let dz: Float = z - k;
-
-                let d = Vector3::new(dx, dy, dz);
-                let c: Float = perlin_interp(dx) * perlin_interp(dy) * perlin_interp(dz) * g.dot(d); // p.55
 
                 todo!("Perlin texture map not implemented at get_texel_color( ) yet!");
             },
