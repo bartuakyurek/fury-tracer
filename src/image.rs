@@ -114,9 +114,9 @@ impl Textures {
                 let scale = perlin_texmap.noise_scale;
                 let mut n_prime: Float = 0.; // notation in p.49
                 
-                let x: Float = uv[0]; //* perlin_texmap.noise_scale;
-                let y: Float = uv[1]; //* perlin_texmap.noise_scale;
-                let z: Float = 0.0; // TODO: I assumed we should use 3D noise but then realized we are in u, v space... should xyz be hitpoints directly?
+                let x: Float = uv[0] * scale; //* perlin_texmap.noise_scale;
+                let y: Float = uv[1] * scale; //* perlin_texmap.noise_scale;
+                let z: Float = 0.0 * scale; // TODO: I assumed we should use 3D noise but then realized we are in u, v space... should xyz be hitpoints directly?
 
                 let i0 = x.floor() as Int;
                 let j0 = y.floor() as Int;
@@ -136,8 +136,7 @@ impl Textures {
                             let dz: Float = z - k as Float;
 
                             let d = Vector3::new(dx, dy, dz);
-                            let c: Float = perlin_interp(dx * scale) * perlin_interp(dy * scale) * perlin_interp(dz * scale) * g.dot(d); // p.55 
-                            // scale corresponds to homework specification "multiply the input position that you give to the noise function with this value"
+                            let c: Float = perlin_interp(dx) * perlin_interp(dy) * perlin_interp(dz) * g.dot(d); // p.55 
 
                             n_prime += c;
                         }
