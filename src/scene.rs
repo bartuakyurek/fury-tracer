@@ -690,7 +690,7 @@ impl VertexCache {
 
             // Fill the remaining fields with none, (e.g. if ply file will be used to insert more coords)
             while out.len() < n_verts {
-                debug!("Pushing none to texcoords...");
+                //debug!("Pushing none to texcoords...");
                 out.push(None);
             }
             assert!(out.len() == n_verts);

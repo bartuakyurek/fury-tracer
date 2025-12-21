@@ -215,8 +215,9 @@ impl<'de> Deserialize<'de> for DataField<usize> {
             #[serde(rename = "_textureOffset", default, deserialize_with = "deser_option_isize")]
             _texture_offset: Option<isize>,
         }
-
         let helper = Helper::deserialize(deserializer)?;
+        debug!("D<usize> Vertex offset: {:?}", helper._vertex_offset);
+        debug!("D<usize> Texture offset: {:?}", helper._texture_offset);
         Ok(DataField {
             _data: helper._data,
             _type: helper._type,
@@ -247,6 +248,9 @@ impl<'de> Deserialize<'de> for DataField<Float> {
         }
 
         let helper = Helper::deserialize(deserializer)?;
+        
+        debug!("D<Float> Vertex offset: {:?}", helper._vertex_offset);
+        debug!("D<float> Texture offset: {:?}", helper._texture_offset);
         Ok(DataField {
             _data: helper._data,
             _type: helper._type,
