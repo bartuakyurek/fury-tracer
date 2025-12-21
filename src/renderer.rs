@@ -154,6 +154,20 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
         color
    }
    else {
+
+        if let Some(textures) = &scene.data.textures {
+            for texmap in textures.texture_maps.iter() {
+                if let Some(decal_mode) = texmap.decal_mode() {
+                    match decal_mode {
+                        DecalMode::ReplaceBackground => {
+                            todo!()
+                        },
+                        _ => { debug!("ignoring decal mode {:?}...", decal_mode); }
+                    }
+                }
+            }
+        }; 
+
         scene.data.background_color // no hit
    }
 }
