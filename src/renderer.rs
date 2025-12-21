@@ -79,7 +79,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
                 
                 let uv = &hit_record.texture_uv.expect("Texture coordinates (u, v) is not written to hitrecord.");
                 let interpolation = texmap.interpolation().unwrap_or(&Interpolation::DEFAULT); //
-                let tex_color = textures.get_texture_color(texmap_id - 1, *uv, interpolation, true);
+                let tex_color = textures.get_texture_color(texmap_id - 1, *uv, interpolation, true, hit_record.hit_point);
                 if let Some(decal_mode) = texmap.decal_mode() {
                     match decal_mode {
                         // Update BRDF ----------------------------------------------------------
@@ -94,7 +94,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
                         // Update hitrecord normal ----------------------------------------------
                         DecalMode::ReplaceNormal => { 
                                                      // TODO: better solution than "apply_normalization" parameter in retrieving colors...? 
-                                                     let tex_color = textures.get_texture_color(texmap_id - 1, hit_record.texture_uv.unwrap(), texmap.interpolation().unwrap(), false);
+                                                     let tex_color = textures.get_texture_color(texmap_id - 1, hit_record.texture_uv.unwrap(), texmap.interpolation().unwrap(), false, hit_record.hit_point);
                                                      let dir = ImageData::color_to_direction(tex_color);
                                                      hit_record.normal = hit_record.tbn_matrix.unwrap() * dir;
                                                      debug_assert!(hit_record.normal.is_normalized());
