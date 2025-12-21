@@ -330,12 +330,17 @@ pub(crate) enum Interpolation {
 }
 
 
-impl Default for Interpolation {
-    fn default() -> Self {
-        debug!("Default for Interpolation called. Setting to nearest...");
-        Interpolation::Nearest      
-    }
+//impl Default for Interpolation {
+//    fn default() -> Self {
+//        debug!("Default for Interpolation called. Setting to nearest...");
+//        Interpolation::Nearest      
+//    }
+//}
+
+impl Interpolation {
+    pub const DEFAULT: Interpolation = Interpolation::Nearest;
 }
+
 
 /// ImageData is meant to be used while saving the final rendered image
 #[derive(Debug, Clone, SmartDefault)]

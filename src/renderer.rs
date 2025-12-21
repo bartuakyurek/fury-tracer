@@ -18,7 +18,7 @@ use std::{self, time::Instant};
 use crate::material::{BRDFData, HeapAllocMaterial};
 use crate::ray::{HitRecord, Ray};
 use crate::scene::{LightKind, Scene};
-use crate::image::{DecalMode, ImageData, TextureMap};
+use crate::image::{DecalMode, ImageData, Interpolation, TextureMap};
 use crate::interval::{Interval};
 use crate::prelude::*;
 
@@ -77,8 +77,9 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
             for texmap_id in &hit_record.textures {
                 let texmap = &textures.texture_maps.as_slice()[*texmap_id - 1]; // TODO: I am not sure if as_slice( ) is still relevant here, it resolved a rustc error before I change the implementation though            
                 
-               
-                let tex_color = textures.get_texture_color(texmap_id - 1, hit_record.texture_uv.unwrap(), texmap.interpolation().unwrap(), true);
+                let uv = &hit_record.texture_uv.expect("Texture coordinates (u, v) is not written to hitrecord.");
+                let interpolation = texmap.interpolation().unwrap_or(&Interpolation::DEFAULT); //
+                let tex_color = textures.get_texture_color(texmap_id - 1, *uv, interpolation, true);
                 if let Some(decal_mode) = texmap.decal_mode() {
                     match decal_mode {
                         // Update BRDF ----------------------------------------------------------
