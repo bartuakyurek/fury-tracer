@@ -385,7 +385,23 @@ impl Shape for Plane {
 
         // Check texture uv coords
         let uv = Some([-999999., -99999.]); // Dummy uv is set //todo!("Create uv for Plane hits (i guess we leave it None for planes, no?)!");
-        let tbn = None; // todo!("Construct TBN for plane!");
+        
+        // Compute TBN for plane
+        let n = self.normal; 
+        debug_assert!(n.is_normalized());
+        let reference = if n.x.abs() < 0.9 {
+            Vector3::X
+        } else {
+            Vector3::Y
+        };
+        let t_vec = n.cross(reference).normalize();
+        let b_vec = n.cross(t_vec).normalize();
+        let tbn = Matrix3::from_cols(t_vec, b_vec, n);
+        let tbn = Some(tbn);
+        //let tbn = None; // todo!("Construct TBN for plane!");
+        
+        
+        
         let texs = self._data.texture_idxs.clone();
         let mut rec = HitRecord::new_from(ray.origin, ray.at(t), normal, t, self._data.material_idx, front_face, texs, uv, tbn);
 
