@@ -233,6 +233,31 @@ impl Camera {
 
         rays
     }
+
+
+    pub fn calculate_nearplane_uv(&self, ray: &Ray) -> [Float; 2] {
+
+        let d = ray.direction.normalize(); // TODO remove normalize if debug assert passes
+        debug_assert!(ray.direction.is_normalized());
+        let cos_theta = d.dot(-self.w);
+        
+        if cos_theta <= 1e-6 {
+            return [0.0, 0.0]; 
+        }
+
+        let t = self.near_distance / cos_theta;
+        let intersection_point = d * t; // Relative to camera position
+
+        let u_coord = intersection_point.dot(self.u);
+        let v_coord = intersection_point.dot(self.v);
+
+        //let u = (u_coord - self.nearplane.left) / (self.nearplane.right - self.nearplane.left);
+        //let v = (self.nearplane.top - v_coord) / (self.nearplane.top - self.nearplane.bottom);
+        // Map coordinates to [0, 1] using modulo to handle out-of-bounds
+        let u = ((u_coord - self.nearplane.left) / (self.nearplane.right - self.nearplane.left)).rem_euclid(1.0);
+        let v = ((self.nearplane.top - v_coord) / (self.nearplane.top - self.nearplane.bottom)).rem_euclid(1.0);
+        [u as Float, v as Float]
+    }
 }
 
 #[derive(Debug, Deserialize, Clone, Default)]

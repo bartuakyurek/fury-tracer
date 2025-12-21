@@ -18,8 +18,9 @@ use std::{self, time::Instant};
 use crate::material::{BRDFData, HeapAllocMaterial};
 use crate::ray::{HitRecord, Ray};
 use crate::scene::{LightKind, Scene};
+use crate::camera::Camera;
 use crate::image::{DecalMode, ImageData, Interpolation, TextureMap};
-use crate::interval::{Interval};
+use crate::interval::{FloatConst, Interval};
 use crate::prelude::*;
 
 
@@ -60,10 +61,12 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, brdf: 
     color
 }
 
-pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 { 
+pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vector3 { 
   
    if depth >= scene.data.max_recursion_depth {
-        return scene.data.background_color;
+        //return Vector3::X * 255.;
+        return sample_background(ray_in, scene, cam);
+        //return scene.data.background_color;
    }
    
    let t_interval = Interval::positive(scene.data.intersection_test_epsilon);
@@ -120,7 +123,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
             },
             "mirror" | "conductor" => { 
                     if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        shade_diffuse(scene,  &hit_record, ray_in, &brdf) + attenuation * get_color(&reflected_ray, scene, depth + 1) 
+                        shade_diffuse(scene,  &hit_record, ray_in, &brdf) + attenuation * get_color(&reflected_ray, scene, cam, depth + 1) 
                     }
                     else {
                         warn!("Material not reflecting...");
@@ -137,12 +140,12 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
  
                 // Reflected 
                 if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        tot_radiance += attenuation * get_color(&reflected_ray, scene, depth + 1);
+                        tot_radiance += attenuation * get_color(&reflected_ray, scene, cam, depth + 1);
                 }
         
                 // Refracted 
                 if let Some((refracted_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, false) {
-                        tot_radiance += attenuation * get_color(&refracted_ray, scene, depth + 1);
+                        tot_radiance += attenuation * get_color(&refracted_ray, scene, cam, depth + 1);
                 }
                 tot_radiance
             },
@@ -154,22 +157,38 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, depth: usize) -> Vector3 {
         color
    }
    else {
+        sample_background(ray_in, scene, cam)
+   }
+}
 
-        if let Some(textures) = &scene.data.textures {
+
+fn sample_background(ray_in: &Ray, scene: &Scene, cam: &Camera) -> Vector3 {
+    // TODO: avoid iterating over textures, cache if background texture is
+    // provided in json file
+    if let Some(textures) = &scene.data.textures {
             for texmap in textures.texture_maps.iter() {
                 if let Some(decal_mode) = texmap.decal_mode() {
                     match decal_mode {
                         DecalMode::ReplaceBackground => {
-                            todo!()
+                            let uv = cam.calculate_nearplane_uv(ray_in);
+                            let interpolation = texmap.interpolation().unwrap_or(&Interpolation::DEFAULT);
+                            let bg_color = textures.get_texture_color(
+                                texmap.index(),
+                                uv,
+                                interpolation,
+                                true, 
+                                Vector3::ZERO, 
+                            );
+                            //let bg_color = Vector3::Y * 255.;
+                            return bg_color * 255.; // TODO: WARNING THIS IS ERROR PRONE. Background image was returned in range [0, 1] but that appears black, so scale it back
                         },
                         _ => { debug!("ignoring decal mode {:?}...", decal_mode); }
                     }
                 }
             }
         }; 
-
+        //return Vector3::Z * 255.;
         scene.data.background_color // no hit
-   }
 }
 
 
@@ -207,7 +226,7 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         info!("Starting ray tracing...");
         let colors: Vec<_> = eye_rays
             .par_iter()
-            .map(|ray| get_color(ray, scene, 0))
+            .map(|ray| get_color(ray, scene, &cam, 0))
             .collect();
         info!("Ray tracing completed.");
         // -----------------------------
