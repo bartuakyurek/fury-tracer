@@ -347,9 +347,10 @@ pub struct Vertex {
     pub z: f32,
 
     // UV coordinates from PLY file (not all of them have it though)
-    #[serde(default)]
+    #[serde(default, alias = "texture_u")]
     pub u: Option<f32>,
-    #[serde(default)]
+
+    #[serde(default, alias = "texture_v")]
     pub v: Option<f32>,
 }
 

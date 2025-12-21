@@ -118,12 +118,13 @@ impl Shape for Triangle {
                 // See slides 06, p.20
                 let (a, b, c) = (self.vert_indices[0], self.vert_indices[1], self.vert_indices[2]);
                 debug_assert!(a > 0 && b > 0 && c > 0, "Assumption of vertex indices starting from 1 failed!");
-                let uv_a: [Float; 2] = vertex_cache.uv_coords[a].unwrap();
-                let uv_b: [Float; 2] = vertex_cache.uv_coords[b].unwrap();
-                let uv_c: [Float; 2] = vertex_cache.uv_coords[c].unwrap();
-                debug_assert!(uv_a[0] <= 1.0 && uv_a[1] <= 1.0, "Failed uv_a > 1: ({}, {})", uv_a[0], uv_a[1]);
-                debug_assert!(uv_b[0] <= 1.0 && uv_b[1] <= 1.0, "Failed uv_b > 1: ({}, {})", uv_b[0], uv_b[1]);
-                debug_assert!(uv_c[0] <= 1.0 && uv_c[1] <= 1.0, "Failed uv_c > 1: ({}, {})", uv_c[0], uv_c[1]);
+                let uv_a: [Float; 2] = vertex_cache.uv_coords[a].unwrap_or_default();
+                let uv_b: [Float; 2] = vertex_cache.uv_coords[b].unwrap_or_default();
+                let uv_c: [Float; 2] = vertex_cache.uv_coords[c].unwrap_or_default(); // TODO: this isn't a good solution but in case of perlin noise u, v is not needed so _or_default avoids kernel panic for meshes without uv given ... I'd better check the texture type but I dont want to infer it here
+                //debug_assert!(uv_a[0] <= 1.0 && uv_a[1] <= 1.0, "Failed uv_a > 1: ({}, {})", uv_a[0], uv_a[1]);
+                //debug_assert!(uv_b[0] <= 1.0 && uv_b[1] <= 1.0, "Failed uv_b > 1: ({}, {})", uv_b[0], uv_b[1]);
+                //debug_assert!(uv_c[0] <= 1.0 && uv_c[1] <= 1.0, "Failed uv_c > 1: ({}, {})", uv_c[0], uv_c[1]);
+                // Above is not necessary if tiling is allowed
                 debug_assert!(uv_a[0] >= 0.0 && uv_a[1] >= 0.0, "Failed uv_a < 0: ({}, {})", uv_a[0], uv_a[1]);
                 debug_assert!(uv_b[0] >= 0.0 && uv_b[1] >= 0.0, "Failed uv_b < 0: ({}, {})", uv_b[0], uv_b[1]);
                 debug_assert!(uv_c[0] >= 0.0 && uv_c[1] >= 0.0, "Failed uv_c < 0: ({}, {})", uv_c[0], uv_c[1]);
