@@ -88,12 +88,12 @@ impl Textures {
                     let c = img.interpolate(i, j, interp);
                     let gray = (c.x + c.y + c.z) / 3.;
                     
-                    (gray / normalizer) * bump_factor
+                    (gray / 255.) * bump_factor
                 }   
                 
                 let interp_choice = &image_texmap.interpolation; //Interpolation::Bilinear; // TODO: is it ok?
                 let nzr = image_texmap.normalizer;
-                let bf = image_texmap.bump_factor;
+                let bf = image_texmap.bump_factor / nzr; // TODO: why dividing with normalizer fixes bumpmap (almost)? Isn't it dividing twice, what's wrong?
                 
                 let h_uv = height(u, v, img, &interp_choice, nzr, bf);
                 debug_assert!(h_uv >= 0.0 && h_uv <= 1.0);
