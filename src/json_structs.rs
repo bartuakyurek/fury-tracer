@@ -16,7 +16,7 @@ use std::{ops::Index, str::FromStr};
 use tracing::{warn};
 use void::Void;
 
-use crate::json_parser::{deser_vertex_data, deser_usize_vec, parse_string_vecvec3};
+use crate::json_parser::{deser_vertex_data, deser_usize_vec, deser_option_isize, parse_string_vecvec3};
 use crate::geometry::rodrigues_rotation;
 use crate::prelude::*;
 
@@ -152,6 +152,8 @@ pub struct DataField<T> {
     pub(crate) _data: Vec<T>,
     pub(crate) _type: String,
     pub(crate) _ply_file: String,
+    pub(crate) _vertex_offset: Option<isize>,
+    pub(crate) _texture_offset: Option<isize>,
 }
 
 impl<T> Index<usize> for DataField<T> {
@@ -178,6 +180,10 @@ impl<'de> Deserialize<'de> for DataField<Vector3> {
             _type: String,
             #[serde(rename = "_plyFile", default)]
             _ply_file: String,
+            #[serde(rename = "_vertexOffset", default, deserialize_with = "deser_option_isize")]
+            _vertex_offset: Option<isize>,
+            #[serde(rename = "_textureOffset", default, deserialize_with = "deser_option_isize")]
+            _texture_offset: Option<isize>,
         }
 
         let helper = Helper::deserialize(deserializer)?;
@@ -185,6 +191,8 @@ impl<'de> Deserialize<'de> for DataField<Vector3> {
             _data: helper._data,
             _type: helper._type,
             _ply_file: helper._ply_file,
+            _vertex_offset: helper._vertex_offset,
+            _texture_offset: helper._texture_offset,
         })
     }
 }
@@ -202,6 +210,10 @@ impl<'de> Deserialize<'de> for DataField<usize> {
             _type: String,
             #[serde(rename = "_plyFile", default)]
             _ply_file: String,
+            #[serde(rename = "_vertexOffset", default, deserialize_with = "deser_option_isize")]
+            _vertex_offset: Option<isize>,
+            #[serde(rename = "_textureOffset", default, deserialize_with = "deser_option_isize")]
+            _texture_offset: Option<isize>,
         }
 
         let helper = Helper::deserialize(deserializer)?;
@@ -209,6 +221,8 @@ impl<'de> Deserialize<'de> for DataField<usize> {
             _data: helper._data,
             _type: helper._type,
             _ply_file: helper._ply_file,
+            _vertex_offset: helper._vertex_offset,
+            _texture_offset: helper._texture_offset,
         })
     }
 }
@@ -226,6 +240,10 @@ impl<'de> Deserialize<'de> for DataField<Float> {
             _type: String,
             #[serde(rename = "_plyFile", default)]
             _ply_file: String,
+            #[serde(rename = "_vertexOffset", default, deserialize_with = "deser_option_isize")]
+            _vertex_offset: Option<isize>,
+            #[serde(rename = "_textureOffset", default, deserialize_with = "deser_option_isize")]
+            _texture_offset: Option<isize>,
         }
 
         let helper = Helper::deserialize(deserializer)?;
@@ -233,6 +251,8 @@ impl<'de> Deserialize<'de> for DataField<Float> {
             _data: helper._data,
             _type: helper._type,
             _ply_file: helper._ply_file,
+            _vertex_offset: helper._vertex_offset,
+            _texture_offset: helper._texture_offset,
         })
     }
 } // TODO: These deserializations are boilerplate (and _plyFile is not even used for e.g. TextureCoords, but I'm not sure how to re-use DataField properly atm)
@@ -378,6 +398,8 @@ impl FromStr for VertexData {
             _data: parse_string_vecvec3(s).unwrap(),
             _type: String::from("xyz"), // Default for VertexData (Note: it would be different from other DataFields)
             _ply_file: String::from(""),
+            _vertex_offset: None,
+            _texture_offset: None,
         })
     }
 }
@@ -442,7 +464,13 @@ impl TexCoordData {
 
     pub fn get_uv_coords(&self, i: usize) -> [Float; 2] {
         debug_assert!(self._type == "uv"); // || self._type == "");
-        let start = i * 2;
+        let mut start = i * 2;
+        
+        // Apply texture offset if present
+        if let Some(offset) = self._texture_offset {
+            start = (start as isize + offset) as usize;
+        }
+        
         [self._data[start], self._data[start + 1]]
     }
     
@@ -463,7 +491,16 @@ impl FaceType {
     pub fn get_tri_indices(&self, i: usize) -> [usize; 3] {
         debug_assert!(self._type == "triangle" || self._type == "");
         let start = i * 3;
-        [self._data[start], self._data[start + 1], self._data[start + 2]]
+        let mut indices = [self._data[start], self._data[start + 1], self._data[start + 2]];
+        
+        // Apply vertex offset if present
+        if let Some(offset) = self._vertex_offset {
+            indices[0] = (indices[0] as isize + offset) as usize;
+            indices[1] = (indices[1] as isize + offset) as usize;
+            indices[2] = (indices[2] as isize + offset) as usize;
+        }
+        
+        indices
     }
 }
 
