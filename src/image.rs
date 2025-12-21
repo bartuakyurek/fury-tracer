@@ -157,9 +157,7 @@ impl Textures {
             TextureMap::Perlin(perlin_texmap) => {
                 
                 let n = perlin_noise(xyz, perlin_texmap.noise_scale, &perlin_texmap.noise_conversion);
-                
-                // Turn n into color (grayscale I assume here)
-                Vector3::new(n, n, n)
+                Vector3::new(n, n, n)  // Turn n into color (grayscale I assume here)
             },
             _ => {
                 todo!("I am not ready to get texel color of this texmap type '{:?}' yet...", texmap);
@@ -219,10 +217,46 @@ impl Textures {
                 new_normal.normalize()
             },
             TextureMap::Perlin(perlin_texmap) => {
+
                 let n = hit_record.normal;
-                let (pu, pv) = (hit_record.texture_uv.unwrap()[0], hit_record.texture_uv.unwrap()[1]);
                 let p = hit_record.hit_point;
-                todo!();
+
+                // Get height function (slides 07, p.29)
+                let scale = perlin_texmap.noise_scale;
+                let conv = &perlin_texmap.noise_conversion;
+                let h = perlin_noise(p, scale, conv); 
+
+                //let (pu, pv) = (hit_record.texture_uv.unwrap()[0], hit_record.texture_uv.unwrap()[1]);
+                //let dp_du = hit_record.tbn_matrix.unwrap().x_axis; // T and B vectors (see slides 07, p.13)
+                //let dp_dv = hit_record.tbn_matrix.unwrap().y_axis; 
+                // Compute gradients, last term in p.29 ignored (see p.30)
+                // let dq_du = dp_du + (dh_du) * n; 
+                //let dq_dv = dp_dv + (dh_dv) * n; 
+                //let new_normal = dq_dv.cross(dq_du);
+
+                // Gradient of Perlin noise (07, p.36)
+                let epsilon: Float = 0.001;
+                let nabla_h = {   
+                    // Perturb along x, y, z individually
+                    let (mut p_xnudge, mut p_ynudge, mut p_znudge) = (p, p, p);
+                    p_xnudge[0] += epsilon;
+                    p_ynudge[1] += epsilon;
+                    p_znudge[2] += epsilon;
+                    // Compute partials (p.36)
+                    let dh_dx = (perlin_noise(p_xnudge, scale, conv) - h) / epsilon;
+                    let dh_dy = (perlin_noise(p_ynudge, scale, conv) - h) / epsilon;
+                    let dh_dz = (perlin_noise(p_znudge, scale, conv) - h) / epsilon;
+                    Vector3::new(dh_dx, dh_dy, dh_dz)
+                }; 
+
+                // Surface gradient (07, p.35)
+                // I assume gradient of height field is the same as gradient of perlin noise here
+                let g = nabla_h;
+                let g_parallel = (g.dot(n)) * n;
+                let g_perp = g - g_parallel; // This is the surface gradient in p.34
+
+                let new_normal = n - g_perp; //  Following p.34
+                new_normal.normalize()
             },
             _ => {
               todo!("I am not ready for the bump mapping of this texmap type '{:?}' yet...", texmap);
