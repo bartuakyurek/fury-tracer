@@ -563,8 +563,14 @@ impl SceneObjects {
                 let plymesh: PlyMesh = serde_ply::from_reader(reader)?;
                 let old_vertex_count = verts._data.len();
                 // Append loaded ply to vertexdata
-                for v in &plymesh.vertex {
-                    verts._data.push(Vector3::new(v.x as Float, v.y as Float, v.z as Float));
+                for vert in &plymesh.vertex {
+                    verts._data.push(Vector3::new(vert.x as Float, vert.y as Float, vert.z as Float));
+                
+                    if let (Some(u_coord), Some(v_coord)) = (vert.u, vert.v) {
+                        ply_uv_coords.push(Some([u_coord as Float, v_coord as Float]));
+                    } else {
+                        ply_uv_coords.push(None);
+                    }
                 }
                 // Shift faces._data by offset
                 mesh.faces._type = String::from("triangle");
