@@ -130,6 +130,10 @@ impl Shape for Triangle {
                 debug_assert!(uv_c[0] >= 0.0 && uv_c[1] >= 0.0, "Failed uv_c < 0: ({}, {})", uv_c[0], uv_c[1]);
                 let tex_u: Float = uv_a[0] + (bary_beta * (uv_b[0] - uv_a[0])) + (bary_gamma * (uv_c[0] - uv_a[0]));
                 let tex_v: Float = uv_a[1] + (bary_beta * (uv_b[1] - uv_a[1])) + (bary_gamma * (uv_c[1] - uv_a[1]));
+
+                let tex_u = tex_u - tex_u.floor(); // support tiling
+                let tex_v = tex_v - tex_v.floor(); // slides 06, p.30 
+
                 debug_assert!(tex_u <= 1.0 && tex_u >= 0.0);
                 debug_assert!(tex_v <= 1.0 && tex_v >= 0.0);
                 texture_uv = Some([tex_u, tex_v]);
