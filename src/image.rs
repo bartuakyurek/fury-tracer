@@ -124,7 +124,18 @@ fn perlin_noise(xyz: Vector3, scale: Float, noise_conversion: &NoiseConversion) 
                 (n_prime + 1.) / 2.
             },
         }
-            
+}
+
+fn perlin_octave(n_octaves: usize, xyz: Vector3, scale: Float, noise_conversion: &NoiseConversion) -> Float {
+    // See hw 4 specifications, p.4 
+    let mut s: Float = 0.;
+    let base: Float = 2.;
+    for k in 0..n_octaves {
+        let fade: Float = base.powi(-(k as Int));
+        s += fade * perlin_noise(xyz, scale, noise_conversion); 
+    }
+
+    s
 }
 // ---------------------------------------------------------
 
@@ -157,7 +168,7 @@ impl Textures {
             },
             TextureMap::Perlin(perlin_texmap) => {
                 
-                let n = perlin_noise(xyz, perlin_texmap.noise_scale, &perlin_texmap.noise_conversion);
+                let n = perlin_octave(perlin_texmap.num_octaves, xyz, perlin_texmap.noise_scale, &perlin_texmap.noise_conversion);
                 Vector3::new(n, n, n)  // Turn n into color (grayscale I assume here)
             },
             _ => {
@@ -225,7 +236,7 @@ impl Textures {
                 // Get height function (slides 07, p.29)
                 let scale = perlin_texmap.noise_scale;
                 let conv = &perlin_texmap.noise_conversion;
-                let h = perlin_noise(p, scale, conv); 
+                let h = perlin_octave(perlin_texmap.num_octaves, p, scale, conv); 
 
                 //let (pu, pv) = (hit_record.texture_uv.unwrap()[0], hit_record.texture_uv.unwrap()[1]);
                 //let dp_du = hit_record.tbn_matrix.unwrap().x_axis; // T and B vectors (see slides 07, p.13)
@@ -399,7 +410,6 @@ struct PerlinTexmap {
     noise_scale: Float,
     bump_factor: Float,
     num_octaves: usize,
-
 }
 
 impl<'de> Deserialize<'de> for PerlinTexmap {
