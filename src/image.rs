@@ -53,6 +53,22 @@ fn perlin_gradients() -> &'static Vec<Vector3> {
     })
 }
 
+static PERLIN_TABLE: OnceLock<Vec<usize>> = OnceLock::new();
+
+// See slides 06, p.53
+fn perlin_table_idx(i: Int, j: Int, k: Int) -> usize {
+    let table = PERLIN_TABLE.get_or_init(|| {
+        vec![
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+        ]
+    });
+
+    let mut idx: usize = table[(k.abs() % 16) as usize];
+    idx = table[((j + idx as Int).abs() % 16) as usize];
+    idx = table[((i + idx as Int).abs() % 16) as usize];
+
+    idx
+} 
 // ---------------------------------------------------------
 
 impl Textures {
