@@ -529,11 +529,6 @@ impl SceneObjects {
         let mut bboxable_shapes: ShapeList = Vec::new();
         let mut unbboxable_shapes: ShapeList = Vec::new();
         let mut all_triangles: Vec<Triangle> = self.triangles.all();
-
-        //let mut uv_coords: Vec<Option<[Float; 2]>> = Vec::new();
-       // let mut uv_coords: Vec<Option<[Float; 2]>> = vec![None; verts._data.len()];
-        //let mut uv_coords: Vec<Option<[Float;2]>> = Vec::with_capacity(verts._data.len() + plymesh.vertex.len());
-        //uv_coords.extend(vec![None; verts._data.len()]); 
         
         // Initiate uv_coords from given texture coords or if not available with a new vector
         let mut uv_coords: Vec<Option<[Float; 2]>> = if let Some(tc) = texture_coords {
@@ -547,7 +542,7 @@ impl SceneObjects {
             Vec::new()
         };
 
-        // Step 2: Fill missing slots for any dummy vertices at the start
+        // Step 2: Fill missing slots for any dummy vertices at the start (note that verts will be mutated as we push more verts read from ply files)
         while uv_coords.len() < verts._data.len() {
             uv_coords.push(None);
         }
@@ -586,17 +581,13 @@ impl SceneObjects {
                 for vert in &plymesh.vertex {
                     verts._data.push(Vector3::new(vert.x as Float, vert.y as Float, vert.z as Float));
                 
-                    //if let (Some(u_coord), Some(v_coord)) = (vert.u, vert.v) {
-                    //    ply_uv_coords.push(Some([u_coord as Float, v_coord as Float]));
-                    //} else {
-                    //    ply_uv_coords.push(None);
-                    //}
                     let uv = match (vert.u, vert.v) {
-                        (Some(u), Some(v)) => Some([u as Float, v as Float]),
+                        (Some(u), Some(v)) => {
+                            Some([u as Float , v as Float])
+                        },
                         _ => None,
                     };
                     uv_coords.push(uv);
-
                 }
                 // Shift faces._data by offset
                 mesh.faces._type = String::from("triangle");
