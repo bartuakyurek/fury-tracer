@@ -176,9 +176,9 @@ impl Textures {
                 // For notation, see hw4 specifications, p.4
                 let scale = checker_texmap.scale;
                 let offset = checker_texmap.offset;
-                let x: bool = ((((xyz[0] + offset).floor() * scale) as Int) % 2) != 0;
-                let y: bool = ((((xyz[1] + offset).floor() * scale) as Int) % 2) != 0;
-                let z: bool = ((((xyz[2] + offset).floor() * scale) as Int) % 2) != 0;
+                let x: bool = ((((xyz[0] + offset) * scale).floor() as Int) % 2) != 0;
+                let y: bool = ((((xyz[1] + offset) * scale).floor() as Int) % 2) != 0;
+                let z: bool = ((((xyz[2] + offset) * scale).floor() as Int) % 2) != 0;
 
                 let xor_xy: bool = x != y;
                 if xor_xy != z {
