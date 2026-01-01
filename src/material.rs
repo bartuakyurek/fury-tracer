@@ -189,7 +189,7 @@ impl Default for MirrorMaterial {
                     specular_rf: Vector3::new(0.0, 0.0, 0.0),
                     phong_exponent: 1.0,
                 },
-            mirror_rf: Vector3::new(0.5, 0.5, 0.5),
+            mirror_rf: Vector3::new(1.0, 1.0, 1.0),
             roughness: 0.0, // Perfect mirror
         }
     }
