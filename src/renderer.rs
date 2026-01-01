@@ -109,7 +109,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vec
                                 debug_assert!(!perturbed_normal.is_nan(), "Found perturbed normal: {}", perturbed_normal);
                                 debug_assert!(hit_record.normal.is_normalized(), "Found hit record normal: {}", hit_record.normal);
                         },
-                        DecalMode::ReplaceBackground => {todo!()},
+                        DecalMode::ReplaceBackground => {todo!("Unexpected decalibration mode! This is implemented elsewhere in the renderer...");},
                         _ => { debug!("Unexpeced decalibration mode {:?}...", decal_mode); }
                     }
                 }
