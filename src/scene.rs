@@ -699,6 +699,9 @@ impl VertexCache {
 
             // Group the texture coordinates into pairs (assuming uv type)
             for chunk in raw.chunks_exact(2) {
+                if let Some(offset) = tc._texture_offset {
+                    info!("TextureCoords Got offset: {} however it is not utilized as TextureCoordinates should not have offset itself (Face field has it, and since they both impl DataField, it is easy to confuse so I better separate them into two different structs)", offset);
+                }
                 out.push(Some([chunk[0], chunk[1]]));
             }
 
