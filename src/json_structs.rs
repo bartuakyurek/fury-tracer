@@ -187,6 +187,8 @@ impl<'de> Deserialize<'de> for DataField<Vector3> {
         }
 
         let helper = Helper::deserialize(deserializer)?;
+        if helper._vertex_offset.is_some() { info!(">>>>>>> D<vector3> vertex offset: {}", helper._vertex_offset.unwrap()); }
+        if helper._texture_offset.is_some() { info!(">>>>>>> D<vector3> texture offset: {}", helper._texture_offset.unwrap());}
         Ok(DataField {
             _data: helper._data,
             _type: helper._type,
@@ -216,8 +218,8 @@ impl<'de> Deserialize<'de> for DataField<usize> {
             _texture_offset: Option<isize>,
         }
         let helper = Helper::deserialize(deserializer)?;
-        debug!("D<usize> Vertex offset: {:?}", helper._vertex_offset);
-        debug!("D<usize> Texture offset: {:?}", helper._texture_offset);
+        if helper._vertex_offset.is_some() {info!(">>>>>>>>> D<usize> Vertex offset: {:?}", helper._vertex_offset);}
+        if helper._texture_offset.is_some() {info!(">>>>>>>>> D<usize> Texture offset: {:?}", helper._texture_offset);}
         Ok(DataField {
             _data: helper._data,
             _type: helper._type,
@@ -466,12 +468,13 @@ impl TexCoordData {
         (self._data.len() as f64 / 2.) as usize
     }
 
-    pub fn get_uv_coords(&self, i: usize) -> [Float; 2] {
+    pub fn get_uv_coords(&self, i: usize, offset: Option<isize>) -> [Float; 2] {
         debug_assert!(self._type == "uv"); // || self._type == "");
         let mut start = i * 2;
         
-        // Apply texture offset if present
-        if let Some(offset) = self._texture_offset {
+        // Apply texture offset if present --> self._texture_offset does not work here because it is not given under "TextureCoordinates", rather "Faces" field has textureoffset defined
+        if let Some(offset) = offset {
+            info!(">>>>Texture offset is applied");
             start = (start as isize + offset) as usize;
         }
         
@@ -499,9 +502,11 @@ impl FaceType {
         
         // Apply vertex offset if present
         if let Some(offset) = self._vertex_offset {
+            debug!("indices before: {:?}", indices);
             indices[0] = (indices[0] as isize + offset) as usize;
             indices[1] = (indices[1] as isize + offset) as usize;
             indices[2] = (indices[2] as isize + offset) as usize;
+            debug!("indices after: {:?}", indices);
         }
         
         indices
