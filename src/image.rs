@@ -205,9 +205,22 @@ impl Textures {
         match texmap {
             TextureMap::Image(image_texmap) => {
 
-                let dp_du = hit_record.tbn_matrix.unwrap().x_axis; // T and B vectors (see slides 07, p.13)
-                let dp_dv = hit_record.tbn_matrix.unwrap().y_axis; 
-                let nuv = dp_dv.cross(dp_du); // slides 07, p.24
+                let mut dp_du = hit_record.tbn_matrix.unwrap().x_axis; // T and B vectors (see slides 07, p.13)
+                let mut dp_dv = hit_record.tbn_matrix.unwrap().y_axis; 
+                debug_assert!(!dp_du.is_nan());
+                debug_assert!(!dp_dv.is_nan());
+
+                let tb_dot = dp_du.dot(dp_dv);
+                if !approx_zero(tb_dot){
+                    //warn!("TBN matrix not orthonormal, correcting it...");
+                    let n = hit_record.tbn_matrix.unwrap().z_axis;
+                    dp_du = (dp_du - (n * n.dot(dp_du))).normalize();
+                    dp_dv = dp_du.cross(n);
+                }
+                let tb_dot = dp_du.dot(dp_dv);
+                assert!( approx_zero(tb_dot), "Received non-orthonormal TBN, dot product is non zero: {}", tb_dot);
+
+                let nuv = dp_dv.cross(dp_du).normalize(); // slides 07, p.24
                 debug_assert!(nuv.is_normalized());
                 debug_assert!(dp_du.is_normalized());
                 debug_assert!(dp_dv.is_normalized());
