@@ -8,7 +8,7 @@ UPDATE: Acceleration structure added Mesh::bvh
 */
 
 
-use crate::json_structs::{FaceType, SingleOrVec, VertexData};
+use crate::json_structs::{FaceType, SingleOrVec, VertexData, TexCoordData};
 use crate::geometry::{get_tri_normal};
 use crate::shapes::{CommonPrimitiveData, Shape, Triangle};
 use crate::ray::{Ray, HitRecord};
@@ -149,13 +149,23 @@ impl Mesh {
         
         for i in 0..n_faces {
             let face_indices = self.faces.get_tri_indices(i);
+            
+            let offseted_texture_idxs = {
+                if let Some(tex_offset) = self.faces._texture_offset {
+                    info!(">> Applying offset to triangle texture...");
+                    self.texture_idxs.iter().map(|ti| (*ti as isize + tex_offset) as usize).collect()
+                } else {
+                    self.texture_idxs.clone()
+                }
+            };
+
             let [v1, v2, v3] = face_indices.map(|i| verts[i]);
 
             let cpd = CommonPrimitiveData{
                 _id: id_offset + i, 
                 material_idx: self.material_idx,
                 transformation_names: None, 
-                texture_idxs: self.texture_idxs.clone(),
+                texture_idxs: offseted_texture_idxs,
             };
             triangles.push(Triangle {
                 _data: cpd,
