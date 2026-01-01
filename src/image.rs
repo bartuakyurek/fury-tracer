@@ -240,6 +240,8 @@ impl Textures {
                 let h_uv = height(u, v, img, &interp_choice, nzr, bf);
                 debug_assert!(h_uv >= 0.0 && h_uv <= 1.0);
 
+                debug_assert!(!approx_zero(delta_u), "Expected nonzero delta_u, found: {}", delta_u);
+                debug_assert!(!approx_zero(delta_v), "Expected nonzero delta_v, found: {}", delta_v);
                 let dh_du = (height(u + delta_u, v, img, &interp_choice, nzr, bf) - h_uv) / delta_u;
                 let dh_dv = (height(u, v + delta_v, img, &interp_choice, nzr, bf) - h_uv) / delta_v; // slides 07, p.27
 
@@ -247,6 +249,7 @@ impl Textures {
                 let dq_dv = dp_dv + (dh_dv * nuv); //+ (h_uv); // slides 07, p.26
 
                 let new_normal = dq_dv.cross(dq_du); // new surface normal (slides 07, p.25)
+                assert!(!new_normal.is_nan(), "Found nan vector, new_normal = {}, dq_dv = {}, dq_du = {}", new_normal, dq_dv, dq_du);
                 new_normal.normalize()
             },
             TextureMap::Perlin(perlin_texmap) => {

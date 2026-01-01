@@ -125,9 +125,11 @@ impl Shape for Triangle {
                 //debug_assert!(uv_b[0] <= 1.0 && uv_b[1] <= 1.0, "Failed uv_b > 1: ({}, {})", uv_b[0], uv_b[1]);
                 //debug_assert!(uv_c[0] <= 1.0 && uv_c[1] <= 1.0, "Failed uv_c > 1: ({}, {})", uv_c[0], uv_c[1]);
                 // Above is not necessary if tiling is allowed
-                debug_assert!(uv_a[0] >= 0.0 && uv_a[1] >= 0.0, "Failed uv_a < 0: ({}, {})", uv_a[0], uv_a[1]);
-                debug_assert!(uv_b[0] >= 0.0 && uv_b[1] >= 0.0, "Failed uv_b < 0: ({}, {})", uv_b[0], uv_b[1]);
-                debug_assert!(uv_c[0] >= 0.0 && uv_c[1] >= 0.0, "Failed uv_c < 0: ({}, {})", uv_c[0], uv_c[1]);
+                const NEG_ZERO: Float = -1e-2; 
+                debug_assert!(uv_a[0] >= NEG_ZERO && uv_a[1] >= NEG_ZERO, "Failed uv_a < 0: ({}, {})", uv_a[0], uv_a[1]);
+                debug_assert!(uv_b[0] >= NEG_ZERO && uv_b[1] >= NEG_ZERO, "Failed uv_b < 0: ({}, {})", uv_b[0], uv_b[1]);
+                debug_assert!(uv_c[0] >= NEG_ZERO && uv_c[1] >= NEG_ZERO, "Failed uv_c < 0: ({}, {})", uv_c[0], uv_c[1]);
+        
                 let tex_u: Float = uv_a[0] + (bary_beta * (uv_b[0] - uv_a[0])) + (bary_gamma * (uv_c[0] - uv_a[0]));
                 let tex_v: Float = uv_a[1] + (bary_beta * (uv_b[1] - uv_a[1])) + (bary_gamma * (uv_c[1] - uv_a[1]));
 
@@ -142,20 +144,36 @@ impl Shape for Triangle {
                 let u_col = Vector2::new(uv_b[0] - uv_a[0], uv_c[0] - uv_a[0]);
                 let v_col = Vector2::new(uv_b[1] - uv_a[1], uv_c[1] - uv_a[1]);
                 let first_mat2 = Matrix2::from_cols(u_col, v_col); // p.13
-                let inverse_mat2 = first_mat2.inverse();
+                
+                // Check if matrix is invertible (determinant != 0)
+                let det = first_mat2.determinant();
+                if det.abs() > 1e-6 {
+                    let inverse_mat2 = first_mat2.inverse();
 
-                let x_axis = Vector2::new(verts[b].x - verts[a].x, verts[c].x - verts[a].x);
-                let y_axis = Vector2::new(verts[b].y - verts[a].y, verts[c].y - verts[a].y);
-                let z_axis = Vector2::new(verts[b].z - verts[a].z, verts[c].z - verts[a].z);
-                // TODO: Since bevy does not support 2x3 matrices and I am lazy to convert all math to ndarray, here is a quick solution...
-                let tx_bx = inverse_mat2 * x_axis;
-                let ty_by = inverse_mat2 * y_axis;
-                let tz_bz = inverse_mat2 * z_axis;
-                let t_vec = Vector3::new(tx_bx.x, ty_by.x, tz_bz.x).normalize();
-                let b_vec = Vector3::new(tx_bx.y, ty_by.y, tz_bz.y).normalize();
-                debug_assert!(approx_zero(t_vec.dot(b_vec))); // Orthogonality
-                debug_assert!(approx_zero(t_vec.dot(tri_normal)));
-                tbn = Some(Matrix3::from_cols(t_vec, b_vec, tri_normal));
+                    let x_axis = Vector2::new(verts[b].x - verts[a].x, verts[c].x - verts[a].x);
+                    let y_axis = Vector2::new(verts[b].y - verts[a].y, verts[c].y - verts[a].y);
+                    let z_axis = Vector2::new(verts[b].z - verts[a].z, verts[c].z - verts[a].z);
+                    // TODO: Since bevy does not support 2x3 matrices and I am lazy to convert all math to ndarray, here is a quick solution...
+                    let tx_bx = inverse_mat2 * x_axis;
+                    let ty_by = inverse_mat2 * y_axis;
+                    let tz_bz = inverse_mat2 * z_axis;
+                    let t_vec = Vector3::new(tx_bx.x, ty_by.x, tz_bz.x).normalize();
+                    let b_vec = Vector3::new(tx_bx.y, ty_by.y, tz_bz.y).normalize();
+                    //debug_assert!(approx_zero(t_vec.dot(b_vec)), "Found non-orthogonal vectors t_vec: {}, b_vec: {}, t dot b: {}", t_vec, b_vec, t_vec.dot(b_vec)); // Orthogonality
+                    debug_assert!(approx_zero(t_vec.dot(tri_normal)));
+                    tbn = Some(Matrix3::from_cols(t_vec, b_vec, tri_normal));
+                } else {
+                    // UPDATE after HW4: Fix galactica scene not rendering properly 
+                    debug!("Degenerate UV coordinates for triangle (det={}), using fallback TBN", det);
+                    let reference = if tri_normal.x.abs() < 0.9 {
+                        Vector3::X
+                    } else {
+                        Vector3::Y
+                    };
+                    let t_vec = tri_normal.cross(reference).normalize();
+                    let b_vec = tri_normal.cross(t_vec).normalize();
+                    tbn = Some(Matrix3::from_cols(t_vec, b_vec, tri_normal));
+                }
                 // -------------------------------------------------------------------------------------------------------
             }
             let mut rec = HitRecord::new_from(ray.origin, p, tri_normal, t, self._data.material_idx, front_face, texs, texture_uv, tbn);

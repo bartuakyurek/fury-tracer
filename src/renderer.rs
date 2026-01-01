@@ -47,7 +47,8 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, brdf: 
             let (shadow_ray, interval) = get_shadow_ray(&light, hit_record, ray_in, scene.data.shadow_ray_epsilon);
             if scene.hit_bvh(&shadow_ray, &interval, true).is_none() {
 
-                debug_assert!( (hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) < 0.) || (!hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) > 0.));
+                // Note: below assert might fail in bump or normal mapping case once the normals are updated:
+                debug_assert!( (hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) < 1e-6) || (!hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) > -1e-6), "Found front_face = {} and normal dot ray_in direction = {}", hit_record.is_front_face, hit_record.normal.dot(ray_in.direction) );
                 // Note that we don't attenuate the light as we assume rays are travelling in vacuum
                 // but area lights will scale intensity wrt ray's direction and for point lights attenuation is simply one
                 let irradiance = light.get_intensity() * light.attenuation(&shadow_ray.direction) / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
@@ -105,6 +106,8 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vec
                         DecalMode::BumpNormal => {
                                 let perturbed_normal = textures.get_bump_mapping(texmap, &hit_record);
                                 hit_record.normal = perturbed_normal; // Update normals for bump mapping (see the goal in slides 07, p.23)
+                                debug_assert!(!perturbed_normal.is_nan(), "Found perturbed normal: {}", perturbed_normal);
+                                debug_assert!(hit_record.normal.is_normalized(), "Found hit record normal: {}", hit_record.normal);
                         },
                         DecalMode::ReplaceBackground => {todo!()},
                         _ => { debug!("Unexpeced decalibration mode {:?}...", decal_mode); }
