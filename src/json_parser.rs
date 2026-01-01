@@ -355,22 +355,30 @@ pub(crate) fn deser_option_isize<'de, D>(deserializer: D) -> Result<Option<isize
 where
     D: Deserializer<'de>,
 {
-    /*
-        Deserialize optional isize given as either string or number in JSON.
-        If the field is missing or null, returns None.
-    */
-    let value: Option<serde_json::Value> = Option::deserialize(deserializer)?;
-    match value {
-        None => Ok(None),
-        Some(serde_json::Value::Number(n)) => n.as_i64()
-            .map(|v| Some(v as isize))
-            .ok_or_else(|| de::Error::custom("Invalid integer")),
-        Some(serde_json::Value::String(s)) => s.parse::<isize>()
-            .map(Some)
-            .map_err(|_| de::Error::custom("Failed to parse integer from string")),
-        Some(t) => Err(de::Error::custom(format!("Expected int or string, found {:#?}", t))),
+    let v: serde_json::Value = Deserialize::deserialize(deserializer)?;
+
+    match v {
+        serde_json::Value::Null => Ok(None),
+
+        serde_json::Value::Number(n) => {
+            n.as_i64()
+                .and_then(|v| v.try_into().ok())
+                .map(Some)
+                .ok_or_else(|| de::Error::custom("Invalid isize"))
+        }
+
+        serde_json::Value::String(s) => {
+            s.parse::<isize>()
+                .map(Some)
+                .map_err(|_| de::Error::custom("Failed to parse isize from string"))
+        }
+
+        t => Err(de::Error::custom(format!(
+            "Expected integer, string, or null, found {t}"
+        ))),
     }
 }
+
 
 pub(crate) fn deser_usize_array<'de, D, const N: usize>(deserializer: D) -> Result<[usize; N], D::Error>
 where
