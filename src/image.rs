@@ -644,7 +644,7 @@ impl ImageData {
         
         let img = image::open(path)
             .unwrap_or_else(|e| panic!("Failed to read image '{}': {}", path.display(), e));
-
+        info!("Reading image file from {:?}...", path);
         let (width, height) = img.dimensions();
         let width = width as usize;
         let height = height as usize;
@@ -732,21 +732,16 @@ impl ImageData {
         // Check if provided path is a folder 
         // if so, create a .png under this folder
         // otherwise use the provided path as is
-        let extension = "png";
-        {
-            let path = Path::new(path);
-            let mut finalpath: PathBuf = path.to_path_buf();
-            if path.is_dir() {
-                // create <imagename>.png under this directory 
-                finalpath = path.join(self.name.clone());
-            } 
-            
-            if !self.check_extension(&finalpath, extension){
-                finalpath.set_extension(extension);
-                warn!(">> Extension changed to .{}, final path is {}", extension, finalpath.to_str().unwrap_or("<invalid UTF-8 path>")); 
-            }
-            finalpath
-        }
+        
+        let path = Path::new(path);
+        let mut finalpath: PathBuf = path.to_path_buf();
+        if path.is_dir() {
+            // create <imagename>.png under this directory 
+            finalpath = path.join(self.name.clone());
+        } 
+    
+        finalpath
+        
     }
 
     pub fn save_png(self, path: &str) -> Result<(), Box<dyn std::error::Error>>{
