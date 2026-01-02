@@ -16,7 +16,7 @@ pub struct Textures {
     #[serde(rename = "Images")]
     pub images: Option<TextureImages>, // WARNING: I assume Image _id corresponds to its index in the Images vector
 
-    #[serde(rename = "TextureMap")]
+    #[serde(rename = "TextureMap", default)] // Some files do not come with TextureMap, e.g. environment lights don't need them 
     pub texture_maps: SingleOrVec<TextureMap>,
 
     //#[serde(skip)]
