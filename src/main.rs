@@ -40,7 +40,7 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
             let entry_path = entry.path();
             let is_json = entry_path.extension().map(|s| s == "json").unwrap_or(false);
             if entry_path.is_file() && is_json {
-                debug!("Rendering JSON: {:?}", entry_path);
+                info!("Rendering JSON: {:?}", entry_path);
                 read_json_and_render(&entry_path.to_str().unwrap().to_string())?;
             }
         }
