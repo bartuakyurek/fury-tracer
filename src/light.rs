@@ -28,16 +28,19 @@ impl LightKind {
     }
 
     pub fn get_shadow_direction_and_distance(&self, ray_origin: &Vector3) -> (Vector3, Float) {
+
+        fn regular(light_pos: Vector3, ray_origin: &Vector3) -> (Vector3, Float) {
+            let distance_vec = light_pos - ray_origin;
+            let distance = distance_vec.norm();
+            (distance_vec / distance, distance)
+        }
+
         match self {
             LightKind::Point(pl) => {
-                let distance_vec = pl.position - ray_origin;
-                let distance = distance_vec.norm();
-                (distance_vec / distance, distance)
+                regular(pl.position, ray_origin)
             },
             LightKind::Area(al) => {
-                let distance_vec = al.sample_position() - ray_origin;
-                let distance = distance_vec.norm();
-                (distance_vec / distance, distance)
+                regular(al.sample_position(), ray_origin)
             },
             LightKind::Directional(dl) => {
                 // Direction was normalized at setup( ) already 
@@ -45,7 +48,7 @@ impl LightKind {
                 (-dl.direction, FloatConst::INF)
             },
             LightKind::Spot(sl) => {
-                todo!()
+                regular(sl.position, ray_origin)
             },
             LightKind::Env(envl) => {
                 todo!()
@@ -64,6 +67,8 @@ impl LightKind {
                 dl.radiance
             },
             LightKind::Spot(sl) => {
+                // Net irradiance E(x) given in hw5 pdf, eqn.4
+                // See slides 09, p.11 for falloff range
                 todo!()
             },
             LightKind::Env(envl) => {
