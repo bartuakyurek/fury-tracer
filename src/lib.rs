@@ -15,5 +15,6 @@ pub mod geometry;
 pub mod json_structs;
 pub mod json_parser;
 pub mod light;
+pub mod tonemap;
 
 pub mod prelude;

@@ -11,6 +11,8 @@ use rand::{SeedableRng, random};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom; // for shuffle()
 
+
+use crate::tonemap::ToneMap;
 use crate::prelude::*;
 use crate::{image, ray::Ray};
 use crate::json_structs::{SingleOrVec, Transformations};
@@ -82,6 +84,9 @@ pub struct Camera {
 
     #[serde(skip)]
     pub(crate) composite_mat: Matrix4,
+
+    #[serde(rename = "Tonemap")]
+    pub(crate) tone_maps: SingleOrVec<ToneMap>,
 
     #[serde(skip)]
     w : Vector3,
@@ -303,7 +308,6 @@ impl NearPlane {
         ]
     }
 }
-
 
 //#[cfg(test)]
 //mod tests {

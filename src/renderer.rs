@@ -240,7 +240,12 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
             colors
         };
 
-        let im = ImageData::new_from_colors(cam.image_resolution, cam.image_name.clone(), pixel_colors);
+        let mut im = ImageData::new_from_colors(cam.image_resolution, cam.image_name.clone(), pixel_colors);
+        
+        for tonemap in cam.tone_maps.all().iter() {
+            info!("Applying tone map {:?}", tonemap);
+            // TODO: mutate im...
+        }
         images.push(im);
         info!("Rendering of {} took: {:?}", cam.image_name, start.elapsed()); 
     }
