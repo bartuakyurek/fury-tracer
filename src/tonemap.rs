@@ -102,7 +102,20 @@ impl ToneMapOperator {
     }
 
     fn photographic_tmo(&self, lumi: &[Float], alpha: Float, percentile: Float) -> Vec<Float> {
-        todo!()
+        // See slides 08, p.42 Photographic TMO consists of two stages
+        
+        // Stage one - a global operator simulating key mapping
+        // initial luminance mapping (slides 08, p.43)
+        let n = lumi.len() as Float;
+        let eps = 1e-10;
+        let middle_gray = (1. / n) * lumi.iter().map(|lw| (lw + eps).ln()).sum::<Float>();
+        let mut comp_lumi: Vec<Float> = lumi.iter().map(|lw| (alpha / middle_gray) * lw).collect();
+        comp_lumi.iter_mut().for_each(|lumi| *lumi = *lumi / (1. + *lumi));
+
+        // Stage two - a local operator simulating dodging-and-burning
+        todo!();
+        comp_lumi
+        
     }
 
     fn aces_tmo(&self, lumi: &[Float], alpha: Float, percentile: Float) -> Vec<Float> {
