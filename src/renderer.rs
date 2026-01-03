@@ -30,10 +30,8 @@ pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, ray_in: &Ray, e
         
     debug_assert!(hit_record.normal.is_normalized());
     let ray_origin = hit_record.hit_point + (hit_record.normal * epsilon);
-    let distance_vec = light.get_position() - ray_origin;
-    let distance_squared = distance_vec.norm_squared(); // TODO: Cache?
-    let distance = distance_squared.sqrt();
-    let dir = distance_vec / distance;
+
+    let (dir, distance) = light.get_shadow_direction_and_distance(&ray_origin);
     debug_assert!(dir.is_normalized());
     let shadow_ray = Ray::new(ray_origin, dir, ray_in.time); // TODO: is it important for shadow ray's time parameter? could it be just set zero?
     let interval = Interval::new(0.0, distance); 
@@ -51,7 +49,7 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, brdf: 
                 debug_assert!( (hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) < 1e-6) || (!hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) > -1e-6), "Found front_face = {} and normal dot ray_in direction = {}", hit_record.is_front_face, hit_record.normal.dot(ray_in.direction) );
                 // Note that we don't attenuate the light as we assume rays are travelling in vacuum
                 // but area lights will scale intensity wrt ray's direction and for point lights attenuation is simply one
-                let irradiance = light.get_intensity() * light.attenuation(&shadow_ray.direction) / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
+                let irradiance = light.get_irradiance(&shadow_ray, &interval); //light.get_intensity() * light.attenuation(&shadow_ray.direction) / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
                 let n = hit_record.normal;
                 let w_i = shadow_ray.direction;
                 let w_o = -ray_in.direction;

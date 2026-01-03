@@ -225,7 +225,10 @@ pub struct SceneLights {
     pub point_lights: SingleOrVec<PointLight>, 
 
     #[serde(rename = "AreaLight")]
-    pub area_lights: SingleOrVec<AreaLight>
+    pub area_lights: SingleOrVec<AreaLight>,
+
+    #[serde(rename = "DirectionalLight")]
+    pub dir_lights: SingleOrVec<DirectionalLight>,
 }
 
 impl SceneLights {
@@ -257,6 +260,8 @@ impl SceneLights {
         for alight in self.area_lights.iter_mut() {
             alight.setup_onb();
         }
+
+        debug!("Scene lights setup done! {:#?}", self);
     }
 
     pub fn all_nonambient(&self) -> Vec<LightKind> {
@@ -264,10 +269,65 @@ impl SceneLights {
         self.point_lights.iter()
         .map(|p| LightKind::Point(p.clone()))
         .chain(self.area_lights.iter().map(|a| LightKind::Area(a.clone())))
+        .chain(self.dir_lights.iter().map(|dl| LightKind::Directional(dl.clone())))
         .collect()
     }
 }
 
+
+pub enum LightKind {
+    Point(PointLight),
+    Area(AreaLight),
+    Directional(DirectionalLight),
+}
+
+
+impl LightKind {
+
+    pub fn get_shadow_direction_and_distance(&self, ray_origin: &Vector3) -> (Vector3, Float) {
+        match self {
+            LightKind::Point(pl) => {
+                let distance_vec = pl.position - ray_origin;
+                let distance = distance_vec.norm();
+                (distance_vec / distance, distance)
+            },
+            LightKind::Area(al) => {
+                let distance_vec = al.sample_position() - ray_origin;
+                let distance = distance_vec.norm();
+                (distance_vec / distance, distance)
+            },
+            LightKind::Directional(dl) => {
+                (-dl.direction.normalize(), FloatConst::INF)
+            },
+        }
+    }
+    pub fn get_irradiance(&self, shadow_ray: &Ray, interval: &Interval) -> Vector3 {
+        match self {
+            LightKind::Point(pl) => {
+                 pl.rgb_intensity / shadow_ray.squared_distance_at(interval.max)
+            },
+            LightKind::Area(al) => {
+                al.radiance * al.attenuation(&shadow_ray.direction) / shadow_ray.squared_distance_at(interval.max)
+            },
+            LightKind::Directional(dl) => {
+                dl.radiance
+            }
+        }
+    }
+}
+
+
+#[derive(Debug, Deserialize, Clone, Default)]
+pub struct DirectionalLight {
+    #[serde(rename = "_id", deserialize_with = "deser_usize")]
+    pub _id: usize,
+
+    #[serde(rename = "Direction", deserialize_with = "deser_vec3")]
+    pub direction: Vector3,
+
+    #[serde(rename = "Radiance", deserialize_with = "deser_vec3")]
+    pub radiance: Vector3,
+}
 
 
 #[derive(Debug, Deserialize, Clone, Default)]
@@ -355,35 +415,6 @@ pub struct PointLight {
 
     #[serde(skip)]
     pub(crate) composite_mat: Matrix4,
-}
-
-pub enum LightKind {
-    Point(PointLight),
-    Area(AreaLight),
-}
-
-
-impl LightKind {
-    pub fn get_position(&self) -> Vector3 {
-        match self {
-            LightKind::Point(p) => p.position,
-            LightKind::Area(a) => a.sample_position(),
-        }
-    }
-
-    pub fn get_intensity(&self, ) -> Vector3 {
-        match self {
-            LightKind::Point(p) => p.rgb_intensity,
-            LightKind::Area(a) => a.radiance, 
-        }
-    }
-
-    pub fn attenuation(&self, dir: &Vector3) -> Float {
-        match self {
-            LightKind::Point(_) => 1.0,
-            LightKind::Area(a) => a.attenuation(dir), // slides 05, p.98 computing radiance NOTE: this is not actual attenuation, we dont attenuate light in vacuum
-        }
-    }
 }
 
 
