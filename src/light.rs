@@ -3,10 +3,14 @@ use bevy_math::{NormedVectorSpace};
 use crate::ray::Ray;
 use crate::interval::*;
 use crate::prelude::*;
+
+
 pub enum LightKind {
     Point(PointLight),
     Area(AreaLight),
     Directional(DirectionalLight),
+    Spot(SpotLight),
+    Env(EnvironmentLight)
 }
 
 
@@ -29,6 +33,12 @@ impl LightKind {
                 debug_assert!(dl.direction.is_normalized());
                 (-dl.direction, FloatConst::INF)
             },
+            LightKind::Spot(sl) => {
+                todo!()
+            },
+            LightKind::Env(envl) => {
+                todo!()
+            },
         }
     }
     pub fn get_irradiance(&self, shadow_ray: &Ray, interval: &Interval) -> Vector3 {
@@ -41,11 +51,55 @@ impl LightKind {
             },
             LightKind::Directional(dl) => {
                 dl.radiance
-            }
+            },
+            LightKind::Spot(sl) => {
+                todo!()
+            },
+            LightKind::Env(envl) => {
+                todo!()
+            },
         }
     }
 }
 
+#[derive(Debug, Deserialize, Clone, Default)]
+pub struct EnvironmentLight {
+    // TODO
+}
+
+impl EnvironmentLight {
+    pub fn setup(&mut self) {
+        todo!()
+    }
+}
+
+#[derive(Debug, Deserialize, Clone, Default)]
+pub struct SpotLight {
+    #[serde(rename = "_id", deserialize_with = "deser_usize")]
+    pub _id: usize,
+
+    #[serde(rename = "Position", deserialize_with = "deser_vec3")]
+    pub position: Vector3,
+
+    #[serde(rename = "Direction", deserialize_with = "deser_vec3")]
+    pub direction: Vector3,
+
+    #[serde(rename = "Intensity", deserialize_with = "deser_vec3")]
+    pub intensity: Vector3,
+
+    #[serde(rename = "CoverageAngle", deserialize_with = "deser_float")]
+    pub coverage_degrees: Float,
+
+    #[serde(rename = "FalloffAngle", deserialize_with = "deser_float")]
+    pub falloff_degrees: Float,
+}
+
+impl SpotLight {
+    pub fn setup(&mut self) {
+        self.direction = self.direction.normalize();
+        todo!()
+    }
+}
 
 #[derive(Debug, Deserialize, Clone, Default)]
 pub struct DirectionalLight {
