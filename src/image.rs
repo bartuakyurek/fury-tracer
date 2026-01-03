@@ -709,7 +709,7 @@ impl ImageData {
         path.extension().unwrap().to_str().unwrap() == extension
     }
 
-    pub fn get_png_fullpath(&self, path: &str) -> PathBuf {
+    pub fn get_fullpath(&self, path: &str) -> PathBuf {
         // Check if provided path is a folder 
         // if so, create a .png under this folder
         // otherwise use the provided path as is
@@ -722,13 +722,12 @@ impl ImageData {
         } 
     
         finalpath
-        
     }
 
     pub fn export(self, path: &str) -> Result<(), Box<dyn std::error::Error>>{
         // Path is either a folder name or full path including <imagename>.png
         // If full path is not provided it will use  stored image name.
-        let path: PathBuf = self.get_png_fullpath(path);
+        let path: PathBuf = self.get_fullpath(path);
         let img_extension = path.extension().unwrap().to_str().unwrap();
         
         let im_buffer = match img_extension {
