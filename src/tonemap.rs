@@ -1,7 +1,9 @@
 
 use std::fmt;
 
-use crate::prelude::*;
+use image::ImageBuffer;
+
+use crate::{image::ImageData, prelude::*};
 
 
 #[derive(Debug, Deserialize, Default, Clone)]
@@ -24,6 +26,21 @@ pub(crate) struct ToneMap {
     extension: String,
 }
 
+impl ToneMap {
+    pub fn apply(&self, im: &ImageData) -> ImageData {
+        match self.operator {
+            ToneMapOperator::ACES => {
+                todo!()
+            }
+            ToneMapOperator::Filmic => {
+                todo!()
+            }
+            ToneMapOperator::Photographic => {
+                todo!()
+            }
+        }
+    }
+}
 
 // Just for decorative purposes in info message
 impl fmt::Display for ToneMap {
