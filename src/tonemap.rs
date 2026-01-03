@@ -110,20 +110,22 @@ impl ToneMapOperator {
         let eps = 1e-10;
         let middle_gray = ((1. / n) * lumi.iter().map(|lw| (lw + eps).ln()).sum::<Float>()).exp();
         let mut comp_lumi: Vec<Float> = lumi.iter().map(|lw| (alpha / middle_gray) * lw).collect();
-        comp_lumi.iter_mut().for_each(|lumi| *lumi = *lumi / (1. + *lumi));
-
+        
         // Stage two - a local operator simulating dodging-and-burning
         if percentile > 0.0 {
             let mut sorted_lumi = comp_lumi.clone();
             sorted_lumi.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
-            let idx = ((percentile / 100.) * sorted_lumi.len() as Float) as usize;
+            let portion = (100. - percentile) / 100.;
+            let idx = (portion * sorted_lumi.len() as Float) as usize;
             let idx = idx.min(sorted_lumi.len() - 1);
 
             let l_white_squared = sorted_lumi[idx].powf(2.);
             comp_lumi.iter_mut().for_each(|lumi| {
                 *lumi = (*lumi * (1. + (*lumi / l_white_squared))) / (1. + *lumi)
             });
+        } else {
+            comp_lumi.iter_mut().for_each(|lumi| *lumi = *lumi / (1. + *lumi));
         }
 
         comp_lumi
