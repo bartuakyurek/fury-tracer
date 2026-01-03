@@ -13,14 +13,16 @@
 
 use rayon::prelude::*;
 use bevy_math::{NormedVectorSpace};
+
 use std::{self, time::Instant};
 
 use crate::material::{BRDFData, HeapAllocMaterial};
 use crate::ray::{HitRecord, Ray};
-use crate::scene::{LightKind, Scene};
+use crate::light::{LightKind};
+use crate::scene::{Scene};
 use crate::camera::Camera;
 use crate::image::{DecalMode, ImageData, Interpolation, TextureMap};
-use crate::interval::{FloatConst, Interval};
+use crate::interval::{Interval};
 use crate::prelude::*;
 
 
