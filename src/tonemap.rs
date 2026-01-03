@@ -1,4 +1,5 @@
 
+use std::fmt;
 
 use crate::prelude::*;
 
@@ -21,6 +22,19 @@ pub(crate) struct ToneMap {
 
     #[serde(rename = "Extension")]
     extension: String,
+}
+
+
+// Just for decorative purposes in info message
+impl fmt::Display for ToneMap {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self.operator {
+            ToneMapOperator::ACES => "ACES",
+            ToneMapOperator::Filmic => "Filmic",
+            ToneMapOperator::Photographic => "Photographic",
+        };
+        write!(f, "{}", s)
+    }
 }
 
 #[derive(Debug, Deserialize, Clone, Copy)]
