@@ -74,12 +74,12 @@ impl LightKind {
                 let cos_alpha = sl.direction.dot(-shadow_ray.direction); // I assume shadow ray is directed at light, so taking the negative
                 assert!(cos_alpha >= 0., "Expected positive angle, found cos alpha {} < 0", cos_alpha);
                 
-                
-                if cos_alpha <= sl._cache.cos_c2 {
-                    let dist: f64 = interval.max; // TODO: Is it safe to assume the distance between light and hitpoint corresponds to interval.max? 
-                    info!(dist);
-                    let mut irrad = sl.intensity / dist.powf(2.); 
-                    if cos_alpha <= sl._cache.cos_f2 {
+                // Angle decrease -> cos increases, i.e. alpha < coverage_angle/2
+                if cos_alpha >= sl._cache.cos_c2 {
+                    //let dist: f64 = interval.max; // TODO: Is it safe to assume the distance between light and hitpoint corresponds to interval.max? 
+                    let dist_squared = (shadow_ray.origin - sl.position).norm_squared();
+                    let mut irrad = sl.intensity / dist_squared; 
+                    if cos_alpha <= sl._cache.cos_f2 { // Outside the no-fall-off zone but inside coverage
                         let s = ((cos_alpha - sl._cache.cos_f2) / sl._cache.cos_diff).powf(4.);
                         irrad *= s;
                     }
