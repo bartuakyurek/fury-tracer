@@ -69,7 +69,21 @@ impl LightKind {
             LightKind::Spot(sl) => {
                 // Net irradiance E(x) given in hw5 pdf, eqn.4
                 // See slides 09, p.11 for falloff range
-                todo!()
+                debug_assert!(sl.direction.is_normalized());
+                debug_assert!(shadow_ray.direction.is_normalized());
+                let alpha = sl.direction.dot(-shadow_ray.direction); // I assume shadow ray is directed at light, so taking the negative
+                
+                if alpha <= sl._cache.c2 {
+                    let dist: f64 = interval.max; // TODO: Is it safe to assume the distance between light and hitpoint corresponds to interval.max? 
+                    let mut irrad = sl.intensity / dist.powf(2.); 
+                    if alpha <= sl._cache.f2 {
+                        let s = ((alpha.cos() - sl._cache.cos_f2) / sl._cache.cos_diff).powf(4.);
+                        irrad *= s;
+                    }
+                    irrad
+                } else {
+                    Vector3::ZERO
+                }               
             },
             LightKind::Env(envl) => {
                 todo!()
@@ -108,12 +122,42 @@ pub struct SpotLight {
 
     #[serde(rename = "FalloffAngle", deserialize_with = "deser_float")]
     pub falloff_degrees: Float,
+
+    #[serde(skip)]
+    pub _cache: SpotLightCache,
+}
+
+
+#[derive(Debug, Deserialize, Clone, Default)]
+struct SpotLightCache {
+    f2: Float, // 2 means divided by 2 here
+    c2: Float,
+    cos_f2: Float,
+    cos_c2: Float,
+    cos_diff: Float,
+}
+
+impl SpotLightCache {
+    fn new(falloff_degrees: Float, coverage_degrees: Float) -> Self {
+        let f2 = falloff_degrees / 2.; 
+        let c2 = coverage_degrees / 2.;
+        let cos_f2 = f2.cos();
+        let cos_c2 = c2.cos();
+        SpotLightCache {
+            f2,
+            c2,
+            cos_f2,
+            cos_c2,
+            cos_diff: cos_f2 - cos_c2,
+        }
+    }
 }
 
 impl SpotLight {
     pub fn setup(&mut self) {
         debug!("Normalizing direction for spot light id:{}...", self._id);
         self.direction = self.direction.normalize();
+        self._cache = SpotLightCache::new(self.falloff_degrees, self.coverage_degrees);
     }
 }
 
