@@ -731,17 +731,10 @@ impl ImageData {
         let path: PathBuf = self.get_png_fullpath(path);
         let img_extension = path.extension().unwrap().to_str().unwrap();
         
-        let im_buffer = 
-            match img_extension {
-                "png" | "jpg" | "jpeg" => {
-                    self.get_ldr()
-                }
-                "exr" | "hdr"  => {
-                    self.get_hdr()
-                }
-                _ => {
-                    panic!("Invalid image extension {}", img_extension);
-                }
+        let im_buffer = match img_extension {
+            "png" | "jpg" | "jpeg" => { self.get_ldr() }
+            "exr" | "hdr"  => { self.get_hdr() }
+            _ => { panic!("Invalid image extension {}", img_extension) }
         };
 
         im_buffer.save(&path)?;
