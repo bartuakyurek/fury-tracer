@@ -658,7 +658,9 @@ impl ImageData {
         }
     }
 
-
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
     pub fn new(width: usize, height: usize, name: String, pixel_colors: Vec<Vector3>) -> Self {
         ImageData {
             pixel_radiance: pixel_colors,
@@ -707,6 +709,17 @@ impl ImageData {
 
     pub fn check_extension(&self, path: &Path, extension: &str) -> bool {
         path.extension().unwrap().to_str().unwrap() == extension
+    }
+
+     pub fn update_extension(&mut self, new_suffix_ext: &str) {
+        let path = Path::new(&self.name);
+
+        // Filename without extension
+        let stem = path.file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or(&self.name);
+
+        self.name = format!("{}{}", stem, new_suffix_ext);
     }
 
     pub fn get_fullpath(&self, path: &str) -> PathBuf {
