@@ -33,8 +33,9 @@ impl ToneMap {
         im.update_extension(&self.extension);
         info!("Updated image extension. New image name: {}", im.name());
 
-        let lumis = im.get_luminances();
-        match self.operator {
+        let lumi: Vec<Float> = im.get_luminances();
+        let (alpha, percentile) = (self.options[0], self.options[1]);
+        let compressed_lumi: Vec<Float> = match self.operator {
             ToneMapOperator::ACES => {
                 todo!()
             }
@@ -44,7 +45,21 @@ impl ToneMap {
             ToneMapOperator::Photographic => {
                 todo!()
             }
+        };
+        // Apply eqn.1 in HW5 pdf (RGB colors from luminances)
+        let num_pixels = im.num_pixels();
+        for i in 0..num_pixels {
+            let y_o = compressed_lumi[i];
+            let y_i = lumi[i];
+            let new_color = y_o * (im.colors[i] / y_i).powf(self.saturation);
+            im.colors[i] = new_color;
         }
+
+        // Apply eqn.2 in HW5 pdf (Gamma correction) 
+        for i in 0..num_pixels {
+            im.colors[i] = 255. * im.colors[i].powf(1. / self.gamma);
+        }
+        im
     }
 }
 
