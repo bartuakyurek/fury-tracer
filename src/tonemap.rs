@@ -118,7 +118,7 @@ impl ToneMapOperator {
             sorted_lumi.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
             let idx = ((percentile / 100.) * sorted_lumi.len() as Float) as usize;
-            assert!(idx <= sorted_lumi.len() - 1);
+            let idx = idx.min(sorted_lumi.len() - 1);
 
             let l_white_squared = sorted_lumi[idx].powf(2.);
             comp_lumi.iter_mut().for_each(|lumi| {
