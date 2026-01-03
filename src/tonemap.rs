@@ -84,7 +84,7 @@ impl Default for ToneMapOperator {
 
 
 impl ToneMapOperator {
-    pub fn compress_luminance(&self, lumi: &[Float], options: &[Float; 2]) -> Vec<Float> {
+    pub fn compress_luminance(&self, lumi: &Vec<Float>, options: &[Float; 2]) -> Vec<Float> {
         
         let (alpha, percentile) = (options[0], options[1]);
 
@@ -101,19 +101,31 @@ impl ToneMapOperator {
         }
     }
 
-    fn photographic_tmo(&self, lumi: &[Float], alpha: Float, percentile: Float) -> Vec<Float> {
+    fn photographic_tmo(&self, lumi: &Vec<Float>, alpha: Float, percentile: Float) -> Vec<Float> {
         // See slides 08, p.42 Photographic TMO consists of two stages
         
         // Stage one - a global operator simulating key mapping
         // initial luminance mapping (slides 08, p.43)
         let n = lumi.len() as Float;
         let eps = 1e-10;
-        let middle_gray = (1. / n) * lumi.iter().map(|lw| (lw + eps).ln()).sum::<Float>();
+        let middle_gray = ((1. / n) * lumi.iter().map(|lw| (lw + eps).ln()).sum::<Float>()).exp();
         let mut comp_lumi: Vec<Float> = lumi.iter().map(|lw| (alpha / middle_gray) * lw).collect();
         comp_lumi.iter_mut().for_each(|lumi| *lumi = *lumi / (1. + *lumi));
 
         // Stage two - a local operator simulating dodging-and-burning
-        todo!();
+        if percentile > 0.0 {
+            let mut sorted_lumi = comp_lumi.clone();
+            sorted_lumi.sort_by(|a, b| a.partial_cmp(b).unwrap());
+
+            let idx = ((percentile / 100.) * sorted_lumi.len() as Float) as usize;
+            assert!(idx <= sorted_lumi.len() - 1);
+
+            let l_white_squared = sorted_lumi[idx].powf(2.);
+            comp_lumi.iter_mut().for_each(|lumi| {
+                *lumi = (*lumi * (1. + (*lumi / l_white_squared))) / (1. + *lumi)
+            });
+        }
+
         comp_lumi
         
     }
