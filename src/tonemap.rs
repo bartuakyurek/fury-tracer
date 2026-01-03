@@ -142,7 +142,17 @@ impl ToneMapOperator {
     }
 
     fn aces_tmo(&self, lumi: &Vec<Float>, alpha: Float, percentile: Float) -> Vec<Float> {
-        
+
+        fn map_lumi(l: Float) -> Float {
+            let (a, b, c, d, e) = (2.51, 0.03, 2.43, 0.59, 0.14);
+            (l * ((l*a) + b)) / ((l*((l*c) + d)) + e)
+        }
+
+        let l_white = self.get_white(lumi, percentile);
+        let mapped_white = map_lumi(l_white);
+        let mut comp_lumi: Vec<Float> = self.prescale(lumi, alpha);
+        comp_lumi.iter_mut().for_each(|l| *l = map_lumi(*l) / mapped_white );
+        comp_lumi
     }
 
     fn filmic_tmo(&self, lumi: &Vec<Float>, alpha: Float, percentile: Float) -> Vec<Float> {
