@@ -17,6 +17,16 @@ pub enum LightKind {
 
 impl LightKind {
 
+    pub fn setup(&mut self, transforms: &Transformations) {
+        match self {
+            LightKind::Point(pl) => pl.setup(transforms),
+            LightKind::Area(al) => al.setup(),
+            LightKind::Directional(dl) => dl.setup(),
+            LightKind::Spot(sl) => sl.setup(),
+            LightKind::Env(envl) => envl.setup(),
+        }
+    }
+
     pub fn get_shadow_direction_and_distance(&self, ray_origin: &Vector3) -> (Vector3, Float) {
         match self {
             LightKind::Point(pl) => {
@@ -151,6 +161,20 @@ pub struct AreaLight {
 //}
 
 impl AreaLight {
+
+    pub fn setup(&mut self) {
+        debug!("WARNING: Assumes area lights have no transformation to setup!");
+        self.setup_onb();
+    }
+
+     pub fn setup_onb(&mut self) {
+        // See slides 05, p.96
+        let (u, v) = get_onb(&self.normal);
+        self.u = u;
+        self.v = v;
+        debug!("Area light ONB is setup successfully.");
+    }
+
     pub fn sample_position(&self) -> Vector3 {
         // see slides 05, p.97
         // extent is arealight.size here
@@ -182,13 +206,7 @@ impl AreaLight {
         area * cos_alpha.abs() // abs for double sided area light
     }
 
-    pub fn setup_onb(&mut self) {
-        // See slides 05, p.96
-        let (u, v) = get_onb(&self.normal);
-        self.u = u;
-        self.v = v;
-        debug!("Area light ONB is setup successfully.");
-    }
+   
 }
 
 #[derive(Debug, Deserialize, Clone, Default)]

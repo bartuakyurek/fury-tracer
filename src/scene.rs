@@ -243,41 +243,8 @@ impl SceneLights {
 
         debug!("Setting up scene lights...\n{:#?}", self);
 
-        // ----------------------------------------------------------
-        // Setup point lights
-        // ----------------------------------------------------------
-        for plight in self.point_lights.iter_mut() {
-            plight.setup(transforms);
-        }
-        // ----------------------------------------------------------
-        // Setup area lights 
-        // ----------------------------------------------------------
-        // TODO: I keep setting up these structs, what would be a useful interface 
-        // to decouple deserialization and precomputation in scene structs?
-        debug!("WARNING: Assumes area lights have no transformation!");
-        for alight in self.area_lights.iter_mut() {
-            alight.setup_onb();
-        }
-
-        // -----------------------------------------------------------
-        // Setup directional lights 
-        // -----------------------------------------------------------
-        for dlight in self.dir_lights.iter_mut() {
-            dlight.setup();
-        }
-
-         // -----------------------------------------------------------
-        // Setup spot lights 
-        // -----------------------------------------------------------
-        for slight in self.spot_lights.iter_mut() {
-            slight.setup();
-        }
-
-         // -----------------------------------------------------------
-        // Setup environment lights 
-        // -----------------------------------------------------------
-        for envlight in self.env_lights.iter_mut() {
-            envlight.setup();
+        for light in self.all_nonambient().iter_mut() {
+            light.setup(transforms);
         }
 
         debug!("Scene lights setup done!");
