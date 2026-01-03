@@ -4,6 +4,7 @@ use serde::{self, Deserialize, de::{Deserializer}};
 use std::path::{Path, PathBuf};
 use std::io::BufWriter;
 use std::fs::File;
+use std::ffi::OsStr;
 use image::{GenericImageView}; // TODO: right now png crate is used to save the final image but as of hw4, this crate is added to read texture images, so mayb we can remove png crate and just use image crate?
 use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 
@@ -744,7 +745,7 @@ impl ImageData {
         
     }
 
-    pub fn save_png(self, path: &str) -> Result<(), Box<dyn std::error::Error>>{
+    pub fn export(self, path: &str) -> Result<(), Box<dyn std::error::Error>>{
         // Path is either a folder name or
         // full path including <imagename>.png
         // If full path is not provided it will use 
@@ -765,10 +766,20 @@ impl ImageData {
         encoder.set_depth(png::BitDepth::Eight);
         // TODO / WARNING: You may need to set gamma as in this link https://docs.rs/png/0.18.0/png/
         let mut writer = encoder.write_header().unwrap();
-
-        let data = self.to_rgb();
-        writer.write_image_data(&data)?; // Save
-        info!("Image saved to {}", path.to_str().unwrap());
+        let img_extension = path.extension().unwrap().to_str().unwrap();
+        match img_extension {
+            "png" | "jpg" | "jpeg" => {
+                let data = self.to_rgb();
+                writer.write_image_data(&data)?; // Save
+                info!("Image saved to {}", path.to_str().unwrap());
+            }
+            "exr" | "hdr"  => {
+                todo!();
+            }
+            _ => {
+                panic!("Invalid image extension {}", img_extension);
+            }
+        }    
         Ok(())
     }
 
