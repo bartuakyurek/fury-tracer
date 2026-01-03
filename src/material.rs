@@ -30,8 +30,10 @@ pub struct BRDFData {
     pub specular_rf: Vector3,
     #[serde(rename = "PhongExponent", deserialize_with = "deser_float")]
     pub phong_exponent: Float,
-}
 
+    #[serde(rename = "_degamma", deserialize_with = "deser_bool")]
+    pub degamma: bool,
+}
 
 impl Default for BRDFData {
     fn default() -> Self {
@@ -41,6 +43,7 @@ impl Default for BRDFData {
             diffuse_rf: Vector3::new(1.0, 1.0, 1.0),
             specular_rf: Vector3::new(0.0, 0.0, 0.0),
             phong_exponent: 1.0,
+            degamma: false,
         }
     }
 }
@@ -48,7 +51,11 @@ impl Default for BRDFData {
 impl BRDFData {
 
     pub fn ambient(&self) -> Vector3 {
-        self.ambient_rf  
+        if self.degamma {
+            self.ambient_rf.powf(2.2)
+        } else {
+            self.ambient_rf
+        }   
     }
 
     pub fn diffuse(&self, w_i: Vector3, n: Vector3) -> Vector3 {
@@ -57,7 +64,11 @@ impl BRDFData {
         debug_assert!(n.is_normalized());
 
         let cos_theta = w_i.dot(n).max(0.0);
-        self.diffuse_rf * cos_theta  
+
+        let mut diffuse_rf = self.diffuse_rf;
+        if self.degamma { diffuse_rf = diffuse_rf.powf(2.2); }
+        diffuse_rf * cos_theta  
+        
     }
 
     pub fn specular(&self, w_o: Vector3, w_i: Vector3, n: Vector3) -> Vector3 {
@@ -71,7 +82,12 @@ impl BRDFData {
         
         let p = self.phong_exponent;
         let cos_a = n.dot(h).max(0.0);
-        self.specular_rf * cos_a.powf(p)  
+        
+        
+        let mut specular_rf = self.specular_rf;
+        if self.degamma { specular_rf = specular_rf.powf(2.2); }
+        
+        specular_rf * cos_a.powf(p)  
     }   
 }
 
@@ -130,6 +146,7 @@ impl Default for DiffuseMaterial {
                 diffuse_rf: Vector3::new(1.0, 1.0, 1.0),
                 specular_rf: Vector3::new(0.0, 0.0, 0.0),
                 phong_exponent: 1.0,
+                degamma: false,
                 },
         }
     }
@@ -177,6 +194,7 @@ pub struct MirrorMaterial {
     
     #[serde(rename = "Roughness", deserialize_with = "deser_float")]
     pub roughness: Float,
+
 }
 
 impl Default for MirrorMaterial {
@@ -188,6 +206,7 @@ impl Default for MirrorMaterial {
                     diffuse_rf: Vector3::new(0.5, 0.5, 0.5),
                     specular_rf: Vector3::new(0.0, 0.0, 0.0),
                     phong_exponent: 1.0,
+                    degamma: false,
                 },
             mirror_rf: Vector3::new(1.0, 1.0, 1.0),
             roughness: 0.0, // Perfect mirror
@@ -288,6 +307,7 @@ impl Default for DielectricMaterial {
                     diffuse_rf: Vector3::new(0.5, 0.5, 0.5),
                     specular_rf: Vector3::new(0.0, 0.0, 0.0),
                     phong_exponent: 1.0,
+                    degamma: false,
                 },
             mirror_rf: Vector3::new(0.5, 0.5, 0.5),
             absorption_coeff: Vector3::new(0.01, 0.01, 0.01),
@@ -489,6 +509,7 @@ impl Default for ConductorMaterial {
                     diffuse_rf: Vector3::new(0., 0., 0.),
                     specular_rf: Vector3::new(0., 0., 0.),
                     phong_exponent: 1., // TODO: Is that a good default? WARNING: cornellbox_recursive missing phong 
+                    degamma: false,
                 },
             mirror_rf: Vector3::new(1., 1., 1.),
             absorption_index: 2.82,
