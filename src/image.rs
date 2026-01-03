@@ -661,6 +661,14 @@ impl ImageData {
     pub fn name(&self) -> String {
         self.name.clone()
     }
+
+    // Luminance per pixel (assuming sRGB space, see HW5 pdf)
+    pub fn get_luminances(&self) -> Vec<Float> {
+        // How should be the naming here? pixel_rgbs?
+        self.pixel_radiance.iter().map(|color| 
+            0.2126 * color.x + 0.7152 * color.y + 0.0722 * color.z
+        ).collect()
+    }
     pub fn new(width: usize, height: usize, name: String, pixel_colors: Vec<Vector3>) -> Self {
         ImageData {
             pixel_radiance: pixel_colors,

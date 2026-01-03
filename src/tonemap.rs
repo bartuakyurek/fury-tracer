@@ -32,6 +32,8 @@ impl ToneMap {
         let mut im = im.clone();
         im.update_extension(&self.extension);
         info!("Updated image extension. New image name: {}", im.name());
+
+        let lumis = im.get_luminances();
         match self.operator {
             ToneMapOperator::ACES => {
                 todo!()
