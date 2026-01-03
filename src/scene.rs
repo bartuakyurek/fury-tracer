@@ -247,19 +247,7 @@ impl SceneLights {
         // Setup point lights
         // ----------------------------------------------------------
         for plight in self.point_lights.iter_mut() {
-            
-            plight.composite_mat = if plight.transformation_names.is_some() 
-            {
-                parse_transform_expression(
-                    plight.transformation_names.as_deref().unwrap_or(""),
-                    transforms,  
-                )
-            } else {
-                debug!("No transformation matrix found for point light '{}', defaulting to Identity...", plight._id);
-                Matrix4::IDENTITY
-            };
-
-            plight.position = transform_point(&plight.composite_mat, &plight.position);
+            plight.setup(transforms);
         }
         // ----------------------------------------------------------
         // Setup area lights 

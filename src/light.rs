@@ -2,6 +2,7 @@ use bevy_math::{NormedVectorSpace};
 
 use crate::ray::Ray;
 use crate::interval::*;
+use crate::json_structs::Transformations;
 use crate::prelude::*;
 
 
@@ -96,8 +97,8 @@ pub struct SpotLight {
 
 impl SpotLight {
     pub fn setup(&mut self) {
+        debug!("Normalizing direction for spot light id:{}...", self._id);
         self.direction = self.direction.normalize();
-        todo!()
     }
 }
 
@@ -206,4 +207,23 @@ pub struct PointLight {
 
     #[serde(skip)]
     pub(crate) composite_mat: Matrix4,
+}
+
+impl PointLight {
+
+    pub fn setup(&mut self, transforms: &Transformations) {
+        self.composite_mat = 
+        if self.transformation_names.is_some() 
+        {
+            parse_transform_expression(
+                self.transformation_names.as_deref().unwrap_or(""),
+                transforms,  
+            )
+        } else {
+            debug!("No transformation matrix found for point light '{}', defaulting to Identity...", self._id);
+            Matrix4::IDENTITY
+        };
+
+        self.position = transform_point(&self.composite_mat, &self.position);
+    }
 }
