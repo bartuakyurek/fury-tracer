@@ -34,23 +34,24 @@ impl ToneMap {
         info!("Updated image extension. New image name: {}", im.name());
 
         // 1 - Compute luminance from RGB 
-        let lumi: Vec<Float> = im.get_luminances();
+        let world_lumi: Vec<Float> = im.get_luminances();
 
         // 2 (and 3) - Apply tone mapping algorithm
-        let compressed_lumi= self.operator.compress_luminance(&lumi, &self.options);
+        let display_lumi= self.operator.luminance(&world_lumi, &self.options);
 
         // 4 - Apply eqn.1 in HW5 pdf (RGB colors from luminances)
         let num_pixels = im.num_pixels();
         for i in 0..num_pixels {
-            let y_o = compressed_lumi[i];
-            let y_i = lumi[i];
-            let new_color = y_o * (im.colors[i] / y_i).powf(self.saturation);
+            let new_color = display_lumi[i] * (im.colors[i] / world_lumi[i]).powf(self.saturation);
             im.colors[i] = new_color;
         }
 
         // 5 - Apply eqn.2 in HW5 pdf (Gamma correction) 
         for i in 0..num_pixels {
-            im.colors[i] = 255. * im.colors[i].powf(1. / self.gamma);
+            // TODO: What's the idiomatic way to compute bleow?
+            im.colors[i].x = 255. * (im.colors[i].x.powf(1. / self.gamma)).clamp(0.0, 1.0);
+            im.colors[i].y = 255. * (im.colors[i].y.powf(1. / self.gamma)).clamp(0.0, 1.0);
+            im.colors[i].z = 255. * (im.colors[i].z.powf(1. / self.gamma)).clamp(0.0, 1.0);
         }
         im
     }
@@ -84,7 +85,7 @@ impl Default for ToneMapOperator {
 
 
 impl ToneMapOperator {
-    pub fn compress_luminance(&self, lumi: &Vec<Float>, options: &[Float; 2]) -> Vec<Float> {
+    pub fn luminance(&self, lumi: &Vec<Float>, options: &[Float; 2]) -> Vec<Float> {
         
         let (alpha, percentile) = (options[0], options[1]);
 
