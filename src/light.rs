@@ -146,12 +146,14 @@ impl SpotLightCache {
         let c2_rad: Float = (coverage_degrees / 180. * Float::PI) / 2.;
         let cos_f2 = f2_rad.cos();
         let cos_c2 = c2_rad.cos();
+        let cos_diff = cos_f2 - cos_c2;
+        assert!(cos_diff != 0.0); // Otherwise division by zero occurs
         SpotLightCache {
             //f2_rad,
             //c2_rad,
             cos_f2,
             cos_c2,
-            cos_diff: cos_c2 - cos_f2,
+            cos_diff,
         }
     }
 }
