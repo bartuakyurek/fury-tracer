@@ -112,15 +112,19 @@ impl ToneMapOperator {
         sorted_lumi[idx]
     }
 
+    fn prescale(&self, lumi: &Vec<Float>, alpha: Float) -> Vec<Float> {
+        let n = lumi.len() as Float;
+        let eps = 1e-10;
+        let middle_gray = ((1. / n) * lumi.iter().map(|lw| (lw + eps).ln()).sum::<Float>()).exp();
+        lumi.iter().map(|lw| (alpha / middle_gray) * lw).collect()
+    }
+
     fn photographic_tmo(&self, lumi: &Vec<Float>, alpha: Float, percentile: Float) -> Vec<Float> {
         // See slides 08, p.42 Photographic TMO consists of two stages
         
         // Stage one - a global operator simulating key mapping
         // initial luminance mapping (slides 08, p.43)
-        let n = lumi.len() as Float;
-        let eps = 1e-10;
-        let middle_gray = ((1. / n) * lumi.iter().map(|lw| (lw + eps).ln()).sum::<Float>()).exp();
-        let mut comp_lumi: Vec<Float> = lumi.iter().map(|lw| (alpha / middle_gray) * lw).collect();
+        let mut comp_lumi: Vec<Float> = self.prescale(lumi, alpha);
         
         // Stage two - a local operator simulating dodging-and-burning
         if percentile > 0.0 {
@@ -138,7 +142,7 @@ impl ToneMapOperator {
     }
 
     fn aces_tmo(&self, lumi: &Vec<Float>, alpha: Float, percentile: Float) -> Vec<Float> {
-        todo!()
+        
     }
 
     fn filmic_tmo(&self, lumi: &Vec<Float>, alpha: Float, percentile: Float) -> Vec<Float> {
@@ -150,7 +154,9 @@ impl ToneMapOperator {
 
         let l_white = self.get_white(lumi, percentile);
         let mapped_white = map_lumi(l_white);
-        lumi.iter().map(|l| map_lumi(*l) / mapped_white ).collect()
+        let mut comp_lumi: Vec<Float> = self.prescale(lumi, alpha);
+        comp_lumi.iter_mut().for_each(|l| *l = map_lumi(*l) / mapped_white );
+        comp_lumi
     }
 
 }
