@@ -71,13 +71,16 @@ impl LightKind {
                 // See slides 09, p.11 for falloff range
                 debug_assert!(sl.direction.is_normalized());
                 debug_assert!(shadow_ray.direction.is_normalized());
-                let alpha = sl.direction.dot(-shadow_ray.direction); // I assume shadow ray is directed at light, so taking the negative
+                let cos_alpha = sl.direction.dot(-shadow_ray.direction); // I assume shadow ray is directed at light, so taking the negative
+                assert!(cos_alpha >= 0., "Expected positive angle, found cos alpha {} < 0", cos_alpha);
                 
-                if alpha <= sl._cache.c2 {
+                
+                if cos_alpha <= sl._cache.cos_c2 {
                     let dist: f64 = interval.max; // TODO: Is it safe to assume the distance between light and hitpoint corresponds to interval.max? 
+                    info!(dist);
                     let mut irrad = sl.intensity / dist.powf(2.); 
-                    if alpha <= sl._cache.f2 {
-                        let s = ((alpha.cos() - sl._cache.cos_f2) / sl._cache.cos_diff).powf(4.);
+                    if cos_alpha <= sl._cache.cos_f2 {
+                        let s = ((cos_alpha - sl._cache.cos_f2) / sl._cache.cos_diff).powf(4.);
                         irrad *= s;
                     }
                     irrad
@@ -124,14 +127,14 @@ pub struct SpotLight {
     pub falloff_degrees: Float,
 
     #[serde(skip)]
-    pub _cache: SpotLightCache,
+     _cache: SpotLightCache,
 }
 
 
 #[derive(Debug, Deserialize, Clone, Default)]
 struct SpotLightCache {
-    f2: Float, // 2 means divided by 2 here
-    c2: Float,
+    //f2_rad: Float, // 2 means divided by 2 here
+    //c2_rad: Float,
     cos_f2: Float,
     cos_c2: Float,
     cos_diff: Float,
@@ -139,16 +142,16 @@ struct SpotLightCache {
 
 impl SpotLightCache {
     fn new(falloff_degrees: Float, coverage_degrees: Float) -> Self {
-        let f2 = falloff_degrees / 2.; 
-        let c2 = coverage_degrees / 2.;
-        let cos_f2 = f2.cos();
-        let cos_c2 = c2.cos();
+        let f2_rad: Float = (falloff_degrees / 180. * Float::PI) / 2.; 
+        let c2_rad: Float = (coverage_degrees / 180. * Float::PI) / 2.;
+        let cos_f2 = f2_rad.cos();
+        let cos_c2 = c2_rad.cos();
         SpotLightCache {
-            f2,
-            c2,
+            //f2_rad,
+            //c2_rad,
             cos_f2,
             cos_c2,
-            cos_diff: cos_f2 - cos_c2,
+            cos_diff: cos_c2 - cos_f2,
         }
     }
 }
