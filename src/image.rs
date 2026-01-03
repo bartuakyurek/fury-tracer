@@ -611,7 +611,7 @@ impl Interpolation {
 pub struct ImageData {
     // WARNING: Currently width and height is assumed to represent number of pixels,
     // not accepting a measure like centimeters, that'd require DPI as well
-    pixel_radiance : Vec<Vector3>, // Vector of RGB per pixel
+    pub colors : Vec<Vector3>, // Vector of RGB per pixel
     width : usize, 
     height: usize,
     name: String, // TODO: width, height, name info actually is stored under camera as well
@@ -651,7 +651,7 @@ impl ImageData {
 
         debug!("Loading ImageData from {}... with dimensions ({}, {})", path.display(), width, height);
         Self {
-            pixel_radiance: pixel_colors,
+            colors: pixel_colors,
             width,
             height,
             name,
@@ -662,16 +662,21 @@ impl ImageData {
         self.name.clone()
     }
 
+
+    pub fn num_pixels(&self) -> usize {
+        self.width * self.height
+    }
+
     // Luminance per pixel (assuming sRGB space, see HW5 pdf)
     pub fn get_luminances(&self) -> Vec<Float> {
         // How should be the naming here? pixel_rgbs?
-        self.pixel_radiance.iter().map(|color| 
+        self.colors.iter().map(|color| 
             0.2126 * color.x + 0.7152 * color.y + 0.0722 * color.z
         ).collect()
     }
     pub fn new(width: usize, height: usize, name: String, pixel_colors: Vec<Vector3>) -> Self {
         ImageData {
-            pixel_radiance: pixel_colors,
+            colors: pixel_colors,
             width,
             height,
             name,
@@ -696,13 +701,13 @@ impl ImageData {
     pub fn flatten_data(self) -> Vec<Float> {
         // Return [R1, G1, B1, R2, G2, B2, ...] vector
         // where each triplet is RGB color of a pixel.
-        self.pixel_radiance.into_iter().flat_map(|v| [v.x, v.y, v.z]).collect()
+        self.colors.into_iter().flat_map(|v| [v.x, v.y, v.z]).collect()
     }
 
     pub fn fetch_color(&self, row: usize, col: usize) -> Vector3 {
         debug_assert!(row < self.height, "Row {} must be smaller than image height {}", row, self.height);
         debug_assert!(col < self.width, "Column {} must be smaller than image width {}", col, self.width);
-        self.pixel_radiance[(row * self.width) + col]
+        self.colors[(row * self.width) + col]
     }
 
     /// Clamp colors and return a flattened array of R G B values per pixel 
@@ -767,7 +772,7 @@ impl ImageData {
         // Note: No tone mapping here
         let mut im_buffer = image::RgbImage::new(self.width as u32, self.height as u32);
         for (i, pixel) in im_buffer.pixels_mut().enumerate() {
-            let radiance = self.pixel_radiance[i];
+            let radiance = self.colors[i];
 
             *pixel = image::Rgb([
                 (radiance.x).clamp(0.0, 255.0) as u8,
@@ -783,7 +788,7 @@ impl ImageData {
         let mut img = image::Rgb32FImage::new(self.width as u32, self.height as u32);
 
         for (i, pixel) in img.pixels_mut().enumerate() {
-            let c = self.pixel_radiance[i];
+            let c = self.colors[i];
             *pixel = image::Rgb([c.x as f32, c.y as f32, c.z as f32]);
         }
 
