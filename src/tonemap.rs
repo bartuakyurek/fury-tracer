@@ -33,20 +33,13 @@ impl ToneMap {
         im.update_extension(&self.extension);
         info!("Updated image extension. New image name: {}", im.name());
 
+        // 1 - Compute luminance from RGB 
         let lumi: Vec<Float> = im.get_luminances();
-        let (alpha, percentile) = (self.options[0], self.options[1]);
-        let compressed_lumi: Vec<Float> = match self.operator {
-            ToneMapOperator::ACES => {
-                todo!()
-            }
-            ToneMapOperator::Filmic => {
-                todo!()
-            }
-            ToneMapOperator::Photographic => {
-                todo!()
-            }
-        };
-        // Apply eqn.1 in HW5 pdf (RGB colors from luminances)
+
+        // 2 (and 3) - Apply tone mapping algorithm
+        let compressed_lumi= self.operator.compress_luminance(&lumi, &self.options);
+
+        // 4 - Apply eqn.1 in HW5 pdf (RGB colors from luminances)
         let num_pixels = im.num_pixels();
         for i in 0..num_pixels {
             let y_o = compressed_lumi[i];
@@ -55,7 +48,7 @@ impl ToneMap {
             im.colors[i] = new_color;
         }
 
-        // Apply eqn.2 in HW5 pdf (Gamma correction) 
+        // 5 - Apply eqn.2 in HW5 pdf (Gamma correction) 
         for i in 0..num_pixels {
             im.colors[i] = 255. * im.colors[i].powf(1. / self.gamma);
         }
@@ -87,4 +80,37 @@ impl Default for ToneMapOperator {
     fn default() -> Self {
         ToneMapOperator::Photographic
     }
+}
+
+
+impl ToneMapOperator {
+    pub fn compress_luminance(&self, lumi: &[Float], options: &[Float; 2]) -> Vec<Float> {
+        
+        let (alpha, percentile) = (options[0], options[1]);
+
+        match self {
+            ToneMapOperator::ACES => {
+                self.aces_tmo(lumi, alpha, percentile)
+            }
+            ToneMapOperator::Filmic => {
+                self.filmic_tmo(lumi, alpha, percentile)
+            }
+            ToneMapOperator::Photographic => {
+                self.photographic_tmo(lumi, alpha, percentile)
+            }
+        }
+    }
+
+    fn photographic_tmo(&self, lumi: &[Float], alpha: Float, percentile: Float) -> Vec<Float> {
+        todo!()
+    }
+
+    fn aces_tmo(&self, lumi: &[Float], alpha: Float, percentile: Float) -> Vec<Float> {
+        todo!()
+    }
+
+    fn filmic_tmo(&self, lumi: &[Float], alpha: Float, percentile: Float) -> Vec<Float> {
+        todo!()
+    }
+
 }
