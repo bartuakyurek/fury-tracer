@@ -261,6 +261,13 @@ impl SceneLights {
             alight.setup_onb();
         }
 
+        // -----------------------------------------------------------
+        // Setup directional lights 
+        // -----------------------------------------------------------
+        for dlight in self.dir_lights.iter_mut() {
+            dlight.setup();
+        }
+
         debug!("Scene lights setup done! {:#?}", self);
     }
 
@@ -297,7 +304,9 @@ impl LightKind {
                 (distance_vec / distance, distance)
             },
             LightKind::Directional(dl) => {
-                (-dl.direction.normalize(), FloatConst::INF)
+                // Direction was normalized at setup( ) already 
+                debug_assert!(dl.direction.is_normalized());
+                (-dl.direction, FloatConst::INF)
             },
         }
     }
@@ -327,6 +336,13 @@ pub struct DirectionalLight {
 
     #[serde(rename = "Radiance", deserialize_with = "deser_vec3")]
     pub radiance: Vector3,
+}
+
+impl DirectionalLight {
+    pub fn setup(&mut self) {
+        debug!("Normalizing direction for directional light id:{}...", self._id);
+        self.direction = self.direction.normalize();
+    }
 }
 
 
