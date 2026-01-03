@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::io::BufWriter;
 use std::fs::File;
 use std::ffi::OsStr;
-use image::{GenericImageView}; // TODO: right now png crate is used to save the final image but as of hw4, this crate is added to read texture images, so mayb we can remove png crate and just use image crate?
+use image::{DynamicImage, GenericImageView, ImageBuffer}; // TODO: right now png crate is used to save the final image but as of hw4, this crate is added to read texture images, so mayb we can remove png crate and just use image crate?
 use rand::{rngs::StdRng, seq::SliceRandom, SeedableRng};
 
 
@@ -611,32 +611,12 @@ impl Interpolation {
 pub struct ImageData {
     // WARNING: Currently width and height is assumed to represent number of pixels,
     // not accepting a measure like centimeters, that'd require DPI as well
-    pixel_colors : Vec<Vector3>, // Vector of RGB per pixel
+    pixel_radiance : Vec<Vector3>, // Vector of RGB per pixel
     width : usize, 
     height: usize,
     name: String, // TODO: width, height, name info actually is stored under camera as well
                   // is it wise to copy those into ImageData? I thought it is more organized this way.
 }
-
-
-//impl<'de> Deserialize<'de> for ImageData {
-//    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//    where
-//        D: Deserializer<'de>,
-//    {
-//        #[derive(Deserialize)]
-//        struct Helper {
-//            _data: String,
-//            #[serde(deserialize_with = "deser_usize")]
-//            _id: usize, // TODO: WARNING here I assume _id aligns with order of these images in the json file, unused field here.
-//        }
-//
-//        let helper = Helper::deserialize(deserializer)?;
-//        Ok(Self::new_from_file(helper._data))
-//    }
-//}
-
-
 
 impl ImageData {
     // TODO: now that we use image crate, should we rename this module or even remove it?
@@ -671,7 +651,7 @@ impl ImageData {
 
         debug!("Loading ImageData from {}... with dimensions ({}, {})", path.display(), width, height);
         Self {
-            pixel_colors,
+            pixel_radiance: pixel_colors,
             width,
             height,
             name,
@@ -681,7 +661,7 @@ impl ImageData {
 
     pub fn new(width: usize, height: usize, name: String, pixel_colors: Vec<Vector3>) -> Self {
         ImageData {
-            pixel_colors,
+            pixel_radiance: pixel_colors,
             width,
             height,
             name,
@@ -703,22 +683,22 @@ impl ImageData {
         Self::new(width, height, name, pixel_colors)
     }
 
-    pub fn flatten_color(self) -> Vec<Float> {
+    pub fn flatten_data(self) -> Vec<Float> {
         // Return [R1, G1, B1, R2, G2, B2, ...] vector
         // where each triplet is RGB color of a pixel.
-        self.pixel_colors.into_iter().flat_map(|v| [v.x, v.y, v.z]).collect()
+        self.pixel_radiance.into_iter().flat_map(|v| [v.x, v.y, v.z]).collect()
     }
 
     pub fn fetch_color(&self, row: usize, col: usize) -> Vector3 {
         debug_assert!(row < self.height, "Row {} must be smaller than image height {}", row, self.height);
         debug_assert!(col < self.width, "Column {} must be smaller than image width {}", col, self.width);
-        self.pixel_colors[(row * self.width) + col]
+        self.pixel_radiance[(row * self.width) + col]
     }
 
     /// Clamp colors and return a flattened array of R G B values per pixel 
     pub fn to_rgb(self) -> Vec<u8> {
         
-        self.flatten_color().into_iter().map(|x| 
+        self.flatten_data().into_iter().map(|x| 
             {
             x.clamp(0.0, 255.0) as u8
             }
@@ -746,41 +726,55 @@ impl ImageData {
     }
 
     pub fn export(self, path: &str) -> Result<(), Box<dyn std::error::Error>>{
-        // Path is either a folder name or
-        // full path including <imagename>.png
-        // If full path is not provided it will use 
-        // stored image name.
-        //
-        // WARNING: Assumes RGB is used (no transparency available atm)
-        // WARNING: Only png accepted for now, if specified image name has another
-        // extension it will be silently converted to .png
-        //
-        // DISCLAIMER: This function is based on https://docs.rs/png/0.18.0/png/
+        // Path is either a folder name or full path including <imagename>.png
+        // If full path is not provided it will use  stored image name.
         let path: PathBuf = self.get_png_fullpath(path);
-
-        let file = File::create(path.clone()).unwrap();
-        let w = &mut BufWriter::new(file);
-        let mut encoder = png::Encoder::new(w, self.width as u32, self.height as u32); // Width is 2 pixels and height is 1.
-    
-        encoder.set_color(png::ColorType::Rgb);
-        encoder.set_depth(png::BitDepth::Eight);
-        // TODO / WARNING: You may need to set gamma as in this link https://docs.rs/png/0.18.0/png/
-        let mut writer = encoder.write_header().unwrap();
         let img_extension = path.extension().unwrap().to_str().unwrap();
-        match img_extension {
-            "png" | "jpg" | "jpeg" => {
-                let data = self.to_rgb();
-                writer.write_image_data(&data)?; // Save
-                info!("Image saved to {}", path.to_str().unwrap());
-            }
-            "exr" | "hdr"  => {
-                todo!();
-            }
-            _ => {
-                panic!("Invalid image extension {}", img_extension);
-            }
-        }    
+        
+        let im_buffer = 
+            match img_extension {
+                "png" | "jpg" | "jpeg" => {
+                    self.get_ldr()
+                }
+                "exr" | "hdr"  => {
+                    self.get_hdr()
+                }
+                _ => {
+                    panic!("Invalid image extension {}", img_extension);
+                }
+        };
+
+        im_buffer.save(&path)?;
+        info!("Image saved to {}", path.display());
+
         Ok(())
+    }
+
+    fn get_ldr(&self) -> DynamicImage {
+        // Note: No tone mapping here
+        let mut im_buffer = image::RgbImage::new(self.width as u32, self.height as u32);
+        for (i, pixel) in im_buffer.pixels_mut().enumerate() {
+            let radiance = self.pixel_radiance[i];
+
+            *pixel = image::Rgb([
+                (radiance.x).clamp(0.0, 255.0) as u8,
+                (radiance.y).clamp(0.0, 255.0) as u8,
+                (radiance.z).clamp(0.0, 255.0) as u8,
+            ]);
+        }
+        DynamicImage::ImageRgb8(im_buffer)
+    }
+
+    fn get_hdr(&self) -> DynamicImage {
+    
+        let mut img = image::Rgb32FImage::new(self.width as u32, self.height as u32);
+
+        for (i, pixel) in img.pixels_mut().enumerate() {
+            let c = self.pixel_radiance[i];
+            *pixel = image::Rgb([c.x as f32, c.y as f32, c.z as f32]);
+        }
+
+        DynamicImage::ImageRgb32F(img)
     }
 
     /// Given image coordinates (i, j), and interpolation choice, 
