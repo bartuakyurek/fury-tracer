@@ -102,6 +102,16 @@ impl ToneMapOperator {
         }
     }
 
+    fn get_white(&self, lumi: &Vec<Float>, percentile: Float) -> Float {
+        let mut sorted_lumi = lumi.clone();
+        sorted_lumi.sort_by(|a, b| a.partial_cmp(b).unwrap());
+
+        let portion = (100. - percentile) / 100.;
+        let idx = (portion * sorted_lumi.len() as Float) as usize;
+        let idx = idx.min(sorted_lumi.len() - 1);
+        sorted_lumi[idx]
+    }
+
     fn photographic_tmo(&self, lumi: &Vec<Float>, alpha: Float, percentile: Float) -> Vec<Float> {
         // See slides 08, p.42 Photographic TMO consists of two stages
         
@@ -114,14 +124,8 @@ impl ToneMapOperator {
         
         // Stage two - a local operator simulating dodging-and-burning
         if percentile > 0.0 {
-            let mut sorted_lumi = comp_lumi.clone();
-            sorted_lumi.sort_by(|a, b| a.partial_cmp(b).unwrap());
-
-            let portion = (100. - percentile) / 100.;
-            let idx = (portion * sorted_lumi.len() as Float) as usize;
-            let idx = idx.min(sorted_lumi.len() - 1);
-
-            let l_white_squared = sorted_lumi[idx].powf(2.);
+            let l_white = self.get_white(lumi, percentile);
+            let l_white_squared = l_white.powf(2.);
             comp_lumi.iter_mut().for_each(|lumi| {
                 *lumi = (*lumi * (1. + (*lumi / l_white_squared))) / (1. + *lumi)
             });
@@ -133,12 +137,20 @@ impl ToneMapOperator {
         
     }
 
-    fn aces_tmo(&self, lumi: &[Float], alpha: Float, percentile: Float) -> Vec<Float> {
+    fn aces_tmo(&self, lumi: &Vec<Float>, alpha: Float, percentile: Float) -> Vec<Float> {
         todo!()
     }
 
-    fn filmic_tmo(&self, lumi: &[Float], alpha: Float, percentile: Float) -> Vec<Float> {
-        todo!()
+    fn filmic_tmo(&self, lumi: &Vec<Float>, alpha: Float, percentile: Float) -> Vec<Float> {
+        
+        fn map_lumi(l: Float) -> Float {
+            let (a, b, c, d, e, f) = (0.22 as Float, 0.3 as Float, 0.1 as Float, 0.2 as Float, 0.01 as Float, 0.3 as Float);
+            (( (l * ( (a*l) + (c*b) )) + (d*e)  ) / ( (l * ((a*l) + b)) + (d*f) )) - (e / f) 
+        }
+
+        let l_white = self.get_white(lumi, percentile);
+        let mapped_white = map_lumi(l_white);
+        lumi.iter().map(|l| map_lumi(*l) / mapped_white ).collect()
     }
 
 }
