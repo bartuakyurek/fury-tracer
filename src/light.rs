@@ -97,14 +97,32 @@ impl LightKind {
 
 
 #[derive(Debug, Deserialize, Clone, Copy)]
-enum SphericalKind {
+enum EnvironmentMap {
     #[serde(rename="latlong")]
-    LatLong, // Only _type = latlong is supported in SphericalDirectionalLight currently
+    LatLong,
+
+    #[serde(rename="probe")]
+    Spherical, 
 }
 
-impl Default for SphericalKind {
+impl Default for EnvironmentMap {
     fn default() -> Self {
-        SphericalKind::LatLong
+        EnvironmentMap::LatLong
+    }
+}
+
+impl EnvironmentMap {
+    fn get_uv(&self) -> [Float; 2] {
+        // See HW5 pdf, eqns 5-10
+        match self {
+            EnvironmentMap::LatLong => {
+                todo!()
+            }
+            EnvironmentMap::Spherical => {
+                todo!()
+            }
+        }
+        
     }
 }
 
@@ -114,7 +132,7 @@ pub struct SphericalDirectionalLight {
     _id: usize,
     
     #[serde(rename = "_type")]
-    _type: SphericalKind,
+    _type: EnvironmentMap,
 
     #[serde(rename = "ImageId", deserialize_with = "deser_usize")]
     image_id: usize,
