@@ -112,7 +112,7 @@ impl Default for EnvironmentMap {
 }
 
 impl EnvironmentMap {
-    fn get_uv(&self, d: Vector3) -> [Float; 2] {
+    pub fn get_uv(&self, d: Vector3) -> [Float; 2] {
         // See HW5 pdf, eqns 5-10
         // d is the sampled direction
 
@@ -156,6 +156,14 @@ impl SphericalDirectionalLight {
     pub fn setup(&mut self) {
         warn!("Assuming image_id starts from 1 and images given sorted by id");
         self.image_idx = self.image_id - 1; 
+    }
+
+    pub fn image_idx(&self) -> usize {
+        self.image_idx
+    }
+
+    pub fn get_uv(&self, dir: Vector3) -> [Float; 2] {
+        self._type.get_uv(dir)
     }
 }
 
