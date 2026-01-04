@@ -37,5 +37,15 @@ pub fn hemisphere_uniform_sample(u: &Vector3, v: &Vector3, n: &Vector3) -> Vecto
 pub fn hemisphere_cosine_sample(u: &Vector3, v: &Vector3, n: &Vector3) -> Vector3 {
     debug_assert_orthonormality(u, v, n);
 
-    todo!()
+    let psi_1 = random_float();
+    let psi_2 = random_float();
+
+    let psi_sqrt = psi_1.sqrt();
+    let some_angle = psi_2 * 2. * Float::PI;
+
+    // Slides 09, p.54
+    let u_coeff = psi_sqrt * some_angle.cos();
+    let v_coeff =  psi_sqrt * some_angle.sin();
+    let n_coeff = (1. - psi_1).sqrt();
+    (u * u_coeff) + (v * v_coeff) + (n * n_coeff)
 }
