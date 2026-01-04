@@ -59,6 +59,21 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, brdf: 
                 color += brdf.specular(w_o, w_i, n) * irradiance; 
             }
     }
+
+    // HW5 Update: add color from environment lights (I kept it separate from shadow ray logic)
+    // TODO: refactor this huge function
+    for env_light in scene.data.lights.env_lights.iter() {
+        if let Some(textures) = &scene.data.textures {
+            //let (sampled_dir, radiance) 
+            let (sampled_dir, radiance) = env_light.sample_and_get_radiance(
+                &hit_record,
+                textures,
+            );
+            
+            color += radiance  * brdf.diffuse(sampled_dir, hit_record.normal);
+        }
+    }
+
     color
 }
 
@@ -158,20 +173,6 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vec
             },
         };
 
-        // HW5 Update: add color from environment lights (I kept it separate from shadow ray logic)
-        // TODO: refactor this huge function
-        for env_light in scene.data.lights.env_lights.iter() {
-            if let Some(textures) = &scene.data.textures {
-                //let (sampled_dir, radiance) 
-                let radiance = env_light.sample_radiance(
-                    &hit_record,
-                    textures,
-                );
-                //let new_ray = Ray::new(hit_record.hit_point, sampled_dir, 0.);
-                color += radiance;// * get_color(&new_ray, scene, cam, depth);
-            }
-        }
-
         color
    }
    else {
@@ -194,7 +195,7 @@ fn sample_background(ray_in: &Ray, scene: &Scene, cam: &Camera) -> Vector3 {
            let mut uv = cam.calculate_nearplane_uv(ray_in);
            uv[0] = (uv[0] - 0.5);// * 2.;
            uv[1] = (uv[1] - 0.5);// * 2.;
-
+        
            let radiance = textures.tex_from_img(
                env_light.image_idx(),  
                uv,

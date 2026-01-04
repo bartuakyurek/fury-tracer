@@ -168,8 +168,8 @@ impl SphericalDirectionalLight {
         self._type.get_uv(dir)
     }
 
-    pub fn sample_radiance(&self, hit_record: &HitRecord,textures: &Textures) 
-    -> (Vector3) {
+    pub fn sample_and_get_radiance(&self, hit_record: &HitRecord,textures: &Textures) 
+    -> (Vector3, Vector3) {
         // Build ONB from surface normal 
         let (u, v) = get_onb(&hit_record.normal);
         let n = hit_record.normal;
@@ -186,7 +186,7 @@ impl SphericalDirectionalLight {
         let uv = self.get_uv(sampled_dir);        
         let radiance = textures.tex_from_img(self.image_idx(), uv, &Interpolation::Bilinear);
         
-        radiance * 2. * Float::PI
+        (sampled_dir, radiance * 2. * Float::PI)
     }
 }
 
