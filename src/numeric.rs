@@ -96,16 +96,3 @@ pub fn debug_assert_orthonormality(u: &Vector3, v: &Vector3, n: &Vector3) {
     debug_assert!(v.is_normalized());
     debug_assert!(n.is_normalized());
 }
-
-
-//////////////////////////////////////////////////////////////////////////
-/// RNG utils
-//////////////////////////////////////////////////////////////////////////
-
-pub fn random_float() -> Float {
-    // Return a random real in [0.0, 1.0)
-    // NOTE: (See https://docs.rs/rand/latest/rand/fn.random.html)
-    // If you’re calling random() repeatedly, consider using a local rng handle 
-    // to save an initialization-check on each usage
-    rand::random::<Float>()
-}

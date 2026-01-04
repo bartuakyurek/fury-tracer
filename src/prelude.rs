@@ -15,3 +15,4 @@ pub use std::{sync::Arc};
  
 pub use crate::json_parser::{*};
 pub use crate::numeric::{*};
+pub use crate::sampler::{random_float};
