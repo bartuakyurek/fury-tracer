@@ -30,7 +30,9 @@ pub fn hemisphere_uniform_sample(u: &Vector3, v: &Vector3, n: &Vector3) -> Vecto
     let u_coeff: Float = some_coeff * (some_angle).cos(); 
     let v_coeff: Float = some_coeff * (some_angle).sin();
 
-    (u * u_coeff) + (v * v_coeff) + (n * psi_1)
+    let dir = (u * u_coeff) + (v * v_coeff) + (n * psi_1);
+    debug_assert!(dir.is_normalized());
+    dir
 }
 
 
@@ -47,5 +49,7 @@ pub fn hemisphere_cosine_sample(u: &Vector3, v: &Vector3, n: &Vector3) -> Vector
     let u_coeff = psi_sqrt * some_angle.cos();
     let v_coeff =  psi_sqrt * some_angle.sin();
     let n_coeff = (1. - psi_1).sqrt();
-    (u * u_coeff) + (v * v_coeff) + (n * n_coeff)
+    let dir = (u * u_coeff) + (v * v_coeff) + (n * n_coeff);
+    debug_assert!(dir.is_normalized());
+    dir
 }
