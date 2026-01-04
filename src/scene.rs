@@ -235,7 +235,7 @@ pub struct SceneLights {
     pub spot_lights: SingleOrVec<SpotLight>,
 
     #[serde(rename = "SphericalDirectionalLight")]
-    pub env_lights: SingleOrVec<EnvironmentLight>,
+    pub env_lights: SingleOrVec<SphericalDirectionalLight>,
 }
 
 impl SceneLights {

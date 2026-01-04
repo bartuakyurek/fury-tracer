@@ -11,9 +11,8 @@ pub enum LightKind {
     Area(AreaLight),
     Directional(DirectionalLight),
     Spot(SpotLight),
-    Env(EnvironmentLight)
+    Env(SphericalDirectionalLight)
 }
-
 
 impl LightKind {
 
@@ -95,14 +94,39 @@ impl LightKind {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, Default)]
-pub struct EnvironmentLight {
-    // TODO
+
+
+#[derive(Debug, Deserialize, Clone, Copy)]
+enum SphericalKind {
+    #[serde(rename="latlong")]
+    LatLong, // Only _type = latlong is supported in SphericalDirectionalLight currently
 }
 
-impl EnvironmentLight {
+impl Default for SphericalKind {
+    fn default() -> Self {
+        SphericalKind::LatLong
+    }
+}
+
+#[derive(Debug, Deserialize, Clone, Default)]
+pub struct SphericalDirectionalLight {
+    #[serde(rename = "_id", deserialize_with = "deser_usize")]
+    _id: usize,
+    
+    #[serde(rename = "_type")]
+    _type: SphericalKind,
+
+    #[serde(rename = "ImageId", deserialize_with = "deser_usize")]
+    image_id: usize,
+
+    #[serde(skip)]
+    image_idx: usize,
+}
+
+impl SphericalDirectionalLight {
     pub fn setup(&mut self) {
-        todo!()
+        warn!("Assuming image_id starts from 1 and images given sorted by id");
+        self.image_idx = self.image_id - 1; 
     }
 }
 
