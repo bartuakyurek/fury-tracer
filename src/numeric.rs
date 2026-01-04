@@ -85,6 +85,17 @@ pub fn get_onb(normal: &Vector3) -> (Vector3, Vector3) {
     (u, v)
 }
 
+//////////////////////////////////////////////////////////////////////////
+/// Assert utils
+//////////////////////////////////////////////////////////////////////////
+pub fn debug_assert_orthonormality(u: &Vector3, v: &Vector3, n: &Vector3) {
+    debug_assert!(approx_zero(u.dot(*v)), "Expected u, v orthogonality. Found u = {:?} and v = {:?}", u, v);
+    debug_assert!(approx_zero(n.dot(*v)), "Expected n, v orthogonality. Found n = {:?} and v = {:?}", n, v);
+    debug_assert!(approx_zero(u.dot(*n)), "Expected u, n orthogonality. Found u = {:?} and n = {:?}", u, n);
+    debug_assert!(u.is_normalized());
+    debug_assert!(v.is_normalized());
+    debug_assert!(n.is_normalized());
+}
 
 
 //////////////////////////////////////////////////////////////////////////
