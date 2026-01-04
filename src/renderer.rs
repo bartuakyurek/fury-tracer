@@ -71,7 +71,12 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, brdf: 
                 textures,
             );
             
-            color += radiance  * brdf.diffuse(sampled_dir, hit_record.normal);
+            let w_i = sampled_dir;
+            let w_o = -ray_in.direction;
+            let n = hit_record.normal;
+            color += radiance  * brdf.diffuse(w_i, n);
+            color += brdf.specular(w_o, w_i, n) * radiance; 
+
         }
     }
 
