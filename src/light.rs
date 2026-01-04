@@ -27,7 +27,8 @@ impl LightKind {
             LightKind::Env(envl) => envl.setup(),
         }
     }
-
+    // TODO: env light todos remain because they dont use shadow rays, so maybe I should rename LightKind to ShadowRayableLightKind 
+    // to remove a potential future confusion. or think about another solution. anyway these todo!( ) are never triggered in hw5 scenes
     pub fn get_shadow_direction_and_distance(&self, ray_origin: &Vector3) -> (Vector3, Float) {
 
         fn regular(light_pos: Vector3, ray_origin: &Vector3) -> (Vector3, Float) {
@@ -72,29 +73,39 @@ impl LightKind {
                 // See slides 09, p.11 for falloff range
                 debug_assert!(sl.direction.is_normalized());
                 debug_assert!(shadow_ray.direction.is_normalized());
-                let cos_alpha = sl.direction.dot(-shadow_ray.direction); // I assume shadow ray is directed at light, so taking the negative
-                
+                let light_dir = sl.direction.normalize(); // TODO: Why even though I normalize it at setup it isnt working?
+                let cos_alpha = light_dir.dot(-shadow_ray.direction.normalize()); // I assume shadow ray is directed at light, so taking the negative
+                assert!(cos_alpha <= 1.0 && cos_alpha >= -1.0); // Normalization asserts
+
                 if cos_alpha <= 0.0 {
                     return Vector3::ZERO; // behind the light
                 }
                 
                 // Angle decrease -> cos increases, i.e. alpha < coverage_angle/2
-                if cos_alpha <= sl._cache.cos_c2 {
+                let cos_f2 = ((sl.falloff_degrees / 180. * Float::PI) / 2.).cos(); // Converted degrees to radians for .cos( )
+                let cos_c2 = ((sl.coverage_degrees / 180. * Float::PI) / 2.).cos(); 
+                let cos_diff = cos_f2 - cos_c2;
+                
+                if cos_alpha <= cos_c2 {
                    return Vector3::ZERO; // outside of coverage range
                 }           
 
                 let dist_squared = (shadow_ray.origin - sl.position).norm_squared();
                 let mut irrad = sl.intensity / dist_squared; 
-                
-                if cos_alpha < sl._cache.cos_f2 { // outside the no-fall-off zone but inside coverage
-                    let s = ((cos_alpha - sl._cache.cos_f2) / sl._cache.cos_diff).powf(4.);
+                //info!(cos_alpha);
+                //info!("{:?}", light_dir);
+                //info!(cos_f2);
+                //info!(cos_c2);
+                // I thought it was smart to cache these but for some reason they are defaulted to 0 (perhaps multithreading affects it?)  
+                if cos_alpha < cos_f2 { 
+                    let s = ((cos_alpha - cos_f2) / cos_diff).powf(4.);
                     irrad *= s;
                 }
                 
                 irrad
             },
             LightKind::Env(envl) => {
-                todo!()
+                todo!("Environment lights should be already handled inside renderer, we should refactor LightKind...")
             },
         }
     }
@@ -221,43 +232,12 @@ pub struct SpotLight {
     #[serde(rename = "FalloffAngle", deserialize_with = "deser_float")]
     pub falloff_degrees: Float,
 
-    #[serde(skip)]
-     _cache: SpotLightCache,
-}
-
-
-#[derive(Debug, Deserialize, Clone, Default)]
-struct SpotLightCache {
-    //f2_rad: Float, // 2 means divided by 2 here
-    //c2_rad: Float,
-    cos_f2: Float,
-    cos_c2: Float,
-    cos_diff: Float,
-}
-
-impl SpotLightCache {
-    fn new(falloff_degrees: Float, coverage_degrees: Float) -> Self {
-        let f2_rad: Float = (falloff_degrees / 180. * Float::PI) / 2.; 
-        let c2_rad: Float = (coverage_degrees / 180. * Float::PI) / 2.;
-        let cos_f2 = f2_rad.cos();
-        let cos_c2 = c2_rad.cos();
-        let cos_diff = cos_f2 - cos_c2;
-        assert!(cos_diff != 0.0); // Otherwise division by zero occurs
-        SpotLightCache {
-            //f2_rad,
-            //c2_rad,
-            cos_f2,
-            cos_c2,
-            cos_diff,
-        }
-    }
 }
 
 impl SpotLight {
     pub fn setup(&mut self) {
         debug!("Normalizing direction for spot light id:{}...", self._id);
         self.direction = self.direction.normalize();
-        self._cache = SpotLightCache::new(self.falloff_degrees, self.coverage_degrees);
     }
 }
 
