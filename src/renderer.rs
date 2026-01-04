@@ -42,7 +42,7 @@ pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, ray_in: &Ray, e
 
 pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, brdf: &BRDFData) -> Vector3 {
     let mut color = brdf.ambient() * scene.data.lights.ambient_light; 
-    for light in scene.data.lights.all_nonambient().iter() {
+    for light in scene.data.lights.all_shadow_rayable().iter() {
             
             let (shadow_ray, interval) = get_shadow_ray(&light, hit_record, ray_in, scene.data.shadow_ray_epsilon);
             if scene.hit_bvh(&shadow_ray, &interval, true).is_none() {

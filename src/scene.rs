@@ -243,7 +243,7 @@ impl SceneLights {
 
         debug!("Setting up scene lights...\n{:#?}", self);
 
-        for light in self.all_nonambient().iter_mut() {
+        for light in self.all_shadow_rayable().iter_mut() {
             light.setup(transforms);
         }
 
@@ -251,14 +251,14 @@ impl SceneLights {
     }
 
     // TODO: DONT FORGET TO ADD YOUR NEW LIGHTKIND HERE, well, this is easy to forget and not functional...
-    pub fn all_nonambient(&self) -> Vec<LightKind> {
+    pub fn all_shadow_rayable(&self) -> Vec<LightKind> {
         // TODO: store all lights directly? esp if this has a significant overhead when called during ray tracing?
         self.point_lights.iter()
         .map(|p| LightKind::Point(p.clone()))
         .chain(self.area_lights.iter().map(|a| LightKind::Area(a.clone())))
         .chain(self.dir_lights.iter().map(|dl| LightKind::Directional(dl.clone())))
         .chain(self.spot_lights.iter().map(|sl| LightKind::Spot(sl.clone())))
-        .chain(self.env_lights.iter().map(|el| LightKind::Env(el.clone())))
+        //.chain(self.env_lights.iter().map(|el| LightKind::Env(el.clone())))
         .collect()
     }
 }
