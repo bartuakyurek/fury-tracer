@@ -1,6 +1,8 @@
 use bevy_math::{NormedVectorSpace};
 
-use crate::ray::Ray;
+use crate::ray::{Ray, HitRecord};
+use crate::image::{Textures, Interpolation};
+use crate::sampler::{hemisphere_cosine_sample, hemisphere_uniform_sample};
 use crate::interval::*;
 use crate::json_structs::Transformations;
 use crate::prelude::*;
@@ -164,6 +166,27 @@ impl SphericalDirectionalLight {
 
     pub fn get_uv(&self, dir: Vector3) -> [Float; 2] {
         self._type.get_uv(dir)
+    }
+
+    pub fn sample_radiance(&self, hit_record: &HitRecord,textures: &Textures) 
+    -> (Vector3) {
+        // Build ONB from surface normal 
+        let (u, v) = get_onb(&hit_record.normal);
+        let n = hit_record.normal;
+        
+        // Sample direction
+        let use_cosine_sampling = true; // TODO: Later change it to self.sampler!! 
+        // TODO: use self.sampler match expression ... 
+        let sampled_dir = if use_cosine_sampling {
+            hemisphere_cosine_sample(&u, &v, &n)
+        } else {
+            hemisphere_uniform_sample(&u, &v, &n)
+        };
+        
+        let uv = self.get_uv(sampled_dir);        
+        let radiance = textures.tex_from_img(self.image_idx(), uv, &Interpolation::Bilinear);
+        
+        radiance * 2. * Float::PI
     }
 }
 

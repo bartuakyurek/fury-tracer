@@ -157,6 +157,21 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vec
                 panic!(">> Unknown material type '{}'! Shading function for this material is missing.", mat_type); 
             },
         };
+
+        // HW5 Update: add color from environment lights (I kept it separate from shadow ray logic)
+        // TODO: refactor this huge function
+        for env_light in scene.data.lights.env_lights.iter() {
+            if let Some(textures) = &scene.data.textures {
+                //let (sampled_dir, radiance) 
+                let radiance = env_light.sample_radiance(
+                    &hit_record,
+                    textures,
+                );
+                //let new_ray = Ray::new(hit_record.hit_point, sampled_dir, 0.);
+                color += radiance;// * get_color(&new_ray, scene, cam, depth);
+            }
+        }
+
         color
    }
    else {
