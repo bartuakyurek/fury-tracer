@@ -144,7 +144,7 @@ fn perlin_octave(n_octaves: usize, xyz: Vector3, scale: Float, noise_conversion:
 impl Textures {
 
     pub fn tex_from_img(&self, image_idx: usize, uv: [Float; 2], interpolation: &Interpolation) -> Vector3 {
-        
+        // WARNING range of uv is [-1, 1] which is different from tex_from_map( ) where it is [0,1] (or larger to enable tiling)
         debug_assert!(uv[0] <= 1.0 && uv[1] <= 1.0, "Failed condition (u, v) <= 1, found uv : ({}, {})", uv[0], uv[1]);
         debug_assert!(uv[0] >= -1.0 && uv[1] >= -1.0, "Failed (u, v) >= -1, found uv : ({}, {})", uv[0], uv[1]);
 
@@ -179,11 +179,11 @@ impl Textures {
                 let (col, row) = (uv[0] * image.width as Float, uv[1] * image.height as Float); // image coordinate (see slides 06, p.8)
                 let color = image.interpolate(row, col, interpolation);
                 if apply_normalization {
-                    //if image_texmap.normalizer > 1. { // TODO: This isn't a real solution but it avoids exploded radiance in some cases (but makes the image appear darker, so it's not really solving the real issue)
+                    if image_texmap.normalizer > 1. { // TODO: This isn't a real solution but it avoids exploded radiance in some cases (but makes the image appear darker, so it's not really solving the real issue)
                         color / image_texmap.normalizer 
-                    //} else {
-                     //   color // 255.
-                    //}
+                    } else {
+                        color / 255.
+                    }
                     //color / 255.  // By default divide by 255
                 } else {
                     color
