@@ -112,14 +112,25 @@ impl Default for EnvironmentMap {
 }
 
 impl EnvironmentMap {
-    fn get_uv(&self) -> [Float; 2] {
+    fn get_uv(&self, d: Vector3) -> [Float; 2] {
         // See HW5 pdf, eqns 5-10
+        // d is the sampled direction
+
         match self {
             EnvironmentMap::LatLong => {
-                todo!()
+                let u = ( 1. + (d.x.atan2(-d.z) / Float::PI) ) / 2.;
+                let v = d.y.acos() / Float::PI;
+                [u, v]
             }
             EnvironmentMap::Spherical => {
-                todo!()
+                let a = -d.z.acos();
+                let b = (d.x.powf(2.) + d.y.powf(2.)).sqrt();
+                let r = (1. / Float::PI) * (a / b);
+
+                let u = ( (r * d.x) + 1. ) / 2.;
+                let v = ( -(r * d.y) + 1. ) / 2.;
+
+                [u, v]
             }
         }
         
