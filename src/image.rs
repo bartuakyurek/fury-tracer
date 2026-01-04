@@ -142,11 +142,18 @@ fn perlin_octave(n_octaves: usize, xyz: Vector3, scale: Float, noise_conversion:
 // ---------------------------------------------------------
 
 impl Textures {
+
+    pub fn tex_from_img(&self, image_idx: usize, uv: [Float; 2]) -> Vector3 {
+        
+        // Assume NN interpolation or...? 
+        todo!()
+    }
+
     /// Given texture map index (assuming json ids are sorted and starting from 1 because I directly push them in a vector),
     /// return the color of the corresponding texture pixel from the texture (image or procedural).
     /// TODO: should we use hashmaps instead of vecs to avoid the assumption described above?
     /// uv: texture coordinates (currently only uv is supported, I am not sure how to generalize it atm) 
-    pub fn get_texture_color(&self, texmap_idx: usize, uv: [Float; 2], interpolation: &Interpolation, apply_normalization: bool, xyz: Vector3) -> Vector3 {
+    pub fn tex_from_map(&self, texmap_idx: usize, uv: [Float; 2], interpolation: &Interpolation, apply_normalization: bool, xyz: Vector3) -> Vector3 {
         
         let texmap = self.texture_maps.all_ref()[texmap_idx];
         match texmap {
