@@ -14,6 +14,7 @@
 use rayon::prelude::*;
 use bevy_math::{NormedVectorSpace};
 
+use std::f64::consts::PI;
 use std::{self, time::Instant};
 
 use crate::material::{BRDFData, HeapAllocMaterial};
@@ -189,20 +190,21 @@ fn sample_background(ray_in: &Ray, scene: &Scene, cam: &Camera) -> Vector3 {
         let env_light = &scene.data.lights.env_lights.all()[0]; // Use first env light
         
         if let Some(textures) = &scene.data.textures {
-            
-           //let dir = ray_in.direction; // TODO: do we sample here too???
-           //let uv = env_light.get_uv(dir);
-           let mut uv = cam.calculate_nearplane_uv(ray_in);
-           uv[0] = (uv[0] - 0.5);// * 2.;
-           uv[1] = (uv[1] - 0.5);// * 2.;
-        
+           debug_assert!(ray_in.direction.is_normalized());
+           
+           let dir = ray_in.direction; 
+           let mut uv = env_light.get_uv(dir);
+           //let mut uv = cam.calculate_nearplane_uv(ray_in);
+           uv[0] = (uv[0] - 0.5); // 2.;
+           uv[1] = (uv[1] - 0.5); // 2.;
+           
            let radiance = textures.tex_from_img(
                env_light.image_idx(),  
                uv,
                &Interpolation::Bilinear,
            );
            
-           return radiance;
+           return radiance; // * 2. * PI;
         }
     }
     
