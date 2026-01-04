@@ -143,10 +143,19 @@ fn perlin_octave(n_octaves: usize, xyz: Vector3, scale: Float, noise_conversion:
 
 impl Textures {
 
-    pub fn tex_from_img(&self, image_idx: usize, uv: [Float; 2]) -> Vector3 {
+    pub fn tex_from_img(&self, image_idx: usize, uv: [Float; 2], interpolation: &Interpolation) -> Vector3 {
         
-        // Assume NN interpolation or...? 
-        todo!()
+        debug_assert!(uv[0] <= 1.0 && uv[1] <= 1.0, "Failed condition (u, v) <= 1, found uv : ({}, {})", uv[0], uv[1]);
+        debug_assert!(uv[0] >= -1.0 && uv[1] >= -1.0, "Failed (u, v) >= -1, found uv : ({}, {})", uv[0], uv[1]);
+
+        let images = self.images.as_ref().expect("Image texture is required but no Images section found");
+        let img = &images.data[image_idx];
+
+        // Convert [-1, 1] range to image coordinates 
+        let col = (uv[0] + 1.) * (img.width as Float / 2.);
+        let row =  (uv[1] + 1.) * (img.height as Float / 2. );
+
+        img.interpolate(row, col, interpolation)
     }
 
     /// Given texture map index (assuming json ids are sorted and starting from 1 because I directly push them in a vector),
