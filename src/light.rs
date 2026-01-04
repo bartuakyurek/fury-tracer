@@ -150,6 +150,9 @@ pub struct SphericalDirectionalLight {
     #[serde(rename = "ImageId", deserialize_with = "deser_usize")]
     image_id: usize,
 
+    #[serde(rename = "Sampler", default)]
+    sampler: String,
+
     #[serde(skip)]
     image_idx: usize,
 }
@@ -175,12 +178,16 @@ impl SphericalDirectionalLight {
         let n = hit_record.normal;
         
         // Sample direction
-        let use_cosine_sampling = true; // TODO: Later change it to self.sampler!! 
-        // TODO: use self.sampler match expression ... 
-        let sampled_dir = if use_cosine_sampling {
-            hemisphere_cosine_sample(&u, &v, &n)
-        } else {
-            hemisphere_uniform_sample(&u, &v, &n)
+        let sampled_dir = match self.sampler.to_ascii_lowercase().as_str() {
+            "uniform" => {
+                hemisphere_uniform_sample(&u, &v, &n)
+            }
+            "cosine" => {
+                hemisphere_cosine_sample(&u, &v, &n)
+            }
+            _ => {
+                hemisphere_cosine_sample(&u, &v, &n)
+            }
         };
         
         let uv = self.get_uv(sampled_dir);        
