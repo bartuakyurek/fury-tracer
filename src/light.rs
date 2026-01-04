@@ -77,15 +77,17 @@ impl LightKind {
                 let cos_alpha = light_dir.dot(-shadow_ray.direction.normalize()); // I assume shadow ray is directed at light, so taking the negative
                 assert!(cos_alpha <= 1.0 && cos_alpha >= -1.0); // Normalization asserts
 
-                if cos_alpha <= 0.0 {
-                    return Vector3::ZERO; // behind the light
-                }
+                // if cos_alpha <= 0.0 {
+                //     return Vector3::ZERO; // behind the light
+                // }
+                //let alpha_rad = cos_alpha.clamp(-1., 1.).acos();
+                //let alpha = alpha_rad / Float::PI * 180.;
                 
-                // Angle decrease -> cos increases, i.e. alpha < coverage_angle/2
                 let cos_f2 = ((sl.falloff_degrees / 180. * Float::PI) / 2.).cos(); // Converted degrees to radians for .cos( )
                 let cos_c2 = ((sl.coverage_degrees / 180. * Float::PI) / 2.).cos(); 
                 let cos_diff = cos_f2 - cos_c2;
                 
+                //if alpha > sl.coverage_degrees / 2. {
                 if cos_alpha <= cos_c2 {
                    return Vector3::ZERO; // outside of coverage range
                 }           
@@ -97,8 +99,10 @@ impl LightKind {
                 //info!(cos_f2);
                 //info!(cos_c2);
                 // I thought it was smart to cache these but for some reason they are defaulted to 0 (perhaps multithreading affects it?)  
+                
+                //if alpha > sl.falloff_degrees / 2. {
                 if cos_alpha < cos_f2 { 
-                    let s = ((cos_alpha - cos_f2) / cos_diff).powf(4.);
+                    let s = ((cos_alpha - cos_c2) / cos_diff).powf(4.);
                     irrad *= s;
                 }
                 
