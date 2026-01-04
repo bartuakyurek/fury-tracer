@@ -125,7 +125,7 @@ impl EnvironmentMap {
                 [u, v]
             }
             EnvironmentMap::Spherical => {
-                let a = -d.z.acos();
+                let a = (-d.z).acos();
                 let b = (d.x.powf(2.) + d.y.powf(2.)).sqrt();
                 let r = (1. / Float::PI) * (a / b);
 
