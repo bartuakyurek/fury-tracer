@@ -247,6 +247,10 @@ impl SceneLights {
             light.setup(transforms);
         }
 
+        for env_light in self.env_lights.iter_mut() {
+            env_light.setup();
+        }
+
         debug!("Scene lights setup done!");
     }
 
