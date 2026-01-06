@@ -200,8 +200,11 @@ fn sample_background(ray_in: &Ray, scene: &Scene, cam: &Camera) -> Vector3 {
            let dir = ray_in.direction; 
            let mut uv = env_light.get_uv(dir);
            //let mut uv = cam.calculate_nearplane_uv(ray_in);
-           uv[0] = (uv[0] - 0.5); // 2.;
-           uv[1] = (uv[1] - 0.5); // 2.;
+           //uv[0] = (uv[0] - 0.5); // 2.;
+           //uv[1] = (uv[1] - 0.5); // 2.;
+           
+           uv[0] = (uv[0] * 2.) - 1.;
+           uv[1] = (uv[1] * 2.) - 1.;
            
            let radiance = textures.tex_from_img(
                env_light.image_idx(),  
