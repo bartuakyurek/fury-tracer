@@ -34,8 +34,8 @@ pub fn is_degenerate_triangle(verts: &VertexData, faces: [usize; 3]) -> bool {
                 return true;
             }
     
-            if approx_zero( verts[outer].distance_squared(verts[inner]) ) {
-                debug!("Found degenarate triangle with vertices v1: {:?}, v2: {:?}, v3: {:?} ", verts[faces[0]], verts[faces[1]], verts[faces[2]]);
+            if verts[outer].distance_squared(verts[inner]) < 1e-10 {
+                debug!("Found degenarate triangle with vertices v1: {:?} = v2: {:?} ", verts[inner], verts[outer]);
                 return true;
             }
         }
