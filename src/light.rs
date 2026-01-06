@@ -201,9 +201,19 @@ impl SphericalDirectionalLight {
         };
         
         let uv = self.get_uv(sampled_dir);        
-        let radiance = textures.tex_from_img(self.image_idx(), uv, &Interpolation::Bilinear);
+        let mut radiance = textures.tex_from_img(self.image_idx(), uv, &Interpolation::Bilinear);
         
-        (sampled_dir, radiance * 2. * Float::PI)
+        match self.sampler.to_ascii_lowercase().as_str() {
+            "cosine" => {
+                let cos_theta = sampled_dir.dot(n);
+                radiance *= Float::PI / cos_theta;
+            } 
+            _ => {
+                radiance *= 2. * Float::PI
+            }
+        }
+
+        (sampled_dir, radiance)
     }
 }
 
