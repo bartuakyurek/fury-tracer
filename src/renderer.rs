@@ -59,7 +59,7 @@ pub fn update_brdf_and_get_normal(textures: &Textures, texmap_ids: &Vec<usize>, 
                                 debug_assert!(!perturbed_normal.is_nan(), "Found perturbed normal: {}", perturbed_normal);
                                 debug_assert!(perturbed_normal.is_normalized(), "Found hit record normal: {}", hit_record.normal);
                         },
-                        DecalMode::ReplaceBackground => {todo!("Unexpected decalibration mode! This is implemented elsewhere in the renderer... (check your verteOffset implementation )");},
+                        DecalMode::ReplaceBackground => {todo!("Found replacebackground decalibration mode! This is implemented elsewhere in the renderer. (check textureOffset in json)");},
                         _ => { debug!("Unexpeced decalibration mode {:?}...", decal_mode); }
                     }
                 }
