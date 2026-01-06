@@ -94,22 +94,27 @@ impl BVHSubtree {
 
     // helper function to recursively traverse the tree 
     #[inline]
-    fn walk(node: &Arc<BVHNode>, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts, closest: &mut Option<HitRecord>) {
+    fn walk(node: &Arc<BVHNode>, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts, closest: &mut Option<HitRecord>, early_break: bool) {
         if !node.bbox.intersect(ray) { return; }  // This is the base case return for recursive helper, not the outer intersect( )!
                                                   
         if node.objects.is_empty() {
-            if let Some(l) = &node.left { Self::walk(l, ray, t_interval, vertex_cache, closest); }
-            if let Some(r) = &node.right { Self::walk(r, ray, t_interval, vertex_cache, closest); }
+            if let Some(l) = &node.left { Self::walk(l, ray, t_interval, vertex_cache, closest, early_break); }
+            if let Some(r) = &node.right { Self::walk(r, ray, t_interval, vertex_cache, closest, early_break); }
         } else {
             // Reached to leaf node (remember only leaf nodes have objects) 
             for obj in &node.objects {
                 if let Some(hit) = obj.intersects_with(ray, t_interval, vertex_cache) { // Note to self: this is where BLAS called
+                    
                     if let Some(existing) = &closest {
                         if hit.ray_t < existing.ray_t {
                             *closest = Some(hit);
                         }
                     } else {
                         *closest = Some(hit);
+                    }
+
+                    if early_break {
+                        return;
                     }
                 }
             }
@@ -119,7 +124,7 @@ impl BVHSubtree {
     /// Intersect a ray with the BVH. 
     /// Returns true if any hit was found and mutates hitrecord to closest hit.
     /// TODO: Now this is literally the same as Shape, BVHSubtree itself could impl Shape 
-    pub fn intersect(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts, rec: &mut HitRecord) -> bool {
+    pub fn intersect(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts, rec: &mut HitRecord, early_break: bool) -> bool {
         
         // NOTE: See the following link for this match &self.0 pattern here
         // https://google.github.io/comprehensive-rust/smart-pointers/solution.html
@@ -128,7 +133,7 @@ impl BVHSubtree {
             Some(root) => { 
                 rec.ray_t = FloatConst::INF; 
                 let mut closest: Option<HitRecord> = None;
-                Self::walk(root, ray, t_interval, vertex_cache, &mut closest);
+                Self::walk(root, ray, t_interval, vertex_cache, &mut closest, early_break);
                 if let Some(h) = closest {
                     *rec = h;
                     true

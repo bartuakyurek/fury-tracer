@@ -203,7 +203,7 @@ impl Mesh {
     fn intersect_bvh(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
          if let Some(bvh) = &self.bvh {
                 let mut closest = HitRecord::default();    
-                if bvh.intersect(ray, t_interval, vertex_cache, &mut closest) {
+                if bvh.intersect(ray, t_interval, vertex_cache, &mut closest, false) { // Early break: false for BLAS (adding it to BLAS didn't improve results, only cluttered my intersect( ) functions in impl Shape trait)
                     Some(closest)
                 }
                 else {

@@ -188,7 +188,7 @@ impl<'a> Scene <'a>  // Lifetime annotation 'a looks scary but it was needed for
 
         if let Some(bvh) = &self.bvh {
             let mut rec = HitRecord::default();
-            if bvh.intersect(ray, t_interval, &self.vertex_cache, &mut rec) {
+            if bvh.intersect(ray, t_interval, &self.vertex_cache, &mut rec, early_break) {
                 best_t = rec.ray_t;
                 best = Some(rec);
             }
