@@ -17,6 +17,33 @@ use crate::json_structs::{VertexData};
 use crate::{ray::Ray, interval::Interval};
 use crate::prelude::*;
 
+/// Return true if any of the two verts at the same position
+pub fn is_degenerate_triangle(verts: &VertexData, faces: [usize; 3]) -> bool {
+
+    for i in 0..3 {
+        for j in 0..3 {
+    
+            if i == j {
+                continue;
+            }
+
+            let outer = faces[i];
+            let inner = faces[j];
+            if outer == inner {
+                debug!("Found degenarate triangle where face indices correspond to same vertex. {:?}", faces);
+                return true;
+            }
+    
+            if approx_zero( verts[outer].distance_squared(verts[inner]) ) {
+                debug!("Found degenarate triangle with vertices v1: {:?}, v2: {:?}, v3: {:?} ", verts[faces[0]], verts[faces[1]], verts[faces[2]]);
+                return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
 // NOTE: There is an article on how to rotate-align without trigonometry
 // https://iquilezles.org/articles/noacos/ 
 // it does not directly apply in our case but might be handy in future.

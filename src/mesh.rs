@@ -9,7 +9,7 @@ UPDATE: Acceleration structure added Mesh::bvh
 
 
 use crate::json_structs::{FaceType, SingleOrVec, VertexData, TexCoordData};
-use crate::geometry::{get_tri_normal};
+use crate::geometry::{get_tri_normal, is_degenerate_triangle};
 use crate::shapes::{CommonPrimitiveData, Shape, Triangle};
 use crate::ray::{Ray, HitRecord};
 use crate::interval::Interval;
@@ -150,6 +150,10 @@ impl Mesh {
         for i in 0..n_faces {
             let face_indices = self.faces.get_tri_indices(i);
             
+            if is_degenerate_triangle(verts, face_indices) {
+                continue;
+            }
+
             let offseted_texture_idxs = {
                 if let Some(tex_offset) = self.faces._texture_offset {
                     info!(">> Applying offset to triangle texture...");
