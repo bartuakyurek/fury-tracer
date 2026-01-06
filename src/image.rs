@@ -144,16 +144,15 @@ fn perlin_octave(n_octaves: usize, xyz: Vector3, scale: Float, noise_conversion:
 impl Textures {
 
     pub fn tex_from_img(&self, image_idx: usize, uv: [Float; 2], interpolation: &Interpolation) -> Vector3 {
-        // WARNING range of uv is [-1, 1] which is different from tex_from_map( ) where it is [0,1] (or larger to enable tiling)
+        // Given uv is scaled to image dimensions 
         debug_assert!(uv[0] <= 1.0 && uv[1] <= 1.0, "Failed condition (u, v) <= 1, found uv : ({}, {})", uv[0], uv[1]);
-        debug_assert!(uv[0] >= -1.0 && uv[1] >= -1.0, "Failed (u, v) >= -1, found uv : ({}, {})", uv[0], uv[1]);
+        debug_assert!(uv[0] >= -1e-20 && uv[1] >= -1e-20, "Failed (u, v) >= 0, found uv : ({}, {})", uv[0], uv[1]);
 
         let images = self.images.as_ref().expect("Image texture is required but no Images section found");
         let img = &images.data[image_idx];
 
-        // Convert [-1, 1] range to image coordinates 
-        let col = (uv[0] + 1.) * (img.width as Float / 2.);
-        let row =  (uv[1] + 1.) * (img.height as Float / 2. );
+        let col = uv[0] * img.width as Float; 
+        let row = uv[1] * img.height as Float;
 
         img.interpolate(row, col, interpolation)
     }
