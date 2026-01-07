@@ -689,28 +689,32 @@ impl ImageData {
             0.2126 * color.x + 0.7152 * color.y + 0.0722 * color.z
         ).collect()
     }
-    pub fn new(width: usize, height: usize, name: String, pixel_colors: Vec<Vector3>) -> Self {
-        ImageData {
-            colors: pixel_colors,
+   
+    pub fn new_from_colors(resolution: [usize; 2], name: String, colors: Vec<Vector3>) -> Self {
+        // Create a new image of specified background color
+        // Set background to Vector3::ZERO for black background
+        let (width, height) = (resolution[0], resolution[1]);
+
+         ImageData {
+            colors,
             width,
             height,
             name,
         }
     }
 
-    pub fn new_from_colors(resolution: [usize; 2], name: String, colors: Vec<Vector3>) -> Self {
-        // Create a new image of specified background color
-        // Set background to Vector3::ZERO for black background
-        let (width, height) = (resolution[0], resolution[1]);
-        Self::new(width, height, name, colors)
-    }
-
     pub fn new_from_background(resolution: [usize; 2], name: String, background: Vector3) -> Self {
         // Create a new image of specified background color
         // Set background to Vector3::ZERO for black background
         let (width, height) = (resolution[0], resolution[1]);
-        let pixel_colors = vec![background; width * height];
-        Self::new(width, height, name, pixel_colors)
+        let colors = vec![background; width * height];
+        
+         ImageData {
+            colors,
+            width,
+            height,
+            name,
+        }
     }
 
     pub fn flatten_data(self) -> Vec<Float> {
