@@ -81,7 +81,17 @@ pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, ray_in: &Ray, e
     (shadow_ray, interval)
 }
 
-pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, brdf: &BRDFData) -> Vector3 {
+pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) -> Vector3 {
+    let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
+    let mut brdf = mat.brdf().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
+        
+        // HW4 Update: apply textures if provided to change brdf -----------
+        if let Some(textures) = &scene.data.textures {
+            hit_record.normal = update_brdf_and_get_normal(textures, &hit_record.textures, &hit_record, &mut brdf);
+        }; 
+        // -----------------------------------------------------------------
+
+    
     let mut color = brdf.ambient() * scene.data.lights.ambient_light; 
     for light in scene.data.lights.all_shadow_rayable().iter() {
             
@@ -104,8 +114,7 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, brdf: 
     // HW5 Update: add color from environment lights (I kept it separate from shadow ray logic)
     // TODO: refactor this huge function
     for env_light in scene.data.lights.env_lights.iter() {
-        if let Some(textures) = &scene.data.textures {
-            //let (sampled_dir, radiance) 
+        if let Some(textures) = &scene.data.textures { 
             let (sampled_dir, radiance) = env_light.sample_and_get_radiance(
                 &hit_record,
                 textures,
@@ -133,26 +142,18 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vec
    
    let t_interval = Interval::positive(scene.data.intersection_test_epsilon);
    if let Some(mut hit_record) = scene.hit_bvh(ray_in, &t_interval, false) {
-        
         let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
-        let mut brdf = mat.brdf().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
-        
-        // HW4 Update: apply textures if provided to change brdf -----------
-        if let Some(textures) = &scene.data.textures {
-            hit_record.normal = update_brdf_and_get_normal(textures, &hit_record.textures, &hit_record, &mut brdf);
-        }; 
-        // -----------------------------------------------------------------
-
+                
         let mut color = Vector3::ZERO;
         let mat_type = mat.get_type();
         let epsilon = scene.data.intersection_test_epsilon;  
         color += match mat_type{ 
             "diffuse" => {
-                shade_diffuse(scene, &hit_record, ray_in, &brdf)
+                shade_diffuse(scene, &mut hit_record, ray_in)
             },
             "mirror" | "conductor" => { 
                     if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        shade_diffuse(scene,  &hit_record, ray_in, &brdf) + attenuation * get_color(&reflected_ray, scene, cam, depth + 1) 
+                        shade_diffuse(scene,  &mut hit_record, ray_in) + attenuation * get_color(&reflected_ray, scene, cam, depth + 1) 
                     }
                     else {
                         warn!("Material not reflecting...");
@@ -164,7 +165,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vec
                 
                 // Only add diffuse, specular, and ambient components if front face (see slides 02, p.29)
                 if hit_record.is_front_face { 
-                    tot_radiance += shade_diffuse(scene, &hit_record, ray_in, &brdf);
+                    tot_radiance += shade_diffuse(scene, &mut hit_record, ray_in);
                 }
  
                 // Reflected 
