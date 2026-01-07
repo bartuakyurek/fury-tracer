@@ -42,7 +42,8 @@ impl ToneMap {
         // 4 - Apply eqn.1 in HW5 pdf (RGB colors from luminances)
         let num_pixels = im.num_pixels();
         for i in 0..num_pixels {
-            let new_color = display_lumi[i] * (im.colors[i] / world_lumi[i]).powf(self.saturation);
+            let lw = world_lumi[i].max(1e-10); // Avoid division by zero
+            let new_color = display_lumi[i] * (im.colors[i] / lw).powf(self.saturation);
             im.colors[i] = new_color;
         }
 
@@ -112,7 +113,7 @@ impl ToneMapOperator {
         sorted_lumi[idx]
     }
 
-    fn prescale(&self, lumi: &Vec<Float>, alpha: Float) -> Vec<Float> {
+    fn scale_linear(&self, lumi: &Vec<Float>, alpha: Float) -> Vec<Float> {
         let n = lumi.len() as Float;
         let eps = 1e-10;
         let middle_gray = ((1. / n) * lumi.iter().map(|lw| (lw + eps).ln()).sum::<Float>()).exp();
@@ -124,20 +125,20 @@ impl ToneMapOperator {
         
         // Stage one - a global operator simulating key mapping
         // initial luminance mapping (slides 08, p.43)
-        let mut comp_lumi: Vec<Float> = self.prescale(lumi, alpha);
+        let mut compressed_lumi: Vec<Float> = self.scale_linear(lumi, alpha);
         
         // Stage two - a local operator simulating dodging-and-burning
         if percentile > 0.0 {
-            let l_white = self.get_white(lumi, percentile);
+            let l_white = self.get_white(&compressed_lumi, percentile);
             let l_white_squared = l_white.powf(2.);
-            comp_lumi.iter_mut().for_each(|lumi| {
+            compressed_lumi.iter_mut().for_each(|lumi| {
                 *lumi = (*lumi * (1. + (*lumi / l_white_squared))) / (1. + *lumi)
             });
         } else {
-            comp_lumi.iter_mut().for_each(|lumi| *lumi = *lumi / (1. + *lumi));
+            compressed_lumi.iter_mut().for_each(|lumi| *lumi = *lumi / (1. + *lumi));
         }
 
-        comp_lumi
+        compressed_lumi
         
     }
 
@@ -148,9 +149,11 @@ impl ToneMapOperator {
             (l * ((l*a) + b)) / ((l*((l*c) + d)) + e)
         }
 
-        let l_white = self.get_white(lumi, percentile);
+        let mut comp_lumi: Vec<Float> = self.scale_linear(lumi, alpha);
+
+        let l_white = self.get_white(&comp_lumi, percentile);
         let mapped_white = map_lumi(l_white);
-        let mut comp_lumi: Vec<Float> = self.prescale(lumi, alpha);
+
         comp_lumi.iter_mut().for_each(|l| *l = map_lumi(*l) / mapped_white );
         comp_lumi
     }
@@ -162,9 +165,11 @@ impl ToneMapOperator {
             (( (l * ( (a*l) + (c*b) )) + (d*e)  ) / ( (l * ((a*l) + b)) + (d*f) )) - (e / f) 
         }
 
-        let l_white = self.get_white(lumi, percentile);
+        let mut comp_lumi: Vec<Float> = self.scale_linear(lumi, alpha);
+
+        let l_white = self.get_white(&comp_lumi, percentile);
         let mapped_white = map_lumi(l_white);
-        let mut comp_lumi: Vec<Float> = self.prescale(lumi, alpha);
+        
         comp_lumi.iter_mut().for_each(|l| *l = map_lumi(*l) / mapped_white );
         comp_lumi
     }
