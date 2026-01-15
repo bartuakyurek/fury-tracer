@@ -30,39 +30,39 @@ use crate::prelude::*;
 pub fn update_brdf_and_get_normal(textures: &Textures, texmap_ids: &Vec<usize>, hit_record: &HitRecord, brdf: &mut BRDFData) -> Vector3 {
     let mut perturbed_normal = hit_record.normal.clone();
     for texmap_id in  texmap_ids{
-                let texmap = &textures.texture_maps.as_slice()[*texmap_id - 1]; // TODO: I am not sure if as_slice( ) is still relevant here, it resolved a rustc error before I change the implementation though            
-                
-                let uv = &hit_record.texture_uv.expect("Texture coordinates (u, v) is not written to hitrecord.");
-                let interpolation = texmap.interpolation().unwrap_or(&Interpolation::DEFAULT); //
-                let tex_color = textures.tex_from_map(texmap_id - 1, *uv, interpolation, true, hit_record.hit_point);
-                if let Some(decal_mode) = texmap.decal_mode() {
-                    match decal_mode {
-                        // Update BRDF ----------------------------------------------------------
-                        DecalMode::BlendKd => { brdf.diffuse_rf = (0.5 * brdf.diffuse_rf) + (0.5 * tex_color); }, // in blendKd do we mix by 0.5 weights or just add them together? could there be multilpe blendkd?
-                        DecalMode::ReplaceKd => { brdf.diffuse_rf = tex_color;  },
-                        DecalMode::ReplaceKs => { brdf.specular_rf = tex_color; },
-                        DecalMode::ReplaceAll => { 
-                                                    brdf.diffuse_rf = tex_color;   
-                                                    brdf.specular_rf = tex_color;
-                                                    brdf.ambient_rf = tex_color;
-                                                },
-                        // Update hitrecord normal ----------------------------------------------
-                        DecalMode::ReplaceNormal => { 
-                                                     // TODO: better solution than "apply_normalization" parameter in retrieving colors...? 
-                                                     let tex_color = textures.tex_from_map(texmap_id - 1, hit_record.texture_uv.unwrap(), texmap.interpolation().unwrap(), false, hit_record.hit_point);
-                                                     let dir = ImageData::color_to_direction(tex_color);
-                                                     perturbed_normal = hit_record.tbn_matrix.unwrap() * dir;
-                                                     debug_assert!(perturbed_normal.is_normalized());
-                                                    },
-                        DecalMode::BumpNormal => {
-                                perturbed_normal = textures.get_bump_mapping(texmap, &hit_record);  // Update normals for bump mapping (see the goal in slides 07, p.23)
-                                debug_assert!(!perturbed_normal.is_nan(), "Found perturbed normal: {}", perturbed_normal);
-                                debug_assert!(perturbed_normal.is_normalized(), "Found hit record normal: {}", hit_record.normal);
-                        },
-                        DecalMode::ReplaceBackground => {todo!("Found replacebackground decalibration mode! This is implemented elsewhere in the renderer. (check textureOffset in json)");},
-                        _ => { debug!("Unexpeced decalibration mode {:?}...", decal_mode); }
-                    }
-                }
+        let texmap = &textures.texture_maps.as_slice()[*texmap_id - 1]; // TODO: I am not sure if as_slice( ) is still relevant here, it resolved a rustc error before I change the implementation though            
+        
+        let uv = &hit_record.texture_uv.expect("Texture coordinates (u, v) is not written to hitrecord.");
+        let interpolation = texmap.interpolation().unwrap_or(&Interpolation::DEFAULT); //
+        let tex_color = textures.tex_from_map(texmap_id - 1, *uv, interpolation, true, hit_record.hit_point);
+        if let Some(decal_mode) = texmap.decal_mode() {
+            match decal_mode {
+                // Update BRDF ----------------------------------------------------------
+                DecalMode::BlendKd => { brdf.diffuse_rf = (0.5 * brdf.diffuse_rf) + (0.5 * tex_color); }, // in blendKd do we mix by 0.5 weights or just add them together? could there be multilpe blendkd?
+                DecalMode::ReplaceKd => { brdf.diffuse_rf = tex_color;  },
+                DecalMode::ReplaceKs => { brdf.specular_rf = tex_color; },
+                DecalMode::ReplaceAll => { 
+                                            brdf.diffuse_rf = tex_color;   
+                                            brdf.specular_rf = tex_color;
+                                            brdf.ambient_rf = tex_color;
+                                        },
+                // Update hitrecord normal ----------------------------------------------
+                DecalMode::ReplaceNormal => { 
+                                             // TODO: better solution than "apply_normalization" parameter in retrieving colors...? 
+                                             let tex_color = textures.tex_from_map(texmap_id - 1, hit_record.texture_uv.unwrap(), texmap.interpolation().unwrap(), false, hit_record.hit_point);
+                                             let dir = ImageData::color_to_direction(tex_color);
+                                             perturbed_normal = hit_record.tbn_matrix.unwrap() * dir;
+                                             debug_assert!(perturbed_normal.is_normalized());
+                                            },
+                DecalMode::BumpNormal => {
+                        perturbed_normal = textures.get_bump_mapping(texmap, &hit_record);  // Update normals for bump mapping (see the goal in slides 07, p.23)
+                        debug_assert!(!perturbed_normal.is_nan(), "Found perturbed normal: {}", perturbed_normal);
+                        debug_assert!(perturbed_normal.is_normalized(), "Found hit record normal: {}", hit_record.normal);
+                },
+                DecalMode::ReplaceBackground => {todo!("Found replacebackground decalibration mode! This is implemented elsewhere in the renderer. (check textureOffset in json)");},
+                _ => { debug!("Unexpeced decalibration mode {:?}...", decal_mode); }
+            }
+        }
     }
     return perturbed_normal;
 }
@@ -123,9 +123,8 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
             let w_i = sampled_dir;
             let w_o = -ray_in.direction;
             let n = hit_record.normal;
-            color += radiance  * brdf.diffuse(w_i, n);
-            color += brdf.specular(w_o, w_i, n) * radiance; 
-
+            color += radiance * brdf.diffuse(w_i, n);
+            color += radiance * brdf.specular(w_o, w_i, n); 
         }
     }
 
