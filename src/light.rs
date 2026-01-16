@@ -304,8 +304,11 @@ impl AreaLight {
      pub fn setup_onb(&mut self) {
         // See slides 05, p.96
         let (u, v) = get_onb(&self.normal);
+        assert!(!is_zerovec(u));
+        assert!(!is_zerovec(v));
         self.u = u;
         self.v = v;
+        debug!("u={:?}, v={:?}", self.u, self.v);
         debug!("Area light ONB is setup successfully.");
     }
 
