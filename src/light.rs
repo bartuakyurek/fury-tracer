@@ -8,6 +8,7 @@ use crate::json_structs::Transformations;
 use crate::prelude::*;
 
 
+#[derive(Debug, Clone)]
 pub enum LightKind {
     Point(PointLight),
     Area(AreaLight),
