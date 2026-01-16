@@ -404,7 +404,7 @@ impl FromStr for VertexData {
             _data: parse_string_vecvec3(s).unwrap(),
             _type: String::from("xyz"), // Default for VertexData (Note: it would be different from other DataFields)
             _ply_file: String::from(""),
-            _vertex_offset: None,
+            _vertex_offset: None,  // TODO: offsets belong to Face datatype, so I'm setting them to None here but it'd be better if we can now decouple VertexData and Faces 
             _texture_offset: None,
         })
     }
@@ -468,18 +468,18 @@ impl TexCoordData {
         (self._data.len() as f64 / 2.) as usize
     }
 
-    pub fn get_uv_coords(&self, i: usize, offset: Option<isize>) -> [Float; 2] {
-        debug_assert!(self._type == "uv"); // || self._type == "");
-        let mut start = i * 2;
-        
-        // Apply texture offset if present --> self._texture_offset does not work here because it is not given under "TextureCoordinates", rather "Faces" field has textureoffset defined
-        if let Some(offset) = offset {
-            info!(">>>>Texture offset is applied");
-            start = (start as isize + offset) as usize;
-        }
-        
-        [self._data[start], self._data[start + 1]]
-    }
+    //pub fn get_uv_coords(&self, i: usize, offset: Option<isize>) -> [Float; 2] {
+    //    debug_assert!(self._type == "uv"); // || self._type == "");
+    //    let mut start = i * 2;
+    //    
+    //    // Apply texture offset if present --> self._texture_offset does not work here because it is not given under "TextureCoordinates", rather "Faces" field has textureoffset defined
+    //    if let Some(offset) = offset {
+    //        info!(">>>>Texture offset is applied");
+    //        start = (start as isize + offset) as usize;
+    //    }
+    //    
+    //    [self._data[start], self._data[start + 1]]
+    //}
     
 }
 
@@ -498,16 +498,16 @@ impl FaceType {
     pub fn get_tri_indices(&self, i: usize) -> [usize; 3] {
         debug_assert!(self._type == "triangle" || self._type == "");
         let start = i * 3;
-        let mut indices = [self._data[start], self._data[start + 1], self._data[start + 2]];
+        let indices = [self._data[start], self._data[start + 1], self._data[start + 2]];
         
         // Apply vertex offset if present
-        if let Some(offset) = self._vertex_offset {
-            debug!("indices before: {:?}", indices);
-            indices[0] = (indices[0] as isize + offset) as usize;
-            indices[1] = (indices[1] as isize + offset) as usize;
-            indices[2] = (indices[2] as isize + offset) as usize;
-            debug!("indices after: {:?}", indices);
-        }
+        //if let Some(offset) = self._vertex_offset {
+        //    debug!("indices before: {:?}", indices);
+        //    indices[0] = (indices[0] as isize + offset) as usize;
+        //    indices[1] = (indices[1] as isize + offset) as usize;
+        //    indices[2] = (indices[2] as isize + offset) as usize;
+        //    debug!("indices after: {:?}", indices);
+        //}
         
         indices
     }

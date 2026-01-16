@@ -68,6 +68,10 @@ pub struct Triangle {
 
     #[serde(skip)]
     pub normal: Vector3,
+
+    #[serde(skip)]
+    pub texture_indices: [usize; 3],
+
 }
 
 impl Shape for Triangle {
@@ -100,7 +104,6 @@ impl Shape for Triangle {
                 } 
                 else {
                     // Occurs when triangle is not constructed from Mesh data
-                    let verts = &vertex_cache.vertex_data;
                     let [a, b, c] = self.vert_indices.map(|i| verts[i]);
                     get_tri_normal(&a, &b, &c)
                 }
@@ -116,7 +119,8 @@ impl Shape for Triangle {
             let texs = self._data.texture_idxs.clone(); // TODO: any better ideas to avoid clone?
             if !texs.is_empty() {
                 // See slides 06, p.20
-                let (a, b, c) = (self.vert_indices[0], self.vert_indices[1], self.vert_indices[2]);
+                let (a, b, c) = (self.texture_indices[0], self.texture_indices[1], self.texture_indices[2]);
+                
                 debug_assert!(a > 0 && b > 0 && c > 0, "Assumption of vertex indices starting from 1 failed!");
                 let uv_a: [Float; 2] = vertex_cache.uv_coords[a].unwrap_or_default();
                 let uv_b: [Float; 2] = vertex_cache.uv_coords[b].unwrap_or_default();
