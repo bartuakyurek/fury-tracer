@@ -155,20 +155,18 @@ impl Mesh {
             // (otherwise data itself is coupled by triangle offset and 
             // texture offset needs to subtract vertex offset to apply its own offset)
             let mut vert_offseted_face_indices = face_indices.clone(); 
-            let mut vert_offset: isize = 0;
             if let Some(offset) = self.faces._vertex_offset {
-                vert_offset = offset;
                 vert_offseted_face_indices[0] = (face_indices[0] as isize + offset) as usize;
                 vert_offseted_face_indices[1] = (face_indices[1] as isize + offset) as usize;
                 vert_offseted_face_indices[2] = (face_indices[2] as isize + offset) as usize;
             }
 
-            if is_degenerate_triangle(verts, face_indices) {
+            if is_degenerate_triangle(verts, vert_offseted_face_indices) {
                 continue;
             }
             
             
-            let [v1, v2, v3] = face_indices.map(|i| verts[i]);
+            let [v1, v2, v3] = vert_offseted_face_indices.map(|i| verts[i]);
 
             let cpd = CommonPrimitiveData{
                 _id: id_offset + i, 
