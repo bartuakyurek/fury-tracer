@@ -20,15 +20,7 @@ pub struct Ray {
 impl Ray {
 
     pub fn new(origin: Vector3, direction: Vector3, time: Float) -> Self {
-        
-        //debug_assert!(direction.is_normalized());
-        
-        let direction = if !direction.is_normalized() {
-            direction.normalize()
-        } else {
-            direction
-        };
-
+        debug_assert!(direction.is_normalized());
         Self {
             origin,
             direction,
@@ -37,8 +29,12 @@ impl Ray {
     }
 
     pub fn new_from(origin: Vector3, direction: Vector3) -> Self {
-        
-        Self::new(origin, direction, 0.0)
+        debug_assert!(direction.is_normalized());
+        Self {
+            origin,
+            direction,
+            time: 0.,
+        }
     }
 
     pub fn new_with_random_t(origin: Vector3, direction: Vector3) -> Self {
