@@ -102,7 +102,7 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
                 debug_assert!( (hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) < 1e-6) || (!hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) > -1e-6), "Found front_face = {} and normal dot ray_in direction = {}", hit_record.is_front_face, hit_record.normal.dot(ray_in.direction) );
                 // Note that we don't attenuate the light as we assume rays are travelling in vacuum
                 // but area lights will scale intensity wrt ray's direction and for point lights attenuation is simply one
-                let irradiance = light.get_irradiance(&shadow_ray, &interval); //light.get_intensity() * light.attenuation(&shadow_ray.direction) / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
+                let irradiance = light.irradiance(&shadow_ray, &interval); //light.get_intensity() * light.attenuation(&shadow_ray.direction) / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
                 let n = hit_record.normal;
                 let w_i = shadow_ray.direction;
                 let w_o = -ray_in.direction;

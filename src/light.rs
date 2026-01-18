@@ -58,7 +58,7 @@ impl LightKind {
             },
         }
     }
-    pub fn get_irradiance(&self, shadow_ray: &Ray, interval: &Interval) -> Vector3 {
+    pub fn irradiance(&self, shadow_ray: &Ray, interval: &Interval) -> Vector3 {
         match self {
             LightKind::Point(pl) => {
                  pl.rgb_intensity / shadow_ray.squared_distance_at(interval.max)
