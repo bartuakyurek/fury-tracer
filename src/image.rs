@@ -178,11 +178,11 @@ impl Textures {
                 let (col, row) = (uv[0] * image.width as Float, uv[1] * image.height as Float); // image coordinate (see slides 06, p.8)
                 let color = image.interpolate(row, col, interpolation);
                 if apply_normalization {
-                    //if image_texmap.normalizer > 1. { // TODO: This isn't a real solution but it avoids exploded radiance in some cases (but makes the image appear darker, so it's not really solving the real issue)
-                        color / image_texmap.normalizer 
-                    //} else {
-                    //    color / 255.
-                    //}
+                    if image_texmap.normalizer > 1. { // TODO: This isn't a real solution but it avoids exploded radiance in some cases (but makes the image appear darker, so it's not really solving the real issue)
+                        color  / image_texmap.normalizer 
+                    } else {
+                        color / 255.
+                    }
                     //color / 255.  // By default divide by 255
                 } else {
                     color
