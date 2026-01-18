@@ -95,20 +95,20 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
     let mut color = brdf.ambient() * scene.data.lights.ambient_light; 
     for light in scene.data.lights.all_shadow_rayable().iter() {
             
-            let (shadow_ray, interval) = get_shadow_ray(&light, hit_record, ray_in, scene.data.shadow_ray_epsilon);
-            if scene.hit_bvh(&shadow_ray, &interval, true).is_none() {
+        let (shadow_ray, interval) = get_shadow_ray(&light, hit_record, ray_in, scene.data.shadow_ray_epsilon);
+        if scene.hit_bvh(&shadow_ray, &interval, true).is_none() {
 
-                // Note: below assert might fail in bump or normal mapping case once the normals are updated:
-                debug_assert!( (hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) < 1e-6) || (!hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) > -1e-6), "Found front_face = {} and normal dot ray_in direction = {}", hit_record.is_front_face, hit_record.normal.dot(ray_in.direction) );
-                // Note that we don't attenuate the light as we assume rays are travelling in vacuum
-                // but area lights will scale intensity wrt ray's direction and for point lights attenuation is simply one
-                let irradiance = light.irradiance(&shadow_ray, &interval); //light.get_intensity() * light.attenuation(&shadow_ray.direction) / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
-                let n = hit_record.normal;
-                let w_i = shadow_ray.direction;
-                let w_o = -ray_in.direction;
-                color += brdf.diffuse(w_i, n) * irradiance;
-                color += brdf.specular(w_o, w_i, n) * irradiance; 
-            }
+            // Note: below assert might fail in bump or normal mapping case once the normals are updated:
+            debug_assert!( (hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) < 1e-6) || (!hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) > -1e-6), "Found front_face = {} and normal dot ray_in direction = {}", hit_record.is_front_face, hit_record.normal.dot(ray_in.direction) );
+            // Note that we don't attenuate the light as we assume rays are travelling in vacuum
+            // but area lights will scale intensity wrt ray's direction and for point lights attenuation is simply one
+            let irradiance = light.irradiance(&shadow_ray, &interval); //light.get_intensity() * light.attenuation(&shadow_ray.direction) / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
+            let n = hit_record.normal;
+            let w_i = shadow_ray.direction;
+            let w_o = -ray_in.direction;
+            color += brdf.diffuse(w_i, n) * irradiance;
+            color += brdf.specular(w_o, w_i, n) * irradiance; 
+        }
     }
 
     // HW5 Update: add color from environment lights (I kept it separate from shadow ray logic)
