@@ -21,7 +21,7 @@ use crate::prelude::*;
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(default)]
-pub struct BRDFData {
+pub struct BRDFCommonData {
     #[serde(rename = "AmbientReflectance", deserialize_with = "deser_vec3")]
     pub ambient_rf: Vector3,
     #[serde(rename = "DiffuseReflectance", deserialize_with = "deser_vec3")]
@@ -35,10 +35,10 @@ pub struct BRDFData {
     pub degamma: bool,
 }
 
-impl Default for BRDFData {
+impl Default for BRDFCommonData {
     fn default() -> Self {
         debug!("Defaulting BRDF...");
-        BRDFData {
+        BRDFCommonData {
             ambient_rf: Vector3::new(0.0, 0.0, 0.0),
             diffuse_rf: Vector3::new(1.0, 1.0, 1.0),
             specular_rf: Vector3::new(0.0, 0.0, 0.0),
@@ -48,7 +48,7 @@ impl Default for BRDFData {
     }
 }
 
-impl BRDFData {
+impl BRDFCommonData {
 
     pub fn ambient(&self) -> Vector3 {
         if self.degamma {
@@ -111,7 +111,7 @@ pub trait Material : Debug + Send + Sync  {
         }
     }
 
-    fn brdf(&self) -> &BRDFData;
+    fn brdf(&self) -> &BRDFCommonData;
     fn get_type(&self) -> &str; 
     fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)>; //(Ray, attenuation)
 }
@@ -132,7 +132,7 @@ pub struct DiffuseMaterial {
     pub _id: usize,
     
     #[serde(flatten)]
-    pub brdf: BRDFData,
+    pub brdf: BRDFCommonData,
 
 }
 
@@ -141,7 +141,7 @@ impl Default for DiffuseMaterial {
     fn default() -> Self {
         DiffuseMaterial {
             _id: 0,
-            brdf: BRDFData {
+            brdf: BRDFCommonData {
                 ambient_rf: Vector3::new(0.0, 0.0, 0.0),
                 diffuse_rf: Vector3::new(1.0, 1.0, 1.0),
                 specular_rf: Vector3::new(0.0, 0.0, 0.0),
@@ -163,7 +163,7 @@ impl Material for DiffuseMaterial{
         "diffuse"
     }
 
-    fn brdf(&self) -> &BRDFData {
+    fn brdf(&self) -> &BRDFCommonData {
         &self.brdf
     }
 
@@ -187,7 +187,7 @@ pub struct MirrorMaterial {
     pub _id: usize,
 
     #[serde(flatten)]
-    pub brdf: BRDFData,
+    pub brdf: BRDFCommonData,
 
     #[serde(rename = "MirrorReflectance", deserialize_with = "deser_vec3")]
     pub mirror_rf: Vector3,
@@ -201,7 +201,7 @@ impl Default for MirrorMaterial {
     fn default() -> Self {
         Self {
             _id: 0,
-            brdf: BRDFData {
+            brdf: BRDFCommonData {
                     ambient_rf: Vector3::new(0.0, 0.0, 0.0),
                     diffuse_rf: Vector3::new(0.5, 0.5, 0.5),
                     specular_rf: Vector3::new(0.0, 0.0, 0.0),
@@ -248,7 +248,7 @@ impl Material for MirrorMaterial {
         "mirror"
     }
 
-    fn brdf(&self) -> &BRDFData {
+    fn brdf(&self) -> &BRDFCommonData {
         &self.brdf
     }
 
@@ -285,7 +285,7 @@ pub struct DielectricMaterial {
     pub _id: usize,
     
     #[serde(flatten)]
-    pub brdf: BRDFData,
+    pub brdf: BRDFCommonData,
 
     #[serde(rename = "MirrorReflectance", deserialize_with = "deser_vec3")]
     pub mirror_rf: Vector3,
@@ -302,7 +302,7 @@ impl Default for DielectricMaterial {
     fn default() -> Self {
         Self {
             _id: 0,
-            brdf: BRDFData{
+            brdf: BRDFCommonData{
                     ambient_rf: Vector3::new(0.0, 0.0, 0.0),
                     diffuse_rf: Vector3::new(0.5, 0.5, 0.5),
                     specular_rf: Vector3::new(0.0, 0.0, 0.0),
@@ -458,7 +458,7 @@ impl Material for DielectricMaterial {
         "dielectric"
     }
 
-    fn brdf(&self) -> &BRDFData {
+    fn brdf(&self) -> &BRDFCommonData {
         &self.brdf
     }
     
@@ -488,7 +488,7 @@ pub struct ConductorMaterial {
     pub _id: usize,
 
     #[serde(flatten)]
-    pub brdf: BRDFData,
+    pub brdf: BRDFCommonData,
     
     #[serde(rename = "MirrorReflectance", deserialize_with = "deser_vec3")]
     pub mirror_rf: Vector3,
@@ -504,7 +504,7 @@ impl Default for ConductorMaterial {
     fn default() -> Self {
         Self {
             _id: 0,
-            brdf: BRDFData {
+            brdf: BRDFCommonData {
                     ambient_rf: Vector3::new(0., 0., 0.),
                     diffuse_rf: Vector3::new(0., 0., 0.),
                     specular_rf: Vector3::new(0., 0., 0.),
@@ -592,7 +592,7 @@ impl Material for ConductorMaterial {
         "conductor"
     }
 
-    fn brdf(&self) -> &BRDFData {
+    fn brdf(&self) -> &BRDFCommonData {
         &self.brdf
     }
     

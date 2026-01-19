@@ -31,6 +31,10 @@ pub type Vector2 = DVec2;
 // TODO: Use your own Vector3 to implement its deserialization 
 // this requires trait bounds to be satisfied, so it breaks most of the code atm
 
+pub fn is_zerovec(v: Vector3) -> bool {
+    v.abs().element_sum() < 1e-8
+}
+
 pub fn approx_zero(x: Float) -> bool {
     x.abs() < 1e-8
 }

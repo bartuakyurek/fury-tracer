@@ -48,11 +48,15 @@ impl ToneMap {
         }
 
         // 5 - Apply eqn.2 in HW5 pdf (Gamma correction) 
+        fn gamma_correct(channel: Float, gamma: Float) -> Float {
+            255. * (channel).powf(1. / gamma).clamp(0., 1.)
+        }
+       
         for i in 0..num_pixels {
             // TODO: What's the idiomatic way to compute bleow?
-            im.colors[i].x = 255. * (im.colors[i].x.powf(1. / self.gamma)).clamp(0.0, 1.0);
-            im.colors[i].y = 255. * (im.colors[i].y.powf(1. / self.gamma)).clamp(0.0, 1.0);
-            im.colors[i].z = 255. * (im.colors[i].z.powf(1. / self.gamma)).clamp(0.0, 1.0);
+            im.colors[i].x = gamma_correct(im.colors[i].x, self.gamma);
+            im.colors[i].y = gamma_correct(im.colors[i].y, self.gamma);
+            im.colors[i].z = gamma_correct(im.colors[i].z, self.gamma);
         }
         im
     }

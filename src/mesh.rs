@@ -150,33 +150,55 @@ impl Mesh {
         for i in 0..n_faces {
             let face_indices = self.faces.get_tri_indices(i);
             
-            if is_degenerate_triangle(verts, face_indices) {
-                continue;
+            // WARNING: Just checking offseted to prune degenarate, 
+            // individual triangles will have vertex offset separately 
+            // (otherwise data itself is coupled by triangle offset and 
+            // texture offset needs to subtract vertex offset to apply its own offset)
+            let mut vert_offseted_face_indices = face_indices.clone(); 
+            if let Some(offset) = self.faces._vertex_offset {
+                vert_offseted_face_indices[0] = (face_indices[0] as isize + offset) as usize;
+                vert_offseted_face_indices[1] = (face_indices[1] as isize + offset) as usize;
+                vert_offseted_face_indices[2] = (face_indices[2] as isize + offset) as usize;
             }
 
-            let offseted_texture_idxs = {
-                if let Some(tex_offset) = self.faces._texture_offset {
-                    info!(">> Applying offset to triangle texture...");
-                    self.texture_idxs.iter().map(|ti| (*ti as isize + tex_offset) as usize).collect()
-                } else {
-                    self.texture_idxs.clone()
-                }
-            };
-
-            let [v1, v2, v3] = face_indices.map(|i| verts[i]);
+            if is_degenerate_triangle(verts, vert_offseted_face_indices) {
+                continue;
+            }
+            
+            
+            let [v1, v2, v3] = vert_offseted_face_indices.map(|i| verts[i]);
 
             let cpd = CommonPrimitiveData{
                 _id: id_offset + i, 
                 material_idx: self.material_idx,
                 transformation_names: None, 
-                texture_idxs: offseted_texture_idxs,
+                texture_idxs: self.texture_idxs.clone(),
             };
+
+
+            let tex_offset: isize = {
+                if let Some(tex_offset) = self.faces._texture_offset {
+                    tex_offset
+                } else {
+                    0
+                }
+            };
+            //let texture_indices = face_indices.map(|i| (i as isize + tex_offset) as usize ).iter().collect(); // WHY cant I simply do this??
+            let mut texture_indices = face_indices.clone();
+            texture_indices[0] = (texture_indices[0] as isize + tex_offset) as usize;
+            texture_indices[1] = (texture_indices[1] as isize + tex_offset) as usize;
+            texture_indices[2] = (texture_indices[2] as isize + tex_offset) as usize;
+
+
             triangles.push(Triangle {
                 _data: cpd,
-                vert_indices: face_indices,
+                vert_indices: vert_offseted_face_indices,
                 is_smooth: self._shading_mode.eq_ignore_ascii_case("smooth"),
                 normal: get_tri_normal(&v1, &v2, &v3),
                 matrix: None, //Some(Arc::new(self.matrix)), // NOTE: here it is ok to .clone( ) because it just increases Arc's counter, not cloning the whole data
+                texture_indices, // WARNING: DO NOT CONFUSE IT WITH TEXTUREMAP IDS which is also named texture_idxs in CommonPrimitiveData
+                //_texture_offset: tex_offset,
+                //_vertex_offset: vert_offset,
             });
         }
         

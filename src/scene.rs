@@ -236,6 +236,9 @@ pub struct SceneLights {
 
     #[serde(rename = "SphericalDirectionalLight")]
     pub env_lights: SingleOrVec<SphericalDirectionalLight>,
+
+    #[serde(skip)]
+    cached_shadow_rayable: Vec<LightKind>,
 }
 
 impl SceneLights {
@@ -243,9 +246,25 @@ impl SceneLights {
 
         debug!("Setting up scene lights...\n{:#?}", self);
 
-        for light in self.all_shadow_rayable().iter_mut() {
+        // TODO: Learn how to use macros to avoid repetition (it seems like macros are the
+        // way to go in this case)
+        for light in self.point_lights.iter_mut() {
             light.setup(transforms);
         }
+        for light in self.area_lights.iter_mut() {
+            light.setup();
+        }
+        for light in self.dir_lights.iter_mut() {
+            light.setup();
+        }
+        for light in self.spot_lights.iter_mut() {
+            light.setup();
+        }
+        for light in self.env_lights.iter_mut() {
+            light.setup();
+        }
+
+        self.cached_shadow_rayable = self.build_shadow_rayable();
 
         for env_light in self.env_lights.iter_mut() {
             env_light.setup();
@@ -255,8 +274,7 @@ impl SceneLights {
     }
 
     // TODO: DONT FORGET TO ADD YOUR NEW LIGHTKIND HERE, well, this is easy to forget and not functional...
-    pub fn all_shadow_rayable(&self) -> Vec<LightKind> {
-        // TODO: store all lights directly? esp if this has a significant overhead when called during ray tracing?
+    pub fn build_shadow_rayable(&self) -> Vec<LightKind> {
         self.point_lights.iter()
         .map(|p| LightKind::Point(p.clone()))
         .chain(self.area_lights.iter().map(|a| LightKind::Area(a.clone())))
@@ -264,6 +282,10 @@ impl SceneLights {
         .chain(self.spot_lights.iter().map(|sl| LightKind::Spot(sl.clone())))
         //.chain(self.env_lights.iter().map(|el| LightKind::Env(el.clone())))
         .collect()
+    }
+
+    pub fn all_shadow_rayable(&self) -> &Vec<LightKind> {
+        &self.cached_shadow_rayable
     }
 }
 

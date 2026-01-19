@@ -17,7 +17,7 @@ use bevy_math::{NormedVectorSpace};
 use std::f64::consts::PI;
 use std::{self, time::Instant};
 
-use crate::material::{BRDFData, HeapAllocMaterial};
+use crate::material::{BRDFCommonData, HeapAllocMaterial};
 use crate::ray::{HitRecord, Ray};
 use crate::light::{LightKind};
 use crate::scene::{Scene};
@@ -27,7 +27,7 @@ use crate::interval::{Interval};
 use crate::prelude::*;
 
 
-pub fn update_brdf_and_get_normal(textures: &Textures, texmap_ids: &Vec<usize>, hit_record: &HitRecord, brdf: &mut BRDFData) -> Vector3 {
+pub fn update_brdf_and_get_normal(textures: &Textures, texmap_ids: &Vec<usize>, hit_record: &HitRecord, brdf: &mut BRDFCommonData) -> Vector3 {
     let mut perturbed_normal = hit_record.normal.clone();
     for texmap_id in  texmap_ids{
         let texmap = &textures.texture_maps.as_slice()[*texmap_id - 1]; // TODO: I am not sure if as_slice( ) is still relevant here, it resolved a rustc error before I change the implementation though            
@@ -81,31 +81,40 @@ pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, ray_in: &Ray, e
     (shadow_ray, interval)
 }
 
-pub fn shade_diffuse(scene: &Scene, hit_record: &HitRecord, ray_in: &Ray, brdf: &BRDFData) -> Vector3 {
+pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) -> Vector3 {
+    let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
+    let mut brdf = mat.brdf().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
+        
+        // HW4 Update: apply textures if provided to change brdf -----------
+        if let Some(textures) = &scene.data.textures {
+            hit_record.normal = update_brdf_and_get_normal(textures, &hit_record.textures, &hit_record, &mut brdf);
+        }; 
+        // -----------------------------------------------------------------
+
+    
     let mut color = brdf.ambient() * scene.data.lights.ambient_light; 
     for light in scene.data.lights.all_shadow_rayable().iter() {
             
-            let (shadow_ray, interval) = get_shadow_ray(&light, hit_record, ray_in, scene.data.shadow_ray_epsilon);
-            if scene.hit_bvh(&shadow_ray, &interval, true).is_none() {
+        let (shadow_ray, interval) = get_shadow_ray(&light, hit_record, ray_in, scene.data.shadow_ray_epsilon);
+        if scene.hit_bvh(&shadow_ray, &interval, true).is_none() {
 
-                // Note: below assert might fail in bump or normal mapping case once the normals are updated:
-                debug_assert!( (hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) < 1e-6) || (!hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) > -1e-6), "Found front_face = {} and normal dot ray_in direction = {}", hit_record.is_front_face, hit_record.normal.dot(ray_in.direction) );
-                // Note that we don't attenuate the light as we assume rays are travelling in vacuum
-                // but area lights will scale intensity wrt ray's direction and for point lights attenuation is simply one
-                let irradiance = light.get_irradiance(&shadow_ray, &interval); //light.get_intensity() * light.attenuation(&shadow_ray.direction) / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
-                let n = hit_record.normal;
-                let w_i = shadow_ray.direction;
-                let w_o = -ray_in.direction;
-                color += brdf.diffuse(w_i, n) * irradiance;
-                color += brdf.specular(w_o, w_i, n) * irradiance; 
-            }
+            // Note: below assert might fail in bump or normal mapping case once the normals are updated:
+            debug_assert!( (hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) < 1e-6) || (!hit_record.is_front_face && hit_record.normal.dot(ray_in.direction) > -1e-6), "Found front_face = {} and normal dot ray_in direction = {}", hit_record.is_front_face, hit_record.normal.dot(ray_in.direction) );
+            // Note that we don't attenuate the light as we assume rays are travelling in vacuum
+            // but area lights will scale intensity wrt ray's direction and for point lights attenuation is simply one
+            let irradiance = light.irradiance(&shadow_ray, &interval); //light.get_intensity() * light.attenuation(&shadow_ray.direction) / shadow_ray.squared_distance_at(interval.max); // TODO interval is confusing here
+            let n = hit_record.normal;
+            let w_i = shadow_ray.direction;
+            let w_o = -ray_in.direction;
+            color += brdf.diffuse(w_i, n) * irradiance;
+            color += brdf.specular(w_o, w_i, n) * irradiance; 
+        }
     }
 
     // HW5 Update: add color from environment lights (I kept it separate from shadow ray logic)
     // TODO: refactor this huge function
     for env_light in scene.data.lights.env_lights.iter() {
-        if let Some(textures) = &scene.data.textures {
-            //let (sampled_dir, radiance) 
+        if let Some(textures) = &scene.data.textures { 
             let (sampled_dir, radiance) = env_light.sample_and_get_radiance(
                 &hit_record,
                 textures,
@@ -132,26 +141,18 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vec
    
    let t_interval = Interval::positive(scene.data.intersection_test_epsilon);
    if let Some(mut hit_record) = scene.hit_bvh(ray_in, &t_interval, false) {
-        
         let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
-        let mut brdf = mat.brdf().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
-        
-        // HW4 Update: apply textures if provided to change brdf -----------
-        if let Some(textures) = &scene.data.textures {
-            hit_record.normal = update_brdf_and_get_normal(textures, &hit_record.textures, &hit_record, &mut brdf);
-        }; 
-        // -----------------------------------------------------------------
-
+                
         let mut color = Vector3::ZERO;
         let mat_type = mat.get_type();
         let epsilon = scene.data.intersection_test_epsilon;  
         color += match mat_type{ 
             "diffuse" => {
-                shade_diffuse(scene, &hit_record, ray_in, &brdf)
+                shade_diffuse(scene, &mut hit_record, ray_in)
             },
             "mirror" | "conductor" => { 
                     if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        shade_diffuse(scene,  &hit_record, ray_in, &brdf) + attenuation * get_color(&reflected_ray, scene, cam, depth + 1) 
+                        shade_diffuse(scene,  &mut hit_record, ray_in) + attenuation * get_color(&reflected_ray, scene, cam, depth + 1) 
                     }
                     else {
                         warn!("Material not reflecting...");
@@ -163,7 +164,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vec
                 
                 // Only add diffuse, specular, and ambient components if front face (see slides 02, p.29)
                 if hit_record.is_front_face { 
-                    tot_radiance += shade_diffuse(scene, &hit_record, ray_in, &brdf);
+                    tot_radiance += shade_diffuse(scene, &mut hit_record, ray_in);
                 }
  
                 // Reflected 
@@ -265,9 +266,9 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         // but for that to be done in Scene creation (or in setup() of scene), cameras need to be
         // vectorized via .all( ) call, however we don't hold the vec versions (currently they are SingleOrVec) 
         //  in actual scene structs, that needs to be changed maybe.
+        // TODO: std::OnceCell can be handy to integrate setup( ) calls of our deserialized structs  
         cam.setup(&scene.data.transformations); 
         let n_samples = cam.num_samples as usize;
-        //if cam.num_samples != 1 { warn!("Found num_samples = '{}' > 1, sampling is not implemented yet...", cam.num_samples); }
         
         // --- Rayon Multithreading ---
         let start = Instant::now();

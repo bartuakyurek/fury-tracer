@@ -8,6 +8,7 @@ use crate::json_structs::Transformations;
 use crate::prelude::*;
 
 
+#[derive(Debug, Clone)]
 pub enum LightKind {
     Point(PointLight),
     Area(AreaLight),
@@ -57,7 +58,7 @@ impl LightKind {
             },
         }
     }
-    pub fn get_irradiance(&self, shadow_ray: &Ray, interval: &Interval) -> Vector3 {
+    pub fn irradiance(&self, shadow_ray: &Ray, interval: &Interval) -> Vector3 {
         match self {
             LightKind::Point(pl) => {
                  pl.rgb_intensity / shadow_ray.squared_distance_at(interval.max)
@@ -304,8 +305,11 @@ impl AreaLight {
      pub fn setup_onb(&mut self) {
         // See slides 05, p.96
         let (u, v) = get_onb(&self.normal);
+        assert!(!is_zerovec(u));
+        assert!(!is_zerovec(v));
         self.u = u;
         self.v = v;
+        debug!("u={:?}, v={:?}", self.u, self.v);
         debug!("Area light ONB is setup successfully.");
     }
 

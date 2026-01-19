@@ -20,6 +20,8 @@ pub struct Ray {
 impl Ray {
 
     pub fn new(origin: Vector3, direction: Vector3, time: Float) -> Self {
+        // WARNING: Direction does not need to be normalized actually, hw4 veach ajar scene
+        // fails if we normalize it... I'm not sure why this happens
         debug_assert!(direction.is_normalized());
         Self {
             origin,
