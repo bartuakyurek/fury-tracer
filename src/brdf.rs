@@ -1,6 +1,7 @@
 
 
 use crate::prelude::*;
+use crate::json_structs::{SingleOrVec};
 use crate::material::MaterialCommon;
 
 pub trait BRDF {
@@ -13,6 +14,39 @@ pub trait BRDF {
     ) -> Vector3;
 }
 
+
+
+
+
+pub struct BRDFs {
+    pub original_phong: SingleOrVec<Phong>,
+    pub modified_phong: SingleOrVec<ModifiedPhong>,
+    pub original_blinn_phong: SingleOrVec<BlinnPhong>,
+    pub modified_blinn_phong: SingleOrVec<ModifiedBlinnPhong>,
+    pub torrance_sparrow: SingleOrVec<TorranceSparrow>,
+}
+
+
+struct Phong {
+
+}
+
+struct ModifiedPhong {
+
+}
+
+struct BlinnPhong {
+
+}
+
+
+struct ModifiedBlinnPhong {
+
+}
+
+struct TorranceSparrow {
+
+}
 
     //pub fn ambient(&self) -> Vector3 {
     //    if self.degamma {
