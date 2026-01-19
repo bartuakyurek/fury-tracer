@@ -1,6 +1,18 @@
 
 
 use crate::prelude::*;
+use crate::material::MaterialCommon;
+
+pub trait BRDF {
+    fn eval(
+            &self,
+            wi: Vector3,
+            wo: Vector3,
+            n: Vector3,
+            params: &MaterialCommon,
+    ) -> Vector3;
+}
+
 
     //pub fn ambient(&self) -> Vector3 {
     //    if self.degamma {

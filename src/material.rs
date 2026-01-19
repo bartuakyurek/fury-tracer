@@ -18,7 +18,7 @@ use serde::{Deserialize, de::DeserializeOwned};
 
 use crate::ray::{Ray, HitRecord}; 
 use crate::prelude::*;
-
+use crate::brdf;
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(default)]
@@ -57,6 +57,11 @@ impl MaterialCommon {
         self.diffuse_rf = self.diffuse_rf.powf(2.2);
         self.specular_rf = self.specular_rf.powf(2.2);
     }
+
+    pub fn ambient(&self) -> Vector3 {
+        assert!(!self.degamma, "Found degamma = true, please call apply_degamma() and set degamma = False before calling ambient( ). Note: Material::setup( ) implementations should have handled it already.");
+        self.ambient_rf
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -83,6 +88,8 @@ pub trait Material : Debug + Send + Sync  {
     
     fn get_type(&self) -> &str; 
     fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)>; //(Ray, attenuation)
+
+    fn brdf(&self) -> &dyn brdf::BRDF;
 
     fn setup(&mut self) { debug!("Empty setup called for a material, ignoring..."); }
 }

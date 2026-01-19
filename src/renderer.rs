@@ -83,16 +83,16 @@ pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, ray_in: &Ray, e
 
 pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) -> Vector3 {
     let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
-    let mut brdf = mat.get_material_data().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
+    let mut material_params = mat.get_material_data().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
         
         // HW4 Update: apply textures if provided to change brdf -----------
         if let Some(textures) = &scene.data.textures {
-            hit_record.normal = update_brdf_and_get_normal(textures, &hit_record.textures, &hit_record, &mut brdf);
+            hit_record.normal = update_brdf_and_get_normal(textures, &hit_record.textures, &hit_record, &mut material_params);
         }; 
         // -----------------------------------------------------------------
 
     
-    let mut color = brdf.ambient() * scene.data.lights.ambient_light; 
+    let mut color = material_params.ambient() * scene.data.lights.ambient_light; 
     for light in scene.data.lights.all_shadow_rayable().iter() {
             
         let (shadow_ray, interval) = get_shadow_ray(&light, hit_record, ray_in, scene.data.shadow_ray_epsilon);
@@ -106,8 +106,10 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
             let n = hit_record.normal;
             let w_i = shadow_ray.direction;
             let w_o = -ray_in.direction;
-            color += brdf.diffuse(w_i, n) * irradiance;
-            color += brdf.specular(w_o, w_i, n) * irradiance; 
+            //color += material_params.diffuse(w_i, n) * irradiance;
+            //color += material_params.specular(w_o, w_i, n) * irradiance;
+            todo!("Please add cosine term before irradiance:"); 
+            color += mat.brdf().eval(w_i, w_o, n) * irradiance;
         }
     }
 
@@ -123,8 +125,10 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
             let w_i = sampled_dir;
             let w_o = -ray_in.direction;
             let n = hit_record.normal;
-            color += radiance * brdf.diffuse(w_i, n);
-            color += radiance * brdf.specular(w_o, w_i, n); 
+            //color += radiance * material_params.diffuse(w_i, n);
+            //color += radiance * material_params.specular(w_o, w_i, n); 
+            todo!("Please add cosine term before irradiance:"); 
+            color += mat.brdf().eval(w_i, w_o, n) * irradiance;
         }
     }
 
