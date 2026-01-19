@@ -40,7 +40,7 @@ pub trait Material : Debug + Send + Sync  {
         }
     }
 
-    fn brdf(&self) -> &BRDFCommonData;
+    fn get_brdf_data(&self) -> &BRDFCommonData;
     fn get_type(&self) -> &str; 
     fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)>; //(Ray, attenuation)
 }
@@ -92,7 +92,7 @@ impl Material for DiffuseMaterial{
         "diffuse"
     }
 
-    fn brdf(&self) -> &BRDFCommonData {
+    fn get_brdf_data(&self) -> &BRDFCommonData {
         &self.brdf_common
     }
 
@@ -177,7 +177,7 @@ impl Material for MirrorMaterial {
         "mirror"
     }
 
-    fn brdf(&self) -> &BRDFCommonData {
+    fn get_brdf_data(&self) -> &BRDFCommonData {
         &self.brdf_common
     }
 
@@ -387,7 +387,7 @@ impl Material for DielectricMaterial {
         "dielectric"
     }
 
-    fn brdf(&self) -> &BRDFCommonData {
+    fn get_brdf_data(&self) -> &BRDFCommonData {
         &self.brdf_common
     }
     
@@ -521,7 +521,7 @@ impl Material for ConductorMaterial {
         "conductor"
     }
 
-    fn brdf(&self) -> &BRDFCommonData {
+    fn get_brdf_data(&self) -> &BRDFCommonData {
         &self.brdf_common
     }
     

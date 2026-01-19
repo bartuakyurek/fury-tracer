@@ -84,7 +84,7 @@ pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, ray_in: &Ray, e
 
 pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) -> Vector3 {
     let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
-    let mut brdf = mat.brdf().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
+    let mut brdf = mat.get_brdf_data().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
         
         // HW4 Update: apply textures if provided to change brdf -----------
         if let Some(textures) = &scene.data.textures {
