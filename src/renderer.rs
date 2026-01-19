@@ -17,12 +17,13 @@ use bevy_math::{NormedVectorSpace};
 use std::f64::consts::PI;
 use std::{self, time::Instant};
 
-use crate::material::{BRDFCommonData, HeapAllocMaterial};
+use crate::brdf::{BRDFCommonData};
+use crate::material::{HeapAllocMaterial};
 use crate::ray::{HitRecord, Ray};
 use crate::light::{LightKind};
 use crate::scene::{Scene};
 use crate::camera::Camera;
-use crate::image::{DecalMode, ImageData, Interpolation, TextureMap, Textures};
+use crate::image::{DecalMode, ImageData, Interpolation, Textures};
 use crate::interval::{Interval};
 use crate::prelude::*;
 
