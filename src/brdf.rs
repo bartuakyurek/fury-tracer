@@ -28,24 +28,33 @@ pub struct BRDFs {
 
 
 struct Phong {
+    _id: usize,
+    exponent: Float,
 
 }
 
 struct ModifiedPhong {
-
+    _id: usize,
+    _normalized: bool,
+    exponent: Float,
 }
 
 struct BlinnPhong {
-
+    _id: usize,
+    exponent: Float,
 }
 
 
 struct ModifiedBlinnPhong {
+    _id: usize,
+    exponent: Float,
 
 }
 
 struct TorranceSparrow {
-
+    _id: usize,
+    _kdfresnel: bool,
+    exponent: Float,
 }
 
     //pub fn ambient(&self) -> Vector3 {
