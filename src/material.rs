@@ -1,4 +1,5 @@
 /*
+    material.rs 
 
     Declare Material trait, and store data related to
     different types of materials. Currently supporting:
@@ -17,8 +18,46 @@ use serde::{Deserialize, de::DeserializeOwned};
 
 use crate::ray::{Ray, HitRecord}; 
 use crate::prelude::*;
-use crate::brdf::{BRDFCommonData};
 
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(default)]
+pub struct MaterialCommon {
+    #[serde(rename = "AmbientReflectance", deserialize_with = "deser_vec3")]
+    pub ambient_rf: Vector3,
+    #[serde(rename = "DiffuseReflectance", deserialize_with = "deser_vec3")]
+    pub diffuse_rf: Vector3,
+    #[serde(rename = "SpecularReflectance", deserialize_with = "deser_vec3")]
+    pub specular_rf: Vector3,
+    #[serde(rename = "PhongExponent", deserialize_with = "deser_float")]
+    pub phong_exponent: Float,
+
+    #[serde(rename = "_degamma", deserialize_with = "deser_bool")]
+    pub degamma: bool,
+}
+
+impl Default for MaterialCommon {
+    fn default() -> Self {
+        debug!("Defaulting BRDF...");
+        MaterialCommon {
+            ambient_rf: Vector3::new(0.0, 0.0, 0.0),
+            diffuse_rf: Vector3::new(1.0, 1.0, 1.0),
+            specular_rf: Vector3::new(0.0, 0.0, 0.0),
+            phong_exponent: 1.0,
+            degamma: false,
+        }
+    }
+}
+
+impl MaterialCommon {
+
+    pub fn apply_degamma(&mut self) {
+        assert!(self.degamma, "Degamma flag found false but apply_degamma() is called.");
+        self.ambient_rf = self.ambient_rf.powf(2.2);
+        self.diffuse_rf = self.diffuse_rf.powf(2.2);
+        self.specular_rf = self.specular_rf.powf(2.2);
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// 
@@ -40,9 +79,12 @@ pub trait Material : Debug + Send + Sync  {
         }
     }
 
-    fn get_brdf_data(&self) -> &BRDFCommonData;
+    fn get_material_data(&self) -> &MaterialCommon;
+    
     fn get_type(&self) -> &str; 
     fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)>; //(Ray, attenuation)
+
+    fn setup(&mut self) { debug!("Empty setup called for a material, ignoring..."); }
 }
 
 pub type HeapAllocMaterial = Box<dyn Material>; // Box, Rc, Arc -> Probably will be Arc when we use rayon
@@ -61,7 +103,7 @@ pub struct DiffuseMaterial {
     pub _id: usize,
     
     #[serde(flatten)]
-    pub brdf_common: BRDFCommonData,
+    pub brdf_common: MaterialCommon,
 
 }
 
@@ -70,7 +112,7 @@ impl Default for DiffuseMaterial {
     fn default() -> Self {
         DiffuseMaterial {
             _id: 0,
-            brdf_common: BRDFCommonData {
+            brdf_common: MaterialCommon {
                 ambient_rf: Vector3::new(0.0, 0.0, 0.0),
                 diffuse_rf: Vector3::new(1.0, 1.0, 1.0),
                 specular_rf: Vector3::new(0.0, 0.0, 0.0),
@@ -88,11 +130,19 @@ impl DiffuseMaterial {
 
 impl Material for DiffuseMaterial{
 
+    fn setup(&mut self) {
+        debug!("Applying degamma for diffuse...");
+        if self.brdf_common.degamma {
+            self.brdf_common.apply_degamma();
+            self.brdf_common.degamma = false;
+        }
+    }
+
     fn get_type(&self) -> &str {
         "diffuse"
     }
 
-    fn get_brdf_data(&self) -> &BRDFCommonData {
+    fn get_material_data(&self) -> &MaterialCommon {
         &self.brdf_common
     }
 
@@ -116,7 +166,7 @@ pub struct MirrorMaterial {
     pub _id: usize,
 
     #[serde(flatten)]
-    pub brdf_common: BRDFCommonData,
+    pub brdf_common: MaterialCommon,
 
     #[serde(rename = "MirrorReflectance", deserialize_with = "deser_vec3")]
     pub mirror_rf: Vector3,
@@ -130,7 +180,7 @@ impl Default for MirrorMaterial {
     fn default() -> Self {
         Self {
             _id: 0,
-            brdf_common: BRDFCommonData {
+            brdf_common: MaterialCommon {
                     ambient_rf: Vector3::new(0.0, 0.0, 0.0),
                     diffuse_rf: Vector3::new(0.5, 0.5, 0.5),
                     specular_rf: Vector3::new(0.0, 0.0, 0.0),
@@ -173,11 +223,19 @@ impl MirrorMaterial {
 
 impl Material for MirrorMaterial {
 
+    fn setup(&mut self) {
+        if self.brdf_common.degamma {
+            debug!("Applying degamma for mirror...");
+            self.brdf_common.apply_degamma();
+            self.brdf_common.degamma = false;
+        }
+    }
+
     fn get_type(&self) -> &str {
         "mirror"
     }
 
-    fn get_brdf_data(&self) -> &BRDFCommonData {
+    fn get_material_data(&self) -> &MaterialCommon {
         &self.brdf_common
     }
 
@@ -214,7 +272,7 @@ pub struct DielectricMaterial {
     pub _id: usize,
     
     #[serde(flatten)]
-    pub brdf_common: BRDFCommonData,
+    pub brdf_common: MaterialCommon,
 
     #[serde(rename = "MirrorReflectance", deserialize_with = "deser_vec3")]
     pub mirror_rf: Vector3,
@@ -231,7 +289,7 @@ impl Default for DielectricMaterial {
     fn default() -> Self {
         Self {
             _id: 0,
-            brdf_common: BRDFCommonData{
+            brdf_common: MaterialCommon{
                     ambient_rf: Vector3::new(0.0, 0.0, 0.0),
                     diffuse_rf: Vector3::new(0.5, 0.5, 0.5),
                     specular_rf: Vector3::new(0.0, 0.0, 0.0),
@@ -247,6 +305,14 @@ impl Default for DielectricMaterial {
 }
 
 impl DielectricMaterial {
+
+    fn setup(&mut self) {
+        if self.brdf_common.degamma {
+            debug!("Applying degamma for dielectric...");
+            self.brdf_common.apply_degamma();
+            self.brdf_common.degamma = false;
+        }
+    }
 
     fn get_beers_law_attenuation(&self, distance: Float) -> Vector3 {
         // Slides 02, p.27, only e^(-Cx) part
@@ -387,7 +453,7 @@ impl Material for DielectricMaterial {
         "dielectric"
     }
 
-    fn get_brdf_data(&self) -> &BRDFCommonData {
+    fn get_material_data(&self) -> &MaterialCommon {
         &self.brdf_common
     }
     
@@ -417,7 +483,7 @@ pub struct ConductorMaterial {
     pub _id: usize,
 
     #[serde(flatten)]
-    pub brdf_common: BRDFCommonData,
+    pub brdf_common: MaterialCommon,
     
     #[serde(rename = "MirrorReflectance", deserialize_with = "deser_vec3")]
     pub mirror_rf: Vector3,
@@ -433,7 +499,7 @@ impl Default for ConductorMaterial {
     fn default() -> Self {
         Self {
             _id: 0,
-            brdf_common: BRDFCommonData {
+            brdf_common: MaterialCommon {
                     ambient_rf: Vector3::new(0., 0., 0.),
                     diffuse_rf: Vector3::new(0., 0., 0.),
                     specular_rf: Vector3::new(0., 0., 0.),
@@ -517,11 +583,19 @@ impl ConductorMaterial {
 
 impl Material for ConductorMaterial {
 
+    fn setup(&mut self) {
+        if self.brdf_common.degamma {
+            debug!("Applying degamma for conductor...");
+            self.brdf_common.apply_degamma();
+            self.brdf_common.degamma = false;
+        }
+    }
+
     fn get_type(&self) -> &str {
         "conductor"
     }
 
-    fn get_brdf_data(&self) -> &BRDFCommonData {
+    fn get_material_data(&self) -> &MaterialCommon {
         &self.brdf_common
     }
     

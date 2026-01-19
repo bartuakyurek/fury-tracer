@@ -307,6 +307,10 @@ impl SceneMaterials {
                         .all()
                         .into_iter()
                         .flat_map(parse_material)
+                        .map(|mut m| {
+                            m.setup();
+                            m
+                        })
                         .collect();
     }
 
