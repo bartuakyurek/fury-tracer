@@ -89,7 +89,7 @@ pub trait Material : Debug + Send + Sync  {
     fn get_type(&self) -> &str; 
     fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)>; //(Ray, attenuation)
 
-    fn brdf(&self) -> &dyn brdf::BRDF;
+    fn brdf(&self) -> &Option<usize>; // Returns BRDF _id if specified
 
     fn setup(&mut self) { debug!("Empty setup called for a material, ignoring..."); }
 }
