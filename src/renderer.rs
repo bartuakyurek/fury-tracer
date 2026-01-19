@@ -17,7 +17,7 @@ use bevy_math::{NormedVectorSpace};
 use std::f64::consts::PI;
 use std::{self, time::Instant};
 
-use crate::material::{BRDFData, HeapAllocMaterial};
+use crate::material::{BRDFCommonData, HeapAllocMaterial};
 use crate::ray::{HitRecord, Ray};
 use crate::light::{LightKind};
 use crate::scene::{Scene};
@@ -27,7 +27,7 @@ use crate::interval::{Interval};
 use crate::prelude::*;
 
 
-pub fn update_brdf_and_get_normal(textures: &Textures, texmap_ids: &Vec<usize>, hit_record: &HitRecord, brdf: &mut BRDFData) -> Vector3 {
+pub fn update_brdf_and_get_normal(textures: &Textures, texmap_ids: &Vec<usize>, hit_record: &HitRecord, brdf: &mut BRDFCommonData) -> Vector3 {
     let mut perturbed_normal = hit_record.normal.clone();
     for texmap_id in  texmap_ids{
         let texmap = &textures.texture_maps.as_slice()[*texmap_id - 1]; // TODO: I am not sure if as_slice( ) is still relevant here, it resolved a rustc error before I change the implementation though            
