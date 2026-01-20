@@ -281,7 +281,7 @@ pub struct AreaLight {
     #[serde(rename = "Size", deserialize_with = "deser_int")]
     pub size: Int, // Assume square area light
 
-    #[serde(rename = "Radiance", deserialize_with = "deser_vec3")]
+    #[serde(rename = "Radiance", alias = "Intensity", deserialize_with = "deser_vec3")] // Alias added for killeroo_torrancesparrow scene in HW6
     pub radiance: Vector3, 
 
     #[serde(skip)] // For ONB, see slides 05, p.96
