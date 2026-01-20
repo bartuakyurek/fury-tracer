@@ -202,7 +202,7 @@ fn torrance_sparrow_eval(
     let n_dot_wh = n.dot(wh); 
     let n_dot_wo = n.dot(wo);
     let n_dot_wi = cos_theta; // n.dot(wi);
-    let wo_dot_wh = wo.dot(wh);
+    let wo_dot_wh = wo.dot(wh).max(1e-8);
 
     let first_term = (2. * n_dot_wh * n_dot_wo) / wo_dot_wh;
     let second_term = (2. * n_dot_wh * n_dot_wi) / wo_dot_wh;
