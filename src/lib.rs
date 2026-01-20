@@ -17,5 +17,6 @@ pub mod json_parser;
 pub mod light;
 pub mod tonemap;
 pub mod sampler;
+pub mod brdf;
 
 pub mod prelude;

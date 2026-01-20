@@ -1,4 +1,5 @@
 /*
+    material.rs 
 
     Declare Material trait, and store data related to
     different types of materials. Currently supporting:
@@ -11,17 +12,18 @@
     @author: Bartu
 
 */
+
 use std::fmt::Debug;
 use bevy_math::NormedVectorSpace;
 use serde::{Deserialize, de::DeserializeOwned};
 
 use crate::ray::{Ray, HitRecord}; 
 use crate::prelude::*;
-
+use crate::brdf;
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(default)]
-pub struct BRDFCommonData {
+pub struct ReflectanceParams {
     #[serde(rename = "AmbientReflectance", deserialize_with = "deser_vec3")]
     pub ambient_rf: Vector3,
     #[serde(rename = "DiffuseReflectance", deserialize_with = "deser_vec3")]
@@ -35,10 +37,10 @@ pub struct BRDFCommonData {
     pub degamma: bool,
 }
 
-impl Default for BRDFCommonData {
+impl Default for ReflectanceParams {
     fn default() -> Self {
-        debug!("Defaulting BRDF...");
-        BRDFCommonData {
+        debug!("Defaulting common reflectance params...");
+        ReflectanceParams {
             ambient_rf: Vector3::new(0.0, 0.0, 0.0),
             diffuse_rf: Vector3::new(1.0, 1.0, 1.0),
             specular_rf: Vector3::new(0.0, 0.0, 0.0),
@@ -48,47 +50,19 @@ impl Default for BRDFCommonData {
     }
 }
 
-impl BRDFCommonData {
+impl ReflectanceParams {
+
+    pub fn apply_degamma(&mut self) {
+        assert!(self.degamma, "Degamma flag found false but apply_degamma() is called.");
+        self.ambient_rf = self.ambient_rf.powf(2.2);
+        self.diffuse_rf = self.diffuse_rf.powf(2.2);
+        self.specular_rf = self.specular_rf.powf(2.2);
+    }
 
     pub fn ambient(&self) -> Vector3 {
-        if self.degamma {
-            self.ambient_rf.powf(2.2)
-        } else {
-            self.ambient_rf
-        }   
+        assert!(!self.degamma, "Found degamma = true, please call apply_degamma() and set degamma = False before calling ambient( ). Note: Material::setup( ) implementations should have handled it already.");
+        self.ambient_rf
     }
-
-    pub fn diffuse(&self, w_i: Vector3, n: Vector3) -> Vector3 {
-        // Returns outgoing radiance (see Slides 01_B, p.73)        
-        debug_assert!(w_i.is_normalized());
-        debug_assert!(n.is_normalized());
-
-        let cos_theta = w_i.dot(n).max(0.0);
-
-        let mut diffuse_rf = self.diffuse_rf;
-        if self.degamma { diffuse_rf = diffuse_rf.powf(2.2); }
-        diffuse_rf * cos_theta  
-        
-    }
-
-    pub fn specular(&self, w_o: Vector3, w_i: Vector3, n: Vector3) -> Vector3 {
-        // Returns outgoing radiance (see Slides 01_B, p.80)
-        debug_assert!(w_o.is_normalized());
-        debug_assert!(w_i.is_normalized());
-        debug_assert!(n.is_normalized());
-
-        let h = (w_i + w_o).normalize(); //(w_i + w_o) / (w_i + w_o).norm();
-        debug_assert!(h.is_normalized());
-        
-        let p = self.phong_exponent;
-        let cos_a = n.dot(h).max(0.0);
-        
-        
-        let mut specular_rf = self.specular_rf;
-        if self.degamma { specular_rf = specular_rf.powf(2.2); }
-        
-        specular_rf * cos_a.powf(p)  
-    }   
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -96,6 +70,14 @@ impl BRDFCommonData {
 /// MATERIAL TRAIT
 /// 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// I thought this could be used as a trait bound but it wasnt compatible with dyn BRDF
+//pub trait FresnelIndex: Debug {
+//    fn absorption(&self) -> Float; 
+//    fn refraction(&self) -> Float;
+//}
+
+
 pub trait Material : Debug + Send + Sync  {
     // TODO: could’ve implemet shade_diffuse(shadow_ray: &Ray, …) inside Material for cleaner logic ?
     fn new_from(value: &serde_json::Value) -> Self 
@@ -111,9 +93,16 @@ pub trait Material : Debug + Send + Sync  {
         }
     }
 
-    fn brdf(&self) -> &BRDFCommonData;
+    fn reflectance_data(&self) -> &ReflectanceParams;
+    
     fn get_type(&self) -> &str; 
     fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)>; //(Ray, attenuation)
+
+    fn brdf(&self) -> Option<usize>; // Returns BRDF _id if specified
+
+    fn get_fresnel_indices(&self) -> Option<(Float, Float)>; 
+    
+    fn setup(&mut self) { debug!("Empty setup called for a material, ignoring..."); }
 }
 
 pub type HeapAllocMaterial = Box<dyn Material>; // Box, Rc, Arc -> Probably will be Arc when we use rayon
@@ -131,8 +120,11 @@ pub struct DiffuseMaterial {
     #[serde(deserialize_with = "deser_usize")]
     pub _id: usize,
     
+    #[serde(rename = "_BRDF", deserialize_with = "deser_opt_usize")]
+    _brdf: Option<usize>,
+
     #[serde(flatten)]
-    pub brdf: BRDFCommonData,
+    pub brdf_common: ReflectanceParams,
 
 }
 
@@ -141,7 +133,8 @@ impl Default for DiffuseMaterial {
     fn default() -> Self {
         DiffuseMaterial {
             _id: 0,
-            brdf: BRDFCommonData {
+            _brdf: None,
+            brdf_common: ReflectanceParams {
                 ambient_rf: Vector3::new(0.0, 0.0, 0.0),
                 diffuse_rf: Vector3::new(1.0, 1.0, 1.0),
                 specular_rf: Vector3::new(0.0, 0.0, 0.0),
@@ -159,18 +152,36 @@ impl DiffuseMaterial {
 
 impl Material for DiffuseMaterial{
 
+    fn setup(&mut self) {
+        debug!("Applying degamma for diffuse...");
+        if self.brdf_common.degamma {
+            self.brdf_common.apply_degamma();
+            self.brdf_common.degamma = false;
+        }
+    }
+
     fn get_type(&self) -> &str {
         "diffuse"
     }
 
-    fn brdf(&self) -> &BRDFCommonData {
-        &self.brdf
+    fn reflectance_data(&self) -> &ReflectanceParams {
+        &self.brdf_common
+    }
+
+    fn brdf(&self) -> Option<usize> {
+        self._brdf
     }
 
     fn interact(&self, _: &Ray, _: &HitRecord, _: Float, _: bool) -> Option<(Ray, Vector3)> {
         warn!("Diffuse material assumed to only use shadow rays, rays are not meant to be scattered here.");
         None
     }
+
+    fn get_fresnel_indices(&self) -> Option<(Float, Float)> {
+        info!("Diffuse material returning fresnel indices as none... Consider adding type field to Material in JSON file if this behaviour is unexpected.");
+        None
+    }
+
 
 }
 
@@ -186,8 +197,12 @@ pub struct MirrorMaterial {
     #[serde(deserialize_with = "deser_usize")]
     pub _id: usize,
 
+    
+    #[serde(rename = "_BRDF", deserialize_with = "deser_opt_usize")]
+    _brdf: Option<usize>,
+
     #[serde(flatten)]
-    pub brdf: BRDFCommonData,
+    pub brdf_common: ReflectanceParams,
 
     #[serde(rename = "MirrorReflectance", deserialize_with = "deser_vec3")]
     pub mirror_rf: Vector3,
@@ -201,7 +216,8 @@ impl Default for MirrorMaterial {
     fn default() -> Self {
         Self {
             _id: 0,
-            brdf: BRDFCommonData {
+            _brdf: None, // Default BRDF is BlinnPhong
+            brdf_common: ReflectanceParams {
                     ambient_rf: Vector3::new(0.0, 0.0, 0.0),
                     diffuse_rf: Vector3::new(0.5, 0.5, 0.5),
                     specular_rf: Vector3::new(0.0, 0.0, 0.0),
@@ -244,12 +260,24 @@ impl MirrorMaterial {
 
 impl Material for MirrorMaterial {
 
+    fn setup(&mut self) {
+        if self.brdf_common.degamma {
+            debug!("Applying degamma for mirror...");
+            self.brdf_common.apply_degamma();
+            self.brdf_common.degamma = false;
+        }
+    }
+    
+    fn brdf(&self) -> Option<usize> {
+        self._brdf
+    }
+
     fn get_type(&self) -> &str {
         "mirror"
     }
 
-    fn brdf(&self) -> &BRDFCommonData {
-        &self.brdf
+    fn reflectance_data(&self) -> &ReflectanceParams {
+        &self.brdf_common
     }
 
     fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)> {
@@ -259,7 +287,10 @@ impl Material for MirrorMaterial {
         self.reflect(ray_in, hit_record, epsilon)
     }
 
-    
+    fn get_fresnel_indices(&self) -> Option<(Float, Float)> {
+        info!("Mirror material returning fresnel indices as none");
+        None
+    }
     
 }
 
@@ -283,9 +314,12 @@ struct FresnelData {
 pub struct DielectricMaterial {
     #[serde(deserialize_with = "deser_usize")]
     pub _id: usize,
+
+    #[serde(rename = "_BRDF", deserialize_with = "deser_opt_usize")]
+    _brdf: Option<usize>,
     
     #[serde(flatten)]
-    pub brdf: BRDFCommonData,
+    pub brdf_common: ReflectanceParams,
 
     #[serde(rename = "MirrorReflectance", deserialize_with = "deser_vec3")]
     pub mirror_rf: Vector3,
@@ -302,7 +336,8 @@ impl Default for DielectricMaterial {
     fn default() -> Self {
         Self {
             _id: 0,
-            brdf: BRDFCommonData{
+            _brdf: None,
+            brdf_common: ReflectanceParams{
                     ambient_rf: Vector3::new(0.0, 0.0, 0.0),
                     diffuse_rf: Vector3::new(0.5, 0.5, 0.5),
                     specular_rf: Vector3::new(0.0, 0.0, 0.0),
@@ -318,6 +353,14 @@ impl Default for DielectricMaterial {
 }
 
 impl DielectricMaterial {
+
+    fn setup(&mut self) {
+        if self.brdf_common.degamma {
+            debug!("Applying degamma for dielectric...");
+            self.brdf_common.apply_degamma();
+            self.brdf_common.degamma = false;
+        }
+    }
 
     fn get_beers_law_attenuation(&self, distance: Float) -> Vector3 {
         // Slides 02, p.27, only e^(-Cx) part
@@ -457,9 +500,13 @@ impl Material for DielectricMaterial {
     fn get_type(&self) -> &str {
         "dielectric"
     }
+    
+    fn brdf(&self) -> Option<usize> {
+        self._brdf
+    }
 
-    fn brdf(&self) -> &BRDFCommonData {
-        &self.brdf
+    fn reflectance_data(&self) -> &ReflectanceParams {
+        &self.brdf_common
     }
     
     fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)> {
@@ -471,6 +518,11 @@ impl Material for DielectricMaterial {
         }
     }
     
+    fn get_fresnel_indices(&self) -> Option<(Float, Float)> {
+        // TODO: I should remove absorption coeff 
+        // (absorption coefficient is not used in the same way for dielectrics)
+        Some((0.0, self.refraction_index))
+    }
 }
 
 
@@ -487,8 +539,11 @@ pub struct ConductorMaterial {
     #[serde(deserialize_with = "deser_usize")]
     pub _id: usize,
 
+    #[serde(rename = "_BRDF", deserialize_with = "deser_opt_usize")]
+    _brdf: Option<usize>,
+
     #[serde(flatten)]
-    pub brdf: BRDFCommonData,
+    pub brdf_common: ReflectanceParams,
     
     #[serde(rename = "MirrorReflectance", deserialize_with = "deser_vec3")]
     pub mirror_rf: Vector3,
@@ -504,7 +559,8 @@ impl Default for ConductorMaterial {
     fn default() -> Self {
         Self {
             _id: 0,
-            brdf: BRDFCommonData {
+            _brdf: None,
+            brdf_common: ReflectanceParams {
                     ambient_rf: Vector3::new(0., 0., 0.),
                     diffuse_rf: Vector3::new(0., 0., 0.),
                     specular_rf: Vector3::new(0., 0., 0.),
@@ -586,14 +642,35 @@ impl ConductorMaterial {
     //}
 }
 
+//impl FresnelIndex for ConductorMaterial {
+//    fn absorption(&self) -> Float {
+//        self.absorption_index
+//    }
+//    fn refraction(&self) -> Float {
+//        self.refraction_index
+//    }
+//}
+
 impl Material for ConductorMaterial {
+
+    fn setup(&mut self) {
+        if self.brdf_common.degamma {
+            debug!("Applying degamma for conductor...");
+            self.brdf_common.apply_degamma();
+            self.brdf_common.degamma = false;
+        }
+    }
 
     fn get_type(&self) -> &str {
         "conductor"
     }
 
-    fn brdf(&self) -> &BRDFCommonData {
-        &self.brdf
+    fn brdf(&self) -> Option<usize> {
+        self._brdf
+    }
+
+    fn reflectance_data(&self) -> &ReflectanceParams {
+        &self.brdf_common
     }
     
     fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)> {
@@ -606,4 +683,7 @@ impl Material for ConductorMaterial {
         
     }    
 
+    fn get_fresnel_indices(&self) -> Option<(Float, Float)> {
+        Some((self.absorption_index, self.refraction_index))
+    }
 }

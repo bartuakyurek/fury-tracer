@@ -17,17 +17,18 @@ use bevy_math::{NormedVectorSpace};
 use std::f64::consts::PI;
 use std::{self, time::Instant};
 
-use crate::material::{BRDFCommonData, HeapAllocMaterial};
+use crate::brdf;
+use crate::material::{HeapAllocMaterial, ReflectanceParams};
 use crate::ray::{HitRecord, Ray};
 use crate::light::{LightKind};
 use crate::scene::{Scene};
 use crate::camera::Camera;
-use crate::image::{DecalMode, ImageData, Interpolation, TextureMap, Textures};
+use crate::image::{DecalMode, ImageData, Interpolation, Textures};
 use crate::interval::{Interval};
 use crate::prelude::*;
 
 
-pub fn update_brdf_and_get_normal(textures: &Textures, texmap_ids: &Vec<usize>, hit_record: &HitRecord, brdf: &mut BRDFCommonData) -> Vector3 {
+pub fn update_brdf_and_get_normal(textures: &Textures, texmap_ids: &Vec<usize>, hit_record: &HitRecord, brdf: &mut ReflectanceParams) -> Vector3 {
     let mut perturbed_normal = hit_record.normal.clone();
     for texmap_id in  texmap_ids{
         let texmap = &textures.texture_maps.as_slice()[*texmap_id - 1]; // TODO: I am not sure if as_slice( ) is still relevant here, it resolved a rustc error before I change the implementation though            
@@ -57,7 +58,7 @@ pub fn update_brdf_and_get_normal(textures: &Textures, texmap_ids: &Vec<usize>, 
                 DecalMode::BumpNormal => {
                         perturbed_normal = textures.get_bump_mapping(texmap, &hit_record);  // Update normals for bump mapping (see the goal in slides 07, p.23)
                         debug_assert!(!perturbed_normal.is_nan(), "Found perturbed normal: {}", perturbed_normal);
-                        debug_assert!(perturbed_normal.is_normalized(), "Found hit record normal: {}", hit_record.normal);
+                        debug_assert!(perturbed_normal.is_normalized(), "Found perturbed normal not normalized: {}", perturbed_normal);
                 },
                 DecalMode::ReplaceBackground => {todo!("Found replacebackground decalibration mode! This is implemented elsewhere in the renderer. (check textureOffset in json)");},
                 _ => { debug!("Unexpeced decalibration mode {:?}...", decal_mode); }
@@ -83,16 +84,18 @@ pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, ray_in: &Ray, e
 
 pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) -> Vector3 {
     let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
-    let mut brdf = mat.brdf().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
+    let mut material_params = mat.reflectance_data().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
         
         // HW4 Update: apply textures if provided to change brdf -----------
         if let Some(textures) = &scene.data.textures {
-            hit_record.normal = update_brdf_and_get_normal(textures, &hit_record.textures, &hit_record, &mut brdf);
+            hit_record.normal = update_brdf_and_get_normal(textures, &hit_record.textures, &hit_record, &mut material_params);
         }; 
         // -----------------------------------------------------------------
-
     
-    let mut color = brdf.ambient() * scene.data.lights.ambient_light; 
+    let brdf_id = mat.brdf();
+    let scene_brdfs = &scene.data.brdfs;
+    
+    let mut color = material_params.ambient() * scene.data.lights.ambient_light; 
     for light in scene.data.lights.all_shadow_rayable().iter() {
             
         let (shadow_ray, interval) = get_shadow_ray(&light, hit_record, ray_in, scene.data.shadow_ray_epsilon);
@@ -106,8 +109,11 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
             let n = hit_record.normal;
             let w_i = shadow_ray.direction;
             let w_o = -ray_in.direction;
-            color += brdf.diffuse(w_i, n) * irradiance;
-            color += brdf.specular(w_o, w_i, n) * irradiance; 
+            //color += material_params.diffuse(w_i, n) * irradiance;
+            //color += material_params.specular(w_o, w_i, n) * irradiance;
+            let cos_theta = w_i.dot(n).max(0.);
+            let reflection_comp = brdf::eval_brdf(brdf_id, mat, scene_brdfs, w_i, w_o, n, &material_params);
+            color +=  reflection_comp * cos_theta * irradiance;
         }
     }
 
@@ -123,8 +129,12 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
             let w_i = sampled_dir;
             let w_o = -ray_in.direction;
             let n = hit_record.normal;
-            color += radiance * brdf.diffuse(w_i, n);
-            color += radiance * brdf.specular(w_o, w_i, n); 
+            //color += radiance * material_params.diffuse(w_i, n);
+            //color += radiance * material_params.specular(w_o, w_i, n); 
+            let cos_theta = w_i.dot(n).max(0.);
+            let reflection_comp = brdf::eval_brdf(brdf_id, mat, scene_brdfs, w_i, w_o, n, &material_params);
+            color +=  reflection_comp * cos_theta * radiance;
+
         }
     }
 

@@ -20,6 +20,12 @@ use crate::json_parser::{deser_vertex_data, deser_usize_vec, deser_option_isize,
 use crate::geometry::rodrigues_rotation;
 use crate::prelude::*;
 
+
+pub trait HasId {
+    fn id(&self) -> usize;
+}
+
+
 #[derive(Copy, Clone)]
 pub enum TransformKind {
     Translation,

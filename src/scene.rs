@@ -15,6 +15,7 @@ use std::{path::Path, io::BufReader, error::Error, fs::File};
 use bevy_math::NormedVectorSpace;
 use rand::random; // traits needed for norm_squared( ) 
 
+use crate::brdf::BRDFs;
 use crate::image::Textures;
 use crate::material::{*};
 use crate::shapes::{*};
@@ -68,6 +69,9 @@ pub struct SceneJSON {
     pub lights: SceneLights,
     pub materials: SceneMaterials,
     pub objects: SceneObjects,
+
+    #[serde(rename = "BRDFs")]
+    pub brdfs: BRDFs,
     
 }
 
@@ -307,6 +311,10 @@ impl SceneMaterials {
                         .all()
                         .into_iter()
                         .flat_map(parse_material)
+                        .map(|mut m| {
+                            m.setup();
+                            m
+                        })
                         .collect();
     }
 
