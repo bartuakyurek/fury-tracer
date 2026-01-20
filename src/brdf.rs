@@ -127,17 +127,16 @@ fn blinn_phong_eval(
     kd + (ks * specular_weight)
 }
 
-fn torrance_sparrow_eval<F: material::FresnelIndex>(
+fn torrance_sparrow_eval(
     wi: Vector3,
     wo: Vector3,
     n: Vector3,
     params: &ReflectanceParams,
-    fresnel: &F,
+    fresnel: (Float, Float),
     exponent: Float,
 ) -> Vector3 {
 
    
-
     info!("{:?}",fresnel);
     todo!()
 }
@@ -283,9 +282,9 @@ impl BRDF for TorranceSparrow {
         ) -> Vector3 {
         
         let params = mat.reflectance_data();
+        let fresnel = mat.get_fresnel_indices().unwrap();
         
-        
-        torrance_sparrow_eval(wi, wo, n, params, mat, self.exponent)
+        torrance_sparrow_eval(wi, wo, n, params, fresnel, self.exponent)
         
     }
 }

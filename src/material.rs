@@ -71,11 +71,11 @@ impl ReflectanceParams {
 /// 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-pub trait FresnelIndex: Debug {
-    fn absorption(&self) -> Float; 
-    fn refraction(&self) -> Float;
-}
+// I thought this could be used as a trait bound but it wasnt compatible with dyn BRDF
+//pub trait FresnelIndex: Debug {
+//    fn absorption(&self) -> Float; 
+//    fn refraction(&self) -> Float;
+//}
 
 
 pub trait Material : Debug + Send + Sync  {
@@ -100,6 +100,8 @@ pub trait Material : Debug + Send + Sync  {
 
     fn brdf(&self) -> Option<usize>; // Returns BRDF _id if specified
 
+    fn get_fresnel_indices(&self) -> Option<(Float, Float)>; 
+    
     fn setup(&mut self) { debug!("Empty setup called for a material, ignoring..."); }
 }
 
@@ -172,6 +174,11 @@ impl Material for DiffuseMaterial{
 
     fn interact(&self, _: &Ray, _: &HitRecord, _: Float, _: bool) -> Option<(Ray, Vector3)> {
         warn!("Diffuse material assumed to only use shadow rays, rays are not meant to be scattered here.");
+        None
+    }
+
+    fn get_fresnel_indices(&self) -> Option<(Float, Float)> {
+        info!("Diffuse material returning fresnel indices as none... Consider adding type field to Material in JSON file if this behaviour is unexpected.");
         None
     }
 
@@ -280,7 +287,10 @@ impl Material for MirrorMaterial {
         self.reflect(ray_in, hit_record, epsilon)
     }
 
-    
+    fn get_fresnel_indices(&self) -> Option<(Float, Float)> {
+        info!("Mirror material returning fresnel indices as none");
+        None
+    }
     
 }
 
@@ -508,6 +518,10 @@ impl Material for DielectricMaterial {
         }
     }
     
+    fn get_fresnel_indices(&self) -> Option<(Float, Float)> {
+        info!("Dielectric material returning fresnel indices...");
+        None
+    }
 }
 
 
@@ -627,14 +641,14 @@ impl ConductorMaterial {
     //}
 }
 
-impl FresnelIndex for ConductorMaterial {
-    fn absorption(&self) -> Float {
-        self.absorption_index
-    }
-    fn refraction(&self) -> Float {
-        self.refraction_index
-    }
-}
+//impl FresnelIndex for ConductorMaterial {
+//    fn absorption(&self) -> Float {
+//        self.absorption_index
+//    }
+//    fn refraction(&self) -> Float {
+//        self.refraction_index
+//    }
+//}
 
 impl Material for ConductorMaterial {
 
@@ -668,4 +682,8 @@ impl Material for ConductorMaterial {
         
     }    
 
+    fn get_fresnel_indices(&self) -> Option<(Float, Float)> {
+        info!("Conductor material returning absorption and refraction indices...");
+        Some((self.absorption_index, self.refraction_index))
+    }
 }
