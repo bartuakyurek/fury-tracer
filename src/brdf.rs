@@ -45,6 +45,7 @@ impl BRDFs {
         {
             for brdf in items.as_slice() {
                 if brdf.id() == id {
+                    debug!("Found BRDF with id {}", id);
                     return Some(brdf as &dyn BRDF);
                 }
             }
@@ -59,7 +60,9 @@ impl BRDFs {
     }
 }
 
-
+//////////////////////////////////////////////////////////////////////////////////////////
+// Static functions to be called in renderer
+//////////////////////////////////////////////////////////////////////////////////////////
 pub fn eval_brdf(
         brdf_id: Option<usize>,
         material_common: &MaterialCommon,
@@ -80,19 +83,38 @@ pub fn eval_brdf(
             wi,
             wo,
             n,
-            material_common,
+            material_common.phong_exponent,
+            material_common.diffuse_rf,
+            material_common.specular_rf,
         )
 }
 
+// Declaring it as function to be called by eval_brdf( ) if BRDF not specified, and re-used by original blinn phong
 fn blinn_phong_eval( 
         wi: Vector3,
         wo: Vector3,
         n: Vector3,
-        material_common: &MaterialCommon,
+        exponent: Float,
+        kd: Vector3,
+        ks: Vector3,
 ) -> Vector3 {
-    todo!("evaluate blinn phong as usual");
-}
+    
+    assert!(wi.is_normalized());
+    assert!(wo.is_normalized());
+    assert!(n.is_normalized());
 
+    let cos_theta = wi.dot(n);
+    if cos_theta < 0. {
+        return Vector3::ZERO;
+    }
+
+    let h = (wi + wo).normalize();
+    let cos_a = n.dot(h).max(0.0);
+    let specular_weight = cos_a.powf(exponent) / cos_theta;
+
+    kd + (ks * specular_weight)
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Clone, Deserialize, SmartDefault)]
 struct Phong {
@@ -176,7 +198,8 @@ impl BRDF for BlinnPhong {
                 n: Vector3,
                 params: &MaterialCommon,
         ) -> Vector3 {
-        todo!()
+        
+        blinn_phong_eval(wi, wo, n, self.exponent, params.diffuse_rf, params.specular_rf)
     }
 }
 
@@ -227,44 +250,3 @@ impl HasId for ModifiedBlinnPhong {
 impl HasId for TorranceSparrow {
     fn id(&self) -> usize { self._id }
 }
-
-
-    //pub fn ambient(&self) -> Vector3 {
-    //    if self.degamma {
-    //        self.ambient_rf.powf(2.2)
-    //    } else {
-    //        self.ambient_rf
-    //    }   
-    //}
-//
-    //pub fn diffuse(&self, w_i: Vector3, n: Vector3) -> Vector3 {
-    //    // Returns outgoing radiance (see Slides 01_B, p.73)        
-    //    debug_assert!(w_i.is_normalized());
-    //    debug_assert!(n.is_normalized());
-//
-    //    let cos_theta = w_i.dot(n).max(0.0);
-//
-    //    let mut diffuse_rf = self.diffuse_rf;
-    //    if self.degamma { diffuse_rf = diffuse_rf.powf(2.2); }
-    //    diffuse_rf * cos_theta  
-    //    
-    //}
-//
-    //pub fn specular(&self, w_o: Vector3, w_i: Vector3, n: Vector3) -> Vector3 {
-    //    // Returns outgoing radiance (see Slides 01_B, p.80)
-    //    debug_assert!(w_o.is_normalized());
-    //    debug_assert!(w_i.is_normalized());
-    //    debug_assert!(n.is_normalized());
-//
-    //    let h = (w_i + w_o).normalize(); //(w_i + w_o) / (w_i + w_o).norm();
-    //    debug_assert!(h.is_normalized());
-    //    
-    //    let p = self.phong_exponent;
-    //    let cos_a = n.dot(h).max(0.0);
-    //    
-    //    
-    //    let mut specular_rf = self.specular_rf;
-    //    if self.degamma { specular_rf = specular_rf.powf(2.2); }
-    //    
-    //    specular_rf * cos_a.powf(p)  
-    //}   
