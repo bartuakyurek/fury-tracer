@@ -15,6 +15,7 @@ pub trait BRDF {
 }
 
 
+#[derive(Debug, Deserialize, SmartDefault)]
 pub struct BRDFs {
     pub original_phong: SingleOrVec<Phong>,
     pub modified_phong: SingleOrVec<ModifiedPhong>,
@@ -64,32 +65,49 @@ fn blinn_phong_eval(
 }
 
 
+#[derive(Debug, Deserialize, SmartDefault)]
 struct Phong {
+    #[serde(deserialize_with = "deser_usize")]
     _id: usize,
+    #[serde(rename = "Exponent", deserialize_with = "deser_float")]
     exponent: Float,
 }
 
+#[derive(Debug, Deserialize, SmartDefault)]
 struct ModifiedPhong {
+    #[serde(deserialize_with = "deser_usize")]
     _id: usize,
+    #[serde(deserialize_with = "deser_bool")]
     _normalized: bool,
+    #[serde(rename = "Exponent", deserialize_with = "deser_float")]
     exponent: Float,
 }
 
+#[derive(Debug, Deserialize, SmartDefault)]
 struct BlinnPhong {
+    #[serde(deserialize_with = "deser_usize")]
     _id: usize,
+    #[serde(rename = "Exponent", deserialize_with = "deser_float")]
     exponent: Float,
 }
 
 
+#[derive(Debug, Deserialize, SmartDefault)]
 struct ModifiedBlinnPhong {
+    #[serde(deserialize_with = "deser_usize")]
     _id: usize,
+    #[serde(rename = "Exponent", deserialize_with = "deser_float")]
     exponent: Float,
 
 }
 
+#[derive(Debug, Deserialize, SmartDefault)]
 struct TorranceSparrow {
+    #[serde(deserialize_with = "deser_usize")]
     _id: usize,
+    #[serde(deserialize_with = "deser_bool")]
     _kdfresnel: bool,
+    #[serde(rename = "Exponent", deserialize_with = "deser_float")]
     exponent: Float,
 }
 
