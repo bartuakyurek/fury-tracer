@@ -70,6 +70,7 @@ pub struct SceneJSON {
     pub materials: SceneMaterials,
     pub objects: SceneObjects,
 
+    #[serde(rename = "BRDFs")]
     pub brdfs: BRDFs,
     
 }

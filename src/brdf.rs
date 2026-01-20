@@ -16,6 +16,7 @@ pub trait BRDF {
 
 
 #[derive(Debug, Clone, Deserialize, SmartDefault)]
+#[serde(default)] // Skip the missing fields
 pub struct BRDFs {
     #[serde(rename = "OriginalPhong")]
     original_phong: SingleOrVec<Phong>,
