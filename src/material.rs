@@ -89,7 +89,7 @@ pub trait Material : Debug + Send + Sync  {
     fn get_type(&self) -> &str; 
     fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)>; //(Ray, attenuation)
 
-    fn brdf(&self) -> &Option<usize>; // Returns BRDF _id if specified
+    fn brdf(&self) -> Option<usize>; // Returns BRDF _id if specified
 
     fn setup(&mut self) { debug!("Empty setup called for a material, ignoring..."); }
 }
@@ -109,6 +109,9 @@ pub struct DiffuseMaterial {
     #[serde(deserialize_with = "deser_usize")]
     pub _id: usize,
     
+    #[serde(rename = "_BRDF", deserialize_with = "deser_opt_usize")]
+    _brdf: Option<usize>,
+
     #[serde(flatten)]
     pub brdf_common: MaterialCommon,
 
@@ -119,6 +122,7 @@ impl Default for DiffuseMaterial {
     fn default() -> Self {
         DiffuseMaterial {
             _id: 0,
+            _brdf: None,
             brdf_common: MaterialCommon {
                 ambient_rf: Vector3::new(0.0, 0.0, 0.0),
                 diffuse_rf: Vector3::new(1.0, 1.0, 1.0),
@@ -153,10 +157,15 @@ impl Material for DiffuseMaterial{
         &self.brdf_common
     }
 
+    fn brdf(&self) -> Option<usize> {
+        self._brdf
+    }
+
     fn interact(&self, _: &Ray, _: &HitRecord, _: Float, _: bool) -> Option<(Ray, Vector3)> {
         warn!("Diffuse material assumed to only use shadow rays, rays are not meant to be scattered here.");
         None
     }
+
 
 }
 
@@ -171,6 +180,10 @@ impl Material for DiffuseMaterial{
 pub struct MirrorMaterial {
     #[serde(deserialize_with = "deser_usize")]
     pub _id: usize,
+
+    
+    #[serde(rename = "_BRDF", deserialize_with = "deser_opt_usize")]
+    _brdf: Option<usize>,
 
     #[serde(flatten)]
     pub brdf_common: MaterialCommon,
@@ -187,6 +200,7 @@ impl Default for MirrorMaterial {
     fn default() -> Self {
         Self {
             _id: 0,
+            _brdf: None, // Default BRDF is BlinnPhong
             brdf_common: MaterialCommon {
                     ambient_rf: Vector3::new(0.0, 0.0, 0.0),
                     diffuse_rf: Vector3::new(0.5, 0.5, 0.5),
@@ -237,6 +251,10 @@ impl Material for MirrorMaterial {
             self.brdf_common.degamma = false;
         }
     }
+    
+    fn brdf(&self) -> Option<usize> {
+        self._brdf
+    }
 
     fn get_type(&self) -> &str {
         "mirror"
@@ -277,6 +295,9 @@ struct FresnelData {
 pub struct DielectricMaterial {
     #[serde(deserialize_with = "deser_usize")]
     pub _id: usize,
+
+    #[serde(rename = "_BRDF", deserialize_with = "deser_opt_usize")]
+    _brdf: Option<usize>,
     
     #[serde(flatten)]
     pub brdf_common: MaterialCommon,
@@ -296,6 +317,7 @@ impl Default for DielectricMaterial {
     fn default() -> Self {
         Self {
             _id: 0,
+            _brdf: None,
             brdf_common: MaterialCommon{
                     ambient_rf: Vector3::new(0.0, 0.0, 0.0),
                     diffuse_rf: Vector3::new(0.5, 0.5, 0.5),
@@ -459,6 +481,10 @@ impl Material for DielectricMaterial {
     fn get_type(&self) -> &str {
         "dielectric"
     }
+    
+    fn brdf(&self) -> Option<usize> {
+        self._brdf
+    }
 
     fn get_material_data(&self) -> &MaterialCommon {
         &self.brdf_common
@@ -489,6 +515,9 @@ pub struct ConductorMaterial {
     #[serde(deserialize_with = "deser_usize")]
     pub _id: usize,
 
+    #[serde(rename = "_BRDF", deserialize_with = "deser_opt_usize")]
+    _brdf: Option<usize>,
+
     #[serde(flatten)]
     pub brdf_common: MaterialCommon,
     
@@ -506,6 +535,7 @@ impl Default for ConductorMaterial {
     fn default() -> Self {
         Self {
             _id: 0,
+            _brdf: None,
             brdf_common: MaterialCommon {
                     ambient_rf: Vector3::new(0., 0., 0.),
                     diffuse_rf: Vector3::new(0., 0., 0.),
@@ -600,6 +630,10 @@ impl Material for ConductorMaterial {
 
     fn get_type(&self) -> &str {
         "conductor"
+    }
+
+    fn brdf(&self) -> Option<usize> {
+        self._brdf
     }
 
     fn get_material_data(&self) -> &MaterialCommon {
