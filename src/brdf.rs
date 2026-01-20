@@ -15,9 +15,6 @@ pub trait BRDF {
 }
 
 
-
-
-
 pub struct BRDFs {
     pub original_phong: SingleOrVec<Phong>,
     pub modified_phong: SingleOrVec<ModifiedPhong>,
@@ -26,11 +23,50 @@ pub struct BRDFs {
     pub torrance_sparrow: SingleOrVec<TorranceSparrow>,
 }
 
+impl BRDFs {
+    pub fn get(&self, id: usize) -> Option<&dyn BRDF> {
+        todo!();
+    }
+}
+
+
+pub fn eval_brdf(
+        brdf_id: Option<usize>,
+        material_common: &MaterialCommon,
+        scene_brdfs: &BRDFs,
+        wi: Vector3,
+        wo: Vector3,
+        n: Vector3,
+    ) -> Vector3 {
+        
+        // 1 - If brdf._id is given in JSON, use it 
+        if let Some(brdf_ref) = brdf_id {
+            let brdf = scene_brdfs.get(brdf_ref).unwrap();
+            return brdf.eval(wi, wo, n, material_common);
+        }
+
+        // 2 - Otherwise use our Blinn–Phong shading as in previous homeworks
+        blinn_phong_eval(
+            wi,
+            wo,
+            n,
+            material_common,
+        )
+}
+
+fn blinn_phong_eval( 
+        wi: Vector3,
+        wo: Vector3,
+        n: Vector3,
+        material_common: &MaterialCommon,
+) -> Vector3 {
+    todo!("evaluate blinn phong as usual");
+}
+
 
 struct Phong {
     _id: usize,
     exponent: Float,
-
 }
 
 struct ModifiedPhong {
