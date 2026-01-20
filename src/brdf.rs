@@ -17,11 +17,20 @@ pub trait BRDF {
 
 #[derive(Debug, Clone, Deserialize, SmartDefault)]
 pub struct BRDFs {
-    pub original_phong: SingleOrVec<Phong>,
-    pub modified_phong: SingleOrVec<ModifiedPhong>,
-    pub original_blinn_phong: SingleOrVec<BlinnPhong>,
-    pub modified_blinn_phong: SingleOrVec<ModifiedBlinnPhong>,
-    pub torrance_sparrow: SingleOrVec<TorranceSparrow>,
+    #[serde(rename = "OriginalPhong")]
+    original_phong: SingleOrVec<Phong>,
+
+    #[serde(rename = "ModifiedPhong")]
+    modified_phong: SingleOrVec<ModifiedPhong>,
+
+    #[serde(rename = "OriginalBlinnPhong")]
+    original_blinn_phong: SingleOrVec<BlinnPhong>,
+    
+    #[serde(rename = "ModifiedBlinnPhong")]
+    modified_blinn_phong: SingleOrVec<ModifiedBlinnPhong>,
+    
+    #[serde(rename = "TorranceSparrow")]
+    torrance_sparrow: SingleOrVec<TorranceSparrow>,
 }
 
 impl BRDFs {
