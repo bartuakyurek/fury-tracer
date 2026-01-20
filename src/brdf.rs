@@ -119,7 +119,9 @@ fn phong_eval(
         return Vector3::ZERO;
     }
 
-    let cos_ar = wi.dot(wo);
+    //let cos_ar = wi.dot(wo);
+    let r = (-wi + 2.0 * cos_theta * n).normalize();
+    let cos_ar = r.dot(wo).max(0.0);
 
     let specular_multiplier: Float = if normalized {
         (exponent + 2.) / (2. * Float::PI) * cos_ar.powf(exponent) // TODO: is "n" typo? should it be p?
