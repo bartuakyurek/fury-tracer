@@ -77,8 +77,9 @@ pub fn eval_brdf(
         wi: Vector3,
         wo: Vector3,
         n: Vector3,
+        material_params: &ReflectanceParams,
     ) -> Vector3 {
-        
+   
         // 1 - If brdf._id is given in JSON, use it 
         if let Some(brdf_ref) = brdf_id {
             let brdf = scene_brdfs.get(brdf_ref).unwrap();
@@ -86,14 +87,14 @@ pub fn eval_brdf(
         }
 
         // 2 - Otherwise use our Blinn–Phong shading as in previous homeworks
-        let material_common = mat.reflectance_data();
+        // WARNING: Not using mat.get_commondata( ) here because renderer uses textures to update them
         blinn_phong_eval(
             wi,
             wo,
             n,
-            material_common.phong_exponent,
-            material_common.diffuse_rf,
-            material_common.specular_rf,
+            material_params.phong_exponent,
+            material_params.diffuse_rf,
+            material_params.specular_rf,
             false,
         )
 }

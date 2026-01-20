@@ -519,8 +519,9 @@ impl Material for DielectricMaterial {
     }
     
     fn get_fresnel_indices(&self) -> Option<(Float, Float)> {
-        info!("Dielectric material returning fresnel indices...");
-        None
+        // TODO: I should remove absorption coeff 
+        // (absorption coefficient is not used in the same way for dielectrics)
+        Some((0.0, self.refraction_index))
     }
 }
 

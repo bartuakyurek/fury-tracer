@@ -58,7 +58,7 @@ pub fn update_brdf_and_get_normal(textures: &Textures, texmap_ids: &Vec<usize>, 
                 DecalMode::BumpNormal => {
                         perturbed_normal = textures.get_bump_mapping(texmap, &hit_record);  // Update normals for bump mapping (see the goal in slides 07, p.23)
                         debug_assert!(!perturbed_normal.is_nan(), "Found perturbed normal: {}", perturbed_normal);
-                        debug_assert!(perturbed_normal.is_normalized(), "Found hit record normal: {}", hit_record.normal);
+                        debug_assert!(perturbed_normal.is_normalized(), "Found perturbed normal not normalized: {}", perturbed_normal);
                 },
                 DecalMode::ReplaceBackground => {todo!("Found replacebackground decalibration mode! This is implemented elsewhere in the renderer. (check textureOffset in json)");},
                 _ => { debug!("Unexpeced decalibration mode {:?}...", decal_mode); }
@@ -112,7 +112,7 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
             //color += material_params.diffuse(w_i, n) * irradiance;
             //color += material_params.specular(w_o, w_i, n) * irradiance;
             let cos_theta = w_i.dot(n).max(0.);
-            let reflection_comp = brdf::eval_brdf(brdf_id, mat, scene_brdfs, w_i, w_o, n);
+            let reflection_comp = brdf::eval_brdf(brdf_id, mat, scene_brdfs, w_i, w_o, n, &material_params);
             color +=  reflection_comp * cos_theta * irradiance;
         }
     }
@@ -132,7 +132,7 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
             //color += radiance * material_params.diffuse(w_i, n);
             //color += radiance * material_params.specular(w_o, w_i, n); 
             let cos_theta = w_i.dot(n).max(0.);
-            let reflection_comp = brdf::eval_brdf(brdf_id, mat, scene_brdfs, w_i, w_o, n);
+            let reflection_comp = brdf::eval_brdf(brdf_id, mat, scene_brdfs, w_i, w_o, n, &material_params);
             color +=  reflection_comp * cos_theta * radiance;
 
         }
