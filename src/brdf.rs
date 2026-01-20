@@ -8,7 +8,7 @@
 
 use crate::prelude::*;
 use crate::json_structs::{SingleOrVec, HasId};
-use crate::material::ReflectanceParams;
+use crate::material::{self, HeapAllocMaterial, ReflectanceParams};
 
 pub trait BRDF {
     fn eval(
@@ -16,7 +16,7 @@ pub trait BRDF {
             wi: Vector3,
             wo: Vector3,
             n: Vector3,
-            reflect_params: &ReflectanceParams,
+            material: &HeapAllocMaterial,
     ) -> Vector3;
 }
 
@@ -71,7 +71,7 @@ impl BRDFs {
 //////////////////////////////////////////////////////////////////////////////////////////
 pub fn eval_brdf(
         brdf_id: Option<usize>,
-        material_common: &ReflectanceParams,
+        mat: &HeapAllocMaterial, 
         scene_brdfs: &BRDFs,
         wi: Vector3,
         wo: Vector3,
@@ -81,10 +81,11 @@ pub fn eval_brdf(
         // 1 - If brdf._id is given in JSON, use it 
         if let Some(brdf_ref) = brdf_id {
             let brdf = scene_brdfs.get(brdf_ref).unwrap();
-            return brdf.eval(wi, wo, n, material_common);
+            return brdf.eval(wi, wo, n, mat);
         }
 
         // 2 - Otherwise use our Blinn–Phong shading as in previous homeworks
+        let material_common = mat.reflectance_data();
         blinn_phong_eval(
             wi,
             wo,
@@ -126,6 +127,22 @@ fn blinn_phong_eval(
     kd + (ks * specular_weight)
 }
 
+fn torrance_sparrow_eval<F: material::FresnelIndex>(
+    wi: Vector3,
+    wo: Vector3,
+    n: Vector3,
+    params: &ReflectanceParams,
+    fresnel: &F,
+    exponent: Float,
+) -> Vector3 {
+
+   
+
+    info!("{:?}",fresnel);
+    todo!()
+}
+
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Clone, Deserialize, SmartDefault)]
@@ -143,8 +160,10 @@ impl BRDF for Phong {
                 wi: Vector3,
                 wo: Vector3,
                 n: Vector3,
-                params: &ReflectanceParams,
+                mat: &HeapAllocMaterial,
         ) -> Vector3 {
+        let material_common = mat.reflectance_data();
+        
         todo!()
     }
 }
@@ -169,12 +188,16 @@ impl BRDF for ModifiedPhong {
                 wi: Vector3,
                 wo: Vector3,
                 n: Vector3,
-                params: &ReflectanceParams,
+                mat: &HeapAllocMaterial,
         ) -> Vector3 {
+        
+        let material_common = mat.reflectance_data();
+        
         if self._normalized {
             todo!("Please implement normalization for Modified Blinn Phong")
         }
 
+        
         todo!()
     }
 }
@@ -197,8 +220,9 @@ impl BRDF for BlinnPhong {
                 wi: Vector3,
                 wo: Vector3,
                 n: Vector3,
-                params: &ReflectanceParams,
+                mat: &HeapAllocMaterial,
         ) -> Vector3 {
+        let params = mat.reflectance_data();
         
         blinn_phong_eval(wi, wo, n, self.exponent, params.diffuse_rf, params.specular_rf, false)
     }
@@ -224,8 +248,10 @@ impl BRDF for ModifiedBlinnPhong {
                 wi: Vector3,
                 wo: Vector3,
                 n: Vector3,
-                params: &ReflectanceParams,
+                mat: &HeapAllocMaterial,
         ) -> Vector3 {
+        
+        let params = mat.reflectance_data();
 
         if self._normalized {
             todo!("Please implement normalization for Modified Blinn Phong")
@@ -253,9 +279,14 @@ impl BRDF for TorranceSparrow {
                 wi: Vector3,
                 wo: Vector3,
                 n: Vector3,
-                params: &ReflectanceParams,
+                mat: &HeapAllocMaterial,
         ) -> Vector3 {
-        todo!()
+        
+        let params = mat.reflectance_data();
+        
+        
+        torrance_sparrow_eval(wi, wo, n, params, mat, self.exponent)
+        
     }
 }
 

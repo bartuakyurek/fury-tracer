@@ -112,7 +112,7 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
             //color += material_params.diffuse(w_i, n) * irradiance;
             //color += material_params.specular(w_o, w_i, n) * irradiance;
             let cos_theta = w_i.dot(n).max(0.);
-            let reflection_comp = brdf::eval_brdf(brdf_id, &material_params, scene_brdfs, w_i, w_o, n);
+            let reflection_comp = brdf::eval_brdf(brdf_id, mat, scene_brdfs, w_i, w_o, n);
             color +=  reflection_comp * cos_theta * irradiance;
         }
     }
@@ -132,7 +132,7 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
             //color += radiance * material_params.diffuse(w_i, n);
             //color += radiance * material_params.specular(w_o, w_i, n); 
             let cos_theta = w_i.dot(n).max(0.);
-            let reflection_comp = brdf::eval_brdf(brdf_id, &material_params, scene_brdfs, w_i, w_o, n);
+            let reflection_comp = brdf::eval_brdf(brdf_id, mat, scene_brdfs, w_i, w_o, n);
             color +=  reflection_comp * cos_theta * radiance;
 
         }

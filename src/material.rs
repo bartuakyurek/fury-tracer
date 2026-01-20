@@ -12,6 +12,7 @@
     @author: Bartu
 
 */
+
 use std::fmt::Debug;
 use bevy_math::NormedVectorSpace;
 use serde::{Deserialize, de::DeserializeOwned};
@@ -69,6 +70,14 @@ impl ReflectanceParams {
 /// MATERIAL TRAIT
 /// 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+pub trait FresnelIndex: Debug {
+    fn absorption(&self) -> Float; 
+    fn refraction(&self) -> Float;
+}
+
+
 pub trait Material : Debug + Send + Sync  {
     // TODO: could’ve implemet shade_diffuse(shadow_ray: &Ray, …) inside Material for cleaner logic ?
     fn new_from(value: &serde_json::Value) -> Self 
@@ -616,6 +625,15 @@ impl ConductorMaterial {
     //fn refract(&self, _: &Ray, _: &HitRecord, _: Float) -> Option<(Ray, Vector3)> {
     //    None // F_t = 0 (see slides 02, p.21)
     //}
+}
+
+impl FresnelIndex for ConductorMaterial {
+    fn absorption(&self) -> Float {
+        self.absorption_index
+    }
+    fn refraction(&self) -> Float {
+        self.refraction_index
+    }
 }
 
 impl Material for ConductorMaterial {
