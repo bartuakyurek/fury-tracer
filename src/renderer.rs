@@ -17,6 +17,7 @@ use bevy_math::{NormedVectorSpace};
 use std::f64::consts::PI;
 use std::{self, time::Instant};
 
+use crate::brdf;
 use crate::material::{HeapAllocMaterial, MaterialCommon};
 use crate::ray::{HitRecord, Ray};
 use crate::light::{LightKind};
@@ -90,7 +91,9 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
             hit_record.normal = update_brdf_and_get_normal(textures, &hit_record.textures, &hit_record, &mut material_params);
         }; 
         // -----------------------------------------------------------------
-
+    
+    let brdf_id = mat.brdf();
+    let scene_brdfs = &scene.data.brdfs;
     
     let mut color = material_params.ambient() * scene.data.lights.ambient_light; 
     for light in scene.data.lights.all_shadow_rayable().iter() {
@@ -108,8 +111,9 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
             let w_o = -ray_in.direction;
             //color += material_params.diffuse(w_i, n) * irradiance;
             //color += material_params.specular(w_o, w_i, n) * irradiance;
-            todo!("Please add cosine term before irradiance:"); 
-            color += mat.brdf().eval(w_i, w_o, n) * irradiance;
+            let cos_theta = w_i.dot(n).max(0.);
+            let reflection_comp = brdf::eval_brdf(brdf_id, &material_params, scene_brdfs, w_i, w_o, n);
+            color +=  reflection_comp * cos_theta * irradiance;
         }
     }
 
@@ -127,8 +131,10 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
             let n = hit_record.normal;
             //color += radiance * material_params.diffuse(w_i, n);
             //color += radiance * material_params.specular(w_o, w_i, n); 
-            todo!("Please add cosine term before irradiance:"); 
-            color += mat.brdf().eval(w_i, w_o, n) * irradiance;
+            let cos_theta = w_i.dot(n).max(0.);
+            let reflection_comp = brdf::eval_brdf(brdf_id, &material_params, scene_brdfs, w_i, w_o, n);
+            color +=  reflection_comp * cos_theta * radiance;
+
         }
     }
 
