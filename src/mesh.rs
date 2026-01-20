@@ -123,6 +123,15 @@ impl Mesh {
     /// return the vector of the created triangles.
     pub fn setup(&mut self, verts: &VertexData, id_offset: usize) -> Vec<Triangle> {
 
+        // Apply vertex offset to faces._data
+        // subsequent uses of faces._data will have correct indices
+        if let Some(offset) = self.faces._vertex_offset {
+            for idx in &mut self.faces._data {
+                *idx = (*idx as isize + offset) as usize;
+            }
+            self.faces._vertex_offset = None; // Clear after applying
+        }
+
         let triangles: Vec<Triangle> = self.to_triangles(verts, id_offset);
         
         self.triangles = triangles.clone()
@@ -150,16 +159,11 @@ impl Mesh {
         for i in 0..n_faces {
             let face_indices = self.faces.get_tri_indices(i);
             
-            // WARNING: Just checking offseted to prune degenarate, 
-            // individual triangles will have vertex offset separately 
-            // (otherwise data itself is coupled by triangle offset and 
-            // texture offset needs to subtract vertex offset to apply its own offset)
-            let mut vert_offseted_face_indices = face_indices.clone(); 
-            if let Some(offset) = self.faces._vertex_offset {
-                vert_offseted_face_indices[0] = (face_indices[0] as isize + offset) as usize;
-                vert_offseted_face_indices[1] = (face_indices[1] as isize + offset) as usize;
-                vert_offseted_face_indices[2] = (face_indices[2] as isize + offset) as usize;
-            }
+            // Vertex offset should be baked into faces._data during setup()
+            // so we can use face_indices directly
+            // TODO: updated the offset code so setting it directly face_indices, maybe we
+            // can clean this up later
+            let vert_offseted_face_indices = face_indices;
 
             if is_degenerate_triangle(verts, vert_offseted_face_indices) {
                 continue;
