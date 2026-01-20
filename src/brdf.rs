@@ -1,3 +1,4 @@
+use crate::interval::FloatConst;
 /// brdf.rs
 /// 
 /// Declare different kinds of BRDFs as given in HW6
@@ -136,9 +137,48 @@ fn torrance_sparrow_eval(
     exponent: Float,
 ) -> Vector3 {
 
-   
-    info!("{:?}",fresnel);
-    todo!()
+    let cos_theta = wi.dot(n);
+    if cos_theta < 0. {
+        return Vector3::ZERO;
+    }
+
+    // See brdf.pdf given alongside with hw6 (section 8)
+    // 1 - Compute half vector
+    let wh = (wi + wo).normalize();
+    
+    // 2 - Compute the angle
+    let cos_a = n.dot(wh).max(0.0);
+
+    // 3 - Compute Blinn distribution (D)
+    let blinn_dist = ((exponent + 2.) / (2. * Float::PI)) * cos_a.powf(exponent);
+
+    // 4- Compute the geometry term (G)
+    let n_dot_wh = n.dot(wh); 
+    let n_dot_wo = n.dot(wo);
+    let n_dot_wi = cos_theta; // n.dot(wi);
+    let wo_dot_wh = wo.dot(wh);
+
+    let first_term = (2. * n_dot_wh * n_dot_wo) / wo_dot_wh;
+    let second_term = (2. * n_dot_wh * n_dot_wi) / wo_dot_wh;
+    let geometry_term = first_term.min(second_term).min(1.);
+
+    // 5 - Compute the Fresnel reflectance using Schlick's approximation (F)
+    let absorption_index = fresnel.0; // TODO: I thought this was necessary but seems like it is not, a refactor might be needed on Fresnel data
+    let refractive_index = fresnel.1;
+
+    let r_zero = (refractive_index - 1.).powf(2.) / (refractive_index + 1.).powf(2.);
+    let cos_beta = wo_dot_wh;
+    let fresnel_reflectance = r_zero + (1. - r_zero) * (1. - cos_beta).powf(5.);
+
+    // 6 - Compute final BRDF (eqn. 10)
+    let fresnel_stuff = blinn_dist * fresnel_reflectance * geometry_term;
+    let cos_phi = n_dot_wo;
+    let cosine_denominator = 4. * cos_theta * cos_phi;
+
+    let f1 = params.diffuse_rf / Float::PI;
+    let f2 = params.specular_rf * fresnel_stuff / cosine_denominator;
+    
+    f1 + f2
 }
 
 

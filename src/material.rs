@@ -683,7 +683,6 @@ impl Material for ConductorMaterial {
     }    
 
     fn get_fresnel_indices(&self) -> Option<(Float, Float)> {
-        info!("Conductor material returning absorption and refraction indices...");
         Some((self.absorption_index, self.refraction_index))
     }
 }
