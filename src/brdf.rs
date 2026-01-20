@@ -86,6 +86,7 @@ pub fn eval_brdf(
             material_common.phong_exponent,
             material_common.diffuse_rf,
             material_common.specular_rf,
+            false,
         )
 }
 
@@ -97,6 +98,7 @@ fn blinn_phong_eval(
         exponent: Float,
         kd: Vector3,
         ks: Vector3,
+        modified: bool,
 ) -> Vector3 {
     
     assert!(wi.is_normalized());
@@ -110,10 +112,14 @@ fn blinn_phong_eval(
 
     let h = (wi + wo).normalize();
     let cos_a = n.dot(h).max(0.0);
-    let specular_weight = cos_a.powf(exponent) / cos_theta;
+    let mut specular_weight = cos_a.powf(exponent);
+    if !modified {
+     specular_weight /= cos_theta;        
+    }
 
     kd + (ks * specular_weight)
 }
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Clone, Deserialize, SmartDefault)]
@@ -124,47 +130,6 @@ struct Phong {
     exponent: Float,
 }
 
-#[derive(Debug, Clone, Deserialize, SmartDefault)]
-struct ModifiedPhong {
-    #[serde(deserialize_with = "deser_usize")]
-    _id: usize,
-    #[serde(deserialize_with = "deser_bool")]
-    _normalized: bool,
-    #[serde(rename = "Exponent", deserialize_with = "deser_float")]
-    exponent: Float,
-}
-
-#[derive(Debug, Clone, Deserialize, SmartDefault)]
-struct BlinnPhong {
-    #[serde(deserialize_with = "deser_usize")]
-    _id: usize,
-    #[serde(rename = "Exponent", deserialize_with = "deser_float")]
-    exponent: Float,
-}
-
-
-#[derive(Debug, Clone, Deserialize, SmartDefault)]
-struct ModifiedBlinnPhong {
-    #[serde(deserialize_with = "deser_usize")]
-    _id: usize,
-    #[serde(rename = "Exponent", deserialize_with = "deser_float")]
-    exponent: Float,
-
-}
-
-#[derive(Debug, Clone, Deserialize, SmartDefault)]
-struct TorranceSparrow {
-    #[serde(deserialize_with = "deser_usize")]
-    _id: usize,
-    #[serde(deserialize_with = "deser_bool")]
-    _kdfresnel: bool,
-    #[serde(rename = "Exponent", deserialize_with = "deser_float")]
-    exponent: Float,
-}
-
-///////////////////////////////////////////////////////
-/// BRDF Trait implementations for each concrete type 
-///////////////////////////////////////////////////////
 
 impl BRDF for Phong {
     fn eval(
@@ -178,6 +143,20 @@ impl BRDF for Phong {
     }
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+#[derive(Debug, Clone, Deserialize, SmartDefault)]
+struct ModifiedPhong {
+    #[serde(deserialize_with = "deser_usize")]
+    _id: usize,
+    #[serde(deserialize_with = "deser_bool")]
+    _normalized: bool,
+    #[serde(rename = "Exponent", deserialize_with = "deser_float")]
+    exponent: Float,
+}
+
+
 impl BRDF for ModifiedPhong {
     fn eval(
                 &self,
@@ -186,9 +165,25 @@ impl BRDF for ModifiedPhong {
                 n: Vector3,
                 params: &MaterialCommon,
         ) -> Vector3 {
+        if self._normalized {
+            todo!("Please implement normalization for Modified Blinn Phong")
+        }
+
         todo!()
     }
 }
+
+
+////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Clone, Deserialize, SmartDefault)]
+struct BlinnPhong {
+    #[serde(deserialize_with = "deser_usize")]
+    _id: usize,
+    #[serde(rename = "Exponent", deserialize_with = "deser_float")]
+    exponent: Float,
+}
+
 
 impl BRDF for BlinnPhong {
     fn eval(
@@ -199,9 +194,23 @@ impl BRDF for BlinnPhong {
                 params: &MaterialCommon,
         ) -> Vector3 {
         
-        blinn_phong_eval(wi, wo, n, self.exponent, params.diffuse_rf, params.specular_rf)
+        blinn_phong_eval(wi, wo, n, self.exponent, params.diffuse_rf, params.specular_rf, false)
     }
 }
+
+
+////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Clone, Deserialize, SmartDefault)]
+struct ModifiedBlinnPhong {
+    #[serde(deserialize_with = "deser_usize")]
+    _id: usize,
+    #[serde(deserialize_with = "deser_bool")]
+    _normalized: bool,
+    #[serde(rename = "Exponent", deserialize_with = "deser_float")]
+    exponent: Float,
+}
+
 
 impl BRDF for ModifiedBlinnPhong {
     fn eval(
@@ -211,9 +220,26 @@ impl BRDF for ModifiedBlinnPhong {
                 n: Vector3,
                 params: &MaterialCommon,
         ) -> Vector3 {
-        todo!()
+
+        if self._normalized {
+            todo!("Please implement normalization for Modified Blinn Phong")
+        }
+        blinn_phong_eval(wi, wo, n, self.exponent, params.diffuse_rf, params.specular_rf, true)
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Clone, Deserialize, SmartDefault)]
+struct TorranceSparrow {
+    #[serde(deserialize_with = "deser_usize")]
+    _id: usize,
+    #[serde(deserialize_with = "deser_bool")]
+    _kdfresnel: bool,
+    #[serde(rename = "Exponent", deserialize_with = "deser_float")]
+    exponent: Float,
+}
+
 
 impl BRDF for TorranceSparrow {
     fn eval(
@@ -226,6 +252,9 @@ impl BRDF for TorranceSparrow {
         todo!()
     }
 }
+
+
+
 
 /////////////////////////////////////////////////
 /// HadId Trait implementations for BRDFs
