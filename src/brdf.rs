@@ -99,6 +99,50 @@ pub fn eval_brdf(
 }
 
 // Declaring it as function to be called by eval_brdf( ) if BRDF not specified, and re-used by original blinn phong
+fn phong_eval( 
+        wi: Vector3,
+        wo: Vector3,
+        n: Vector3,
+        exponent: Float,
+        kd: Vector3,
+        ks: Vector3,
+        modified: bool,
+        normalized: bool,
+) -> Vector3 {
+    
+    assert!(wi.is_normalized());
+    assert!(wo.is_normalized());
+    assert!(n.is_normalized());
+
+    let cos_theta = wi.dot(n);
+    if cos_theta < 0. {
+        return Vector3::ZERO;
+    }
+
+    let cos_ar = wi.dot(wo);
+
+    let specular_multiplier: Float = if normalized {
+        (exponent + 2.) / (2. * Float::PI) * cos_ar.powf(exponent) // TODO: is "n" typo? should it be p?
+    } else {
+        let mut specular_multiplier = cos_ar.powf(exponent);
+        
+        if !modified {
+            specular_multiplier /= cos_theta;
+        }
+        specular_multiplier    
+    };
+    let specular_term = ks * specular_multiplier;
+    
+    let mut diffuse_term = kd;
+    if normalized {
+        diffuse_term /= Float::PI;
+    }
+
+    diffuse_term + specular_term
+
+}
+
+
 fn blinn_phong_eval( 
         wi: Vector3,
         wo: Vector3,
@@ -201,9 +245,9 @@ impl BRDF for Phong {
                 n: Vector3,
                 mat: &HeapAllocMaterial,
         ) -> Vector3 {
-        let material_common = mat.reflectance_data();
+        let data = mat.reflectance_data();
         
-        todo!()
+        phong_eval(wi, wo, n, self.exponent, data.diffuse_rf, data.specular_rf, false, false)
     }
 }
 
@@ -215,6 +259,7 @@ struct ModifiedPhong {
     #[serde(deserialize_with = "deser_usize")]
     _id: usize,
     #[serde(deserialize_with = "deser_bool")]
+    #[default = false]
     _normalized: bool,
     #[serde(rename = "Exponent", deserialize_with = "deser_float")]
     exponent: Float,
@@ -230,14 +275,9 @@ impl BRDF for ModifiedPhong {
                 mat: &HeapAllocMaterial,
         ) -> Vector3 {
         
-        let material_common = mat.reflectance_data();
+        let data = mat.reflectance_data();
         
-        if self._normalized {
-            todo!("Please implement normalization for Modified Blinn Phong")
-        }
-
-        
-        todo!()
+        phong_eval(wi, wo, n, self.exponent, data.diffuse_rf, data.specular_rf, true, self._normalized)
     }
 }
 
