@@ -172,7 +172,7 @@ fn torrance_sparrow_eval(
 
     // 6 - Compute final BRDF (eqn. 10)
     let fresnel_stuff = blinn_dist * fresnel_reflectance * geometry_term;
-    let cos_phi = n_dot_wo;
+    let cos_phi = n_dot_wo.max(1e-8);
     let cosine_denominator = 4. * cos_theta * cos_phi;
 
     let f1 = params.diffuse_rf / Float::PI;
