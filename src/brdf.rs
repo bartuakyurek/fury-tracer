@@ -1,7 +1,7 @@
 
 
 use crate::prelude::*;
-use crate::json_structs::{SingleOrVec};
+use crate::json_structs::{SingleOrVec, HasId};
 use crate::material::MaterialCommon;
 
 pub trait BRDF {
@@ -15,7 +15,7 @@ pub trait BRDF {
 }
 
 
-#[derive(Debug, Deserialize, SmartDefault)]
+#[derive(Debug, Clone, Deserialize, SmartDefault)]
 pub struct BRDFs {
     pub original_phong: SingleOrVec<Phong>,
     pub modified_phong: SingleOrVec<ModifiedPhong>,
@@ -25,8 +25,27 @@ pub struct BRDFs {
 }
 
 impl BRDFs {
-    pub fn get(&self, id: usize) -> Option<&dyn BRDF> {
-        todo!();
+   pub fn get(&self, id: usize) -> Option<&dyn BRDF> {
+        fn find<'a, T>(
+            items: &'a SingleOrVec<T>,
+            id: usize,
+        ) -> Option<&'a dyn BRDF>
+        where
+            T: BRDF + HasId + Clone, // Clone is the bound for SingleOrVec functions
+        {
+            for brdf in items.as_slice() {
+                if brdf.id() == id {
+                    return Some(brdf as &dyn BRDF);
+                }
+            }
+            None
+        }
+
+        find(&self.original_phong, id)
+            .or_else(|| find(&self.modified_phong, id))
+            .or_else(|| find(&self.original_blinn_phong, id))
+            .or_else(|| find(&self.modified_blinn_phong, id))
+            .or_else(|| find(&self.torrance_sparrow, id))
     }
 }
 
@@ -65,7 +84,7 @@ fn blinn_phong_eval(
 }
 
 
-#[derive(Debug, Deserialize, SmartDefault)]
+#[derive(Debug, Clone, Deserialize, SmartDefault)]
 struct Phong {
     #[serde(deserialize_with = "deser_usize")]
     _id: usize,
@@ -73,7 +92,7 @@ struct Phong {
     exponent: Float,
 }
 
-#[derive(Debug, Deserialize, SmartDefault)]
+#[derive(Debug, Clone, Deserialize, SmartDefault)]
 struct ModifiedPhong {
     #[serde(deserialize_with = "deser_usize")]
     _id: usize,
@@ -83,7 +102,7 @@ struct ModifiedPhong {
     exponent: Float,
 }
 
-#[derive(Debug, Deserialize, SmartDefault)]
+#[derive(Debug, Clone, Deserialize, SmartDefault)]
 struct BlinnPhong {
     #[serde(deserialize_with = "deser_usize")]
     _id: usize,
@@ -92,7 +111,7 @@ struct BlinnPhong {
 }
 
 
-#[derive(Debug, Deserialize, SmartDefault)]
+#[derive(Debug, Clone, Deserialize, SmartDefault)]
 struct ModifiedBlinnPhong {
     #[serde(deserialize_with = "deser_usize")]
     _id: usize,
@@ -101,7 +120,7 @@ struct ModifiedBlinnPhong {
 
 }
 
-#[derive(Debug, Deserialize, SmartDefault)]
+#[derive(Debug, Clone, Deserialize, SmartDefault)]
 struct TorranceSparrow {
     #[serde(deserialize_with = "deser_usize")]
     _id: usize,
@@ -110,6 +129,95 @@ struct TorranceSparrow {
     #[serde(rename = "Exponent", deserialize_with = "deser_float")]
     exponent: Float,
 }
+
+///////////////////////////////////////////////////////
+/// BRDF Trait implementations for each concrete type 
+///////////////////////////////////////////////////////
+
+impl BRDF for Phong {
+    fn eval(
+                &self,
+                wi: Vector3,
+                wo: Vector3,
+                n: Vector3,
+                params: &MaterialCommon,
+        ) -> Vector3 {
+        todo!()
+    }
+}
+
+impl BRDF for ModifiedPhong {
+    fn eval(
+                &self,
+                wi: Vector3,
+                wo: Vector3,
+                n: Vector3,
+                params: &MaterialCommon,
+        ) -> Vector3 {
+        todo!()
+    }
+}
+
+impl BRDF for BlinnPhong {
+    fn eval(
+                &self,
+                wi: Vector3,
+                wo: Vector3,
+                n: Vector3,
+                params: &MaterialCommon,
+        ) -> Vector3 {
+        todo!()
+    }
+}
+
+impl BRDF for ModifiedBlinnPhong {
+    fn eval(
+                &self,
+                wi: Vector3,
+                wo: Vector3,
+                n: Vector3,
+                params: &MaterialCommon,
+        ) -> Vector3 {
+        todo!()
+    }
+}
+
+impl BRDF for TorranceSparrow {
+    fn eval(
+                &self,
+                wi: Vector3,
+                wo: Vector3,
+                n: Vector3,
+                params: &MaterialCommon,
+        ) -> Vector3 {
+        todo!()
+    }
+}
+
+/////////////////////////////////////////////////
+/// HadId Trait implementations for BRDFs
+/////////////////////////////////////////////////
+
+impl HasId for Phong {
+    fn id(&self) -> usize { self._id }
+}
+
+impl HasId for ModifiedPhong {
+    fn id(&self) -> usize { self._id }
+}
+
+impl HasId for BlinnPhong {
+    fn id(&self) -> usize { self._id }
+}
+
+impl HasId for ModifiedBlinnPhong {
+    fn id(&self) -> usize { self._id }
+}
+
+impl HasId for TorranceSparrow {
+    fn id(&self) -> usize { self._id }
+}
+
 
     //pub fn ambient(&self) -> Vector3 {
     //    if self.degamma {
