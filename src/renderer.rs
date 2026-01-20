@@ -18,7 +18,7 @@ use std::f64::consts::PI;
 use std::{self, time::Instant};
 
 use crate::brdf;
-use crate::material::{HeapAllocMaterial, MaterialCommon};
+use crate::material::{HeapAllocMaterial, ReflectanceParams};
 use crate::ray::{HitRecord, Ray};
 use crate::light::{LightKind};
 use crate::scene::{Scene};
@@ -28,7 +28,7 @@ use crate::interval::{Interval};
 use crate::prelude::*;
 
 
-pub fn update_brdf_and_get_normal(textures: &Textures, texmap_ids: &Vec<usize>, hit_record: &HitRecord, brdf: &mut MaterialCommon) -> Vector3 {
+pub fn update_brdf_and_get_normal(textures: &Textures, texmap_ids: &Vec<usize>, hit_record: &HitRecord, brdf: &mut ReflectanceParams) -> Vector3 {
     let mut perturbed_normal = hit_record.normal.clone();
     for texmap_id in  texmap_ids{
         let texmap = &textures.texture_maps.as_slice()[*texmap_id - 1]; // TODO: I am not sure if as_slice( ) is still relevant here, it resolved a rustc error before I change the implementation though            
@@ -84,7 +84,7 @@ pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, ray_in: &Ray, e
 
 pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) -> Vector3 {
     let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
-    let mut material_params = mat.get_material_data().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
+    let mut material_params = mat.reflectance_data().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
         
         // HW4 Update: apply textures if provided to change brdf -----------
         if let Some(textures) = &scene.data.textures {

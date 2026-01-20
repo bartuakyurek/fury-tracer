@@ -1,8 +1,14 @@
-
+/// brdf.rs
+/// 
+/// Declare different kinds of BRDFs as given in HW6
+/// they are implemented as BRDF trait, to ease the 
+/// renderer access BRDF::eval( ) for material's associated
+/// brdf.
+/// 
 
 use crate::prelude::*;
 use crate::json_structs::{SingleOrVec, HasId};
-use crate::material::MaterialCommon;
+use crate::material::ReflectanceParams;
 
 pub trait BRDF {
     fn eval(
@@ -10,7 +16,7 @@ pub trait BRDF {
             wi: Vector3,
             wo: Vector3,
             n: Vector3,
-            params: &MaterialCommon,
+            reflect_params: &ReflectanceParams,
     ) -> Vector3;
 }
 
@@ -65,7 +71,7 @@ impl BRDFs {
 //////////////////////////////////////////////////////////////////////////////////////////
 pub fn eval_brdf(
         brdf_id: Option<usize>,
-        material_common: &MaterialCommon,
+        material_common: &ReflectanceParams,
         scene_brdfs: &BRDFs,
         wi: Vector3,
         wo: Vector3,
@@ -137,7 +143,7 @@ impl BRDF for Phong {
                 wi: Vector3,
                 wo: Vector3,
                 n: Vector3,
-                params: &MaterialCommon,
+                params: &ReflectanceParams,
         ) -> Vector3 {
         todo!()
     }
@@ -163,7 +169,7 @@ impl BRDF for ModifiedPhong {
                 wi: Vector3,
                 wo: Vector3,
                 n: Vector3,
-                params: &MaterialCommon,
+                params: &ReflectanceParams,
         ) -> Vector3 {
         if self._normalized {
             todo!("Please implement normalization for Modified Blinn Phong")
@@ -191,7 +197,7 @@ impl BRDF for BlinnPhong {
                 wi: Vector3,
                 wo: Vector3,
                 n: Vector3,
-                params: &MaterialCommon,
+                params: &ReflectanceParams,
         ) -> Vector3 {
         
         blinn_phong_eval(wi, wo, n, self.exponent, params.diffuse_rf, params.specular_rf, false)
@@ -218,7 +224,7 @@ impl BRDF for ModifiedBlinnPhong {
                 wi: Vector3,
                 wo: Vector3,
                 n: Vector3,
-                params: &MaterialCommon,
+                params: &ReflectanceParams,
         ) -> Vector3 {
 
         if self._normalized {
@@ -247,7 +253,7 @@ impl BRDF for TorranceSparrow {
                 wi: Vector3,
                 wo: Vector3,
                 n: Vector3,
-                params: &MaterialCommon,
+                params: &ReflectanceParams,
         ) -> Vector3 {
         todo!()
     }
