@@ -89,7 +89,15 @@ pub struct LightMesh {
 
 impl Shape for LightMesh {
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
-        self.data.intersect(ray, t_interval, vertex_cache)
+        
+        let hit_record = self.data.intersect(ray, t_interval, vertex_cache);
+        if let Some(mut rec) = hit_record {
+            rec.radiance = Some(self.radiance);
+            Some(rec)
+        } else {
+            None
+        }
+        
     }
 }
 

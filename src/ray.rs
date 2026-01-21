@@ -114,6 +114,8 @@ pub struct HitRecord {
     pub textures: Vec<usize>,
     pub texture_uv: Option<[Float; 2]>,
     pub tbn_matrix: Option<Matrix3>, // Tangent space matric (TBN matrix in slides 07 pp.10-16)
+
+    pub radiance: Option<Vector3>,
 }
 
 impl HitRecord {
@@ -137,6 +139,7 @@ impl HitRecord {
             textures: texs,
             texture_uv: uv,
             tbn_matrix: tbn,
+            radiance: None,
         }
     }
 
