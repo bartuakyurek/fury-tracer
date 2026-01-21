@@ -560,7 +560,7 @@ impl SceneObjects {
 
         for lightmesh in self.light_meshes.iter_mut() {
             unnecessarily_long_setup_function_for_scene_meshes(&mut lightmesh.data, json_dir, verts, &mut all_triangles, &mut uv_coords, &mut tot_mesh_faces)?;
-            bboxable_shapes.push(Arc::new(lightmesh.data.clone()) as HeapAllocatedShape);
+            bboxable_shapes.push(Arc::new(lightmesh.clone()) as HeapAllocatedShape);
             emissive_shapes.push(Arc::new(lightmesh.clone()) as HeapAllocatedShape);
         }
 
