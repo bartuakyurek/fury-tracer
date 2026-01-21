@@ -37,7 +37,7 @@ pub struct ShapeSample {
 // =======================================================================================================
 pub trait EmissiveShape : Debug + Send + Sync + BBoxable {
     fn radiance(&self) -> Vector3;
-    fn sample(&self, psi1: Float, psi2: Float) -> ShapeSample;
+    fn sample_visible(&self, point: Vector3, psi1: Float, psi2: Float) -> ShapeSample;
     
 }
 
@@ -412,7 +412,7 @@ impl EmissiveShape for LightSphere {
         self.radiance
     }
 
-    fn sample(&self, psi1: Float, psi2: Float) -> ShapeSample {
+    fn sample_visible(&self, point: Vector3, psi1: Float, psi2: Float) -> ShapeSample {
         todo!()
     }
 }

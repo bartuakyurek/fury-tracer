@@ -142,10 +142,11 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
 
         let psi1 = random_float();
         let psi2 = random_float();
-        //let sample = object_light.sample(psi1, psi2);
         
-        //info!("{:?}", sample);
-        //todo!()
+        let sample = object_light.sample_visible(hit_record.hit_point, psi1, psi2);
+        
+        info!("{:?}", sample);
+        todo!()
     }
 
     color
