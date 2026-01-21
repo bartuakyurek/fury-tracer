@@ -341,6 +341,9 @@ pub struct SceneObjects {
     #[serde(rename = "Mesh")]
     pub meshes: SingleOrVec<Mesh>,
     
+    #[serde(rename = "LightSphere")]
+    pub light_spheres: SingleOrVec<LightSphere>,
+
     #[serde(rename = "MeshInstance")]
     pub mesh_instances: SingleOrVec<MeshInstanceField>,
 
