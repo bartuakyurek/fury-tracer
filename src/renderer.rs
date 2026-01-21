@@ -151,6 +151,12 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vec
    
    let t_interval = Interval::positive(scene.data.intersection_test_epsilon);
    if let Some(mut hit_record) = scene.hit_bvh(ray_in, &t_interval, false) {
+
+        if let Some(rad) = hit_record.radiance {
+            return rad; // Object lights overrive radiance field in hitrecord
+        }
+
+
         let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
                 
         let mut color = Vector3::ZERO;

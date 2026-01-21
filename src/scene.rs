@@ -504,6 +504,13 @@ impl SceneObjects {
                 transforms)));
         }
 
+        
+        for light_sphere in self.light_spheres.iter_mut() {
+            light_sphere.data.matrix = Some(Arc::new(parse_transform_expression(
+                light_sphere.data._data.transformation_names.as_deref().unwrap_or(""), 
+                transforms)));
+        }
+
         for plane in self.planes.iter_mut() {
             debug!("Setting up transforms for mesh._id '{}'", plane._data._id.clone());
             plane.matrix = Some(Arc::new(parse_transform_expression(
