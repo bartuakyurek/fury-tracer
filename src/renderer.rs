@@ -142,18 +142,18 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
 
         let psi1 = random_float();
         let psi2 = random_float();
-        let sample = object_light.sample(psi1, psi2);
+        //let sample = object_light.sample(psi1, psi2);
         
-        info!("{:?}", sample);
-        todo!()
+        //info!("{:?}", sample);
+        //todo!()
     }
 
     color
 }
 
-pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vector3 { 
+pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 { 
   
-   if depth >= scene.data.max_recursion_depth {
+   if depth >= max_depth {
         //return Vector3::X * 255.;
         return sample_background(ray_in, scene, cam);
         //return scene.data.background_color;
@@ -178,7 +178,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vec
             },
             "mirror" | "conductor" => { 
                     if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        shade_diffuse(scene,  &mut hit_record, ray_in) + attenuation * get_color(&reflected_ray, scene, cam, depth + 1) 
+                        shade_diffuse(scene,  &mut hit_record, ray_in) + attenuation * get_color(&reflected_ray, scene, cam, max_depth, depth + 1) 
                     }
                     else {
                         warn!("Material not reflecting...");
@@ -195,12 +195,12 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vec
  
                 // Reflected 
                 if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        tot_radiance += attenuation * get_color(&reflected_ray, scene, cam, depth + 1);
+                        tot_radiance += attenuation * get_color(&reflected_ray, scene, cam, max_depth, depth + 1);
                 }
         
                 // Refracted 
                 if let Some((refracted_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, false) {
-                        tot_radiance += attenuation * get_color(&refracted_ray, scene, cam, depth + 1);
+                        tot_radiance += attenuation * get_color(&refracted_ray, scene, cam, max_depth, depth + 1);
                 }
                 tot_radiance
             },
@@ -296,13 +296,22 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         cam.setup(&scene.data.transformations); 
         let n_samples = cam.num_samples as usize;
         
+        let max_depth = 
+        if let Some(depth) = cam.max_recursion_depth {
+            info!("Found max recursion depth inside Camera: {}", depth);
+            depth
+        } else {
+            info!("Using scene's global max recursion depth {}", scene.data.max_recursion_depth);
+            scene.data.max_recursion_depth
+        };
+
         // --- Rayon Multithreading ---
         let start = Instant::now();
         let eye_rays: Vec<Ray> = cam.generate_primary_rays(n_samples);
         info!("Starting ray tracing...");
         let colors: Vec<_> = eye_rays
             .par_iter()
-            .map(|ray| get_color(ray, scene, &cam, 0))
+            .map(|ray| get_color(ray, scene, &cam, max_depth, 0))
             .collect();
         info!("Ray tracing completed.");
         // -----------------------------
