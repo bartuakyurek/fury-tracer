@@ -354,7 +354,7 @@ pub struct SceneObjects {
     #[serde(skip)]
     pub unbboxable_shapes: ShapeList,
     #[serde(skip)]
-    pub emissive_shapes: ShapeList,  
+    pub emissive_shapes: EmissiveShapeList,  
 }
 
 fn resolve_all_mesh_instances(
@@ -526,7 +526,7 @@ impl SceneObjects {
 
         let mut bboxable_shapes: ShapeList = Vec::new();
         let mut unbboxable_shapes: ShapeList = Vec::new();
-        let mut emissive_shapes: ShapeList = Vec::new();
+        let mut emissive_shapes: EmissiveShapeList = Vec::new();
         let mut all_triangles: Vec<Triangle> = self.triangles.all();
         
         // Initiate uv_coords from given texture coords or if not available with a new vector
@@ -552,7 +552,7 @@ impl SceneObjects {
 
         unbboxable_shapes.extend(self.planes.all().into_iter().map(|p| Arc::new(p) as HeapAllocatedShape));
         
-        emissive_shapes.extend(self.light_spheres.all().into_iter().map(|s| Arc::new(s) as HeapAllocatedShape));
+        emissive_shapes.extend(self.light_spheres.all().into_iter().map(|s| Arc::new(s) as Arc<dyn EmissiveShape>));
 
         // Get path containing the JSON (_plyFile in json is relative to that json)
         let json_dir = Path::new(jsonpath)
@@ -568,7 +568,7 @@ impl SceneObjects {
         for lightmesh in self.light_meshes.iter_mut() {
             unnecessarily_long_setup_function_for_scene_meshes(&mut lightmesh.data, json_dir, verts, &mut all_triangles, &mut uv_coords, &mut tot_mesh_faces)?;
             bboxable_shapes.push(Arc::new(lightmesh.clone()) as HeapAllocatedShape);
-            emissive_shapes.push(Arc::new(lightmesh.clone()) as HeapAllocatedShape);
+            emissive_shapes.push(Arc::new(lightmesh.clone()) as Arc<dyn EmissiveShape>);
         }
 
         // Find which meshes the mesh refers to

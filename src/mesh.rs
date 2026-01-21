@@ -10,7 +10,7 @@ UPDATE: Acceleration structure added Mesh::bvh
 
 use crate::json_structs::{FaceType, SingleOrVec, VertexData, TexCoordData};
 use crate::geometry::{get_tri_normal, is_degenerate_triangle};
-use crate::shapes::{CommonPrimitiveData, Shape, Triangle};
+use crate::shapes::{CommonPrimitiveData, EmissiveShape, Shape, Triangle};
 use crate::ray::{Ray, HitRecord};
 use crate::interval::Interval;
 use crate::bbox::{BBoxable, BBox};
@@ -98,6 +98,16 @@ impl Shape for LightMesh {
             None
         }
         
+    }
+}
+
+impl EmissiveShape for LightMesh {
+    fn radiance(&self) -> Vector3 {
+        self.radiance
+    }
+
+    fn sample(&self, psi1: Float, psi2: Float) -> crate::shapes::ShapeSample {
+        todo!()
     }
 }
 

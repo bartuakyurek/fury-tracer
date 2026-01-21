@@ -22,6 +22,24 @@ use crate::prelude::*;
 pub type HeapAllocatedShape = Arc<dyn Shape>;
 pub type ShapeList = Vec<HeapAllocatedShape>; 
 
+pub type EmissiveShapeList = Vec<Arc<dyn EmissiveShape>>;
+
+
+#[derive(Debug, Clone)]
+pub struct ShapeSample {
+    pub position: Vector3,
+    pub normal: Vector3,
+    pub pdf: Float, // Probability Density Function   
+}
+
+// =======================================================================================================
+// Emissive Shape Trait
+// =======================================================================================================
+pub trait EmissiveShape : Debug + Send + Sync + BBoxable {
+    fn radiance(&self) -> Vector3;
+    fn sample(&self, psi1: Float, psi2: Float) -> ShapeSample;
+    
+}
 
 // =======================================================================================================
 // Shape Trait
@@ -345,15 +363,6 @@ impl Sphere {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
-pub struct LightSphere { // TODO: how can we use generics to store generic objects in data and have radiance field? 
-    #[serde(flatten)]
-    pub data: Sphere,
-
-    #[serde(rename = "Radiance", deserialize_with = "deser_vec3")]
-    pub radiance: Vector3,
-}
-
 
 impl Shape for Sphere {
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
@@ -366,6 +375,17 @@ impl BBoxable for Sphere {
         self.bbox(verts, apply_t)
     }
 }
+
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct LightSphere { // TODO: how can we use generics to store generic objects in data and have radiance field? 
+    #[serde(flatten)]
+    pub data: Sphere,
+
+    #[serde(rename = "Radiance", deserialize_with = "deser_vec3")]
+    pub radiance: Vector3,
+}
+
 
 impl Shape for LightSphere {
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
@@ -384,6 +404,16 @@ impl Shape for LightSphere {
 impl BBoxable for LightSphere {
     fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
         self.data.bbox(verts, apply_t)
+    }
+}
+
+impl EmissiveShape for LightSphere {
+    fn radiance(&self) -> Vector3 {
+        self.radiance
+    }
+
+    fn sample(&self, psi1: Float, psi2: Float) -> ShapeSample {
+        todo!()
     }
 }
 // =======================================================================================================
