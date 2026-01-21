@@ -238,6 +238,16 @@ pub struct Sphere {
     pub matrix: Option<Arc<Matrix4>>, // Arc here to share Transformations with Mesh, I didn't want to clone the same transform while creating triangles for mesh
 
 }
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct LightSphere {
+    #[serde(flatten)]
+    pub data: Sphere,
+
+    #[serde(rename = "Radiance", deserialize_with = "deser_vec3")]
+    pub radiance: Vector3,
+}
+
 impl Shape for Sphere {
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts)
         -> Option<HitRecord>

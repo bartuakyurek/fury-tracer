@@ -123,6 +123,15 @@ impl Mesh {
     /// return the vector of the created triangles.
     pub fn setup(&mut self, verts: &VertexData, id_offset: usize) -> Vec<Triangle> {
 
+        // Apply vertex offset to faces._data
+        // subsequent uses of faces._data will have correct indices
+        if let Some(offset) = self.faces._vertex_offset {
+            info!("Found vertex_offset: {} ", offset);
+            for idx in &mut self.faces._data {
+                *idx = (*idx as isize + offset) as usize;
+            }
+        }
+
         let triangles: Vec<Triangle> = self.to_triangles(verts, id_offset);
         
         self.triangles = triangles.clone()
@@ -150,16 +159,11 @@ impl Mesh {
         for i in 0..n_faces {
             let face_indices = self.faces.get_tri_indices(i);
             
-            // WARNING: Just checking offseted to prune degenarate, 
-            // individual triangles will have vertex offset separately 
-            // (otherwise data itself is coupled by triangle offset and 
-            // texture offset needs to subtract vertex offset to apply its own offset)
-            let mut vert_offseted_face_indices = face_indices.clone(); 
-            if let Some(offset) = self.faces._vertex_offset {
-                vert_offseted_face_indices[0] = (face_indices[0] as isize + offset) as usize;
-                vert_offseted_face_indices[1] = (face_indices[1] as isize + offset) as usize;
-                vert_offseted_face_indices[2] = (face_indices[2] as isize + offset) as usize;
-            }
+            // Vertex offset should be baked into faces._data during setup()
+            // so we can use face_indices directly
+            // TODO: updated the offset code so setting it directly face_indices, maybe we
+            // can clean this up later
+            let vert_offseted_face_indices = face_indices;
 
             if is_degenerate_triangle(verts, vert_offseted_face_indices) {
                 continue;
@@ -183,11 +187,14 @@ impl Mesh {
                     0
                 }
             };
-            //let texture_indices = face_indices.map(|i| (i as isize + tex_offset) as usize ).iter().collect(); // WHY cant I simply do this??
-            let mut texture_indices = face_indices.clone();
-            texture_indices[0] = (texture_indices[0] as isize + tex_offset) as usize;
-            texture_indices[1] = (texture_indices[1] as isize + tex_offset) as usize;
-            texture_indices[2] = (texture_indices[2] as isize + tex_offset) as usize;
+            
+            // Texture indices need to un-offset the vertex offset first, then apply texture offset
+            // TODO: any better way than reversing vertex offset here? clones are causing some problems, so currently hw6/brdf and hw4/galactica scenes can only work under this setting...
+            let vertex_offset = self.faces._vertex_offset.unwrap_or(0);
+            let mut texture_indices = vert_offseted_face_indices.clone();
+            texture_indices[0] = ((texture_indices[0] as isize - vertex_offset) + tex_offset) as usize;
+            texture_indices[1] = ((texture_indices[1] as isize - vertex_offset) + tex_offset) as usize;
+            texture_indices[2] = ((texture_indices[2] as isize - vertex_offset) + tex_offset) as usize;
 
 
             triangles.push(Triangle {
