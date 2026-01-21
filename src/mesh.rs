@@ -187,7 +187,6 @@ impl Mesh {
                     0
                 }
             };
-            texture_indices[2] = (texture_indices[2] as isize + tex_offset) as usize;
             
             // Texture indices need to un-offset the vertex offset first, then apply texture offset
             // TODO: any better way than reversing vertex offset here? clones are causing some problems, so currently hw6/brdf and hw4/galactica scenes can only work under this setting...
