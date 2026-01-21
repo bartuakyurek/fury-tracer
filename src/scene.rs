@@ -391,21 +391,98 @@ fn resolve_all_mesh_instances(
     }
 }
 
+
+fn setup_single_mesh_transform(mesh: &mut Mesh,  transforms: &Transformations) {
+    mesh.matrix = if mesh.transformation_names.is_some() {
+        parse_transform_expression(
+            mesh.transformation_names.as_deref().unwrap_or(""),
+            transforms,  
+        )
+    } else {
+        debug!("Mesh '{}'s transformation is not given, defaulting to Identity.", mesh._id);
+        Matrix4::IDENTITY  // Default to identity if no transform is given
+    };
+    debug!("Composite transform for mesh '{}' is {}", mesh._id, mesh.matrix);
+}
+
+fn unnecessarily_long_setup_function_for_scene_meshes(
+    mesh: &mut Mesh, 
+    bboxable_shapes: &mut ShapeList, 
+    json_dir: &Path,
+    verts: &mut VertexData,
+    all_triangles: &mut Vec<Triangle>,
+    uv_coords: &mut Vec<Option<[Float; 2]>>,
+    tot_mesh_faces: &mut usize,
+) -> Result<(), Box<dyn Error>> 
+{
+    if !mesh.faces._ply_file.is_empty() {
+
+                
+                let ply_file = &mesh.faces._ply_file;
+                let ply_path = json_dir.join(ply_file);
+
+                if ply_path.exists() {
+                    debug!("PLY file exists: {:?}", ply_path);
+                } else {
+                    error!("PLY file NOT found at: {:?}", ply_path);
+                }
+
+                debug!("Loading mesh {} from PLY file path: {:?}", mesh._id, ply_path);
+
+                let file = File::open(ply_path)?;
+                let reader = BufReader::new(file);
+                let plymesh: PlyMesh = serde_ply::from_reader(reader)?;
+                let old_vertex_count = verts._data.len();
+                // Append loaded ply to vertexdata
+                for vert in &plymesh.vertex {
+                    verts._data.push(Vector3::new(vert.x as Float, vert.y as Float, vert.z as Float));
+                
+                    let uv = match (vert.u, vert.v) {
+                        (Some(u), Some(v)) => {
+                            Some([u as Float , v as Float])
+                        },
+                        _ => None,
+                    };
+                    uv_coords.push(uv);
+                }
+                // Shift faces._data by offset
+                mesh.faces._type = String::from("triangle");
+                if let Some(faces) = &plymesh.face {
+                    mesh.faces._data = faces
+                        .iter()
+                        .flat_map(|f| f.vertex_indices.clone()) // each face is a list of 3 indices
+                        .map(|idx| idx + old_vertex_count)      // shift by existing vertices
+                        .collect();
+                    //info!(">> Mesh {} has {} faces.", mesh._id, mesh.faces._data.len());
+                    *tot_mesh_faces += mesh.faces._data.len();
+                }
+                else {
+                    warn!("PLY mesh {} has no face data!", mesh._id);
+                }
+            }
+
+            // For vertex cache, get the triangles in a single mesh 
+            // TODO: this is done because we have global vertex_data
+            let offset = verts._data.len();
+            let triangles: Vec<Triangle> = mesh.setup(verts, offset);
+            all_triangles.extend(triangles.into_iter());
+
+            // Push mesh to shapes (previously I was deconstructing it into individual triangles)
+            debug!("Pushing mesh {} into all_shapes...", mesh._id);
+            bboxable_shapes.push(Arc::new(mesh.clone()) as HeapAllocatedShape);
+
+            Ok(())
+}
+
 impl SceneObjects {
 
     fn setup_transforms(&mut self, transforms: &Transformations) { // TODO: What's the deal with setting matrices within scene? these could be impl in shapes.rs 
 
         for mesh in self.meshes.iter_mut() {
-            mesh.matrix = if mesh.transformation_names.is_some() {
-                parse_transform_expression(
-                    mesh.transformation_names.as_deref().unwrap_or(""),
-                    transforms,  
-                )
-            } else {
-                debug!("Mesh '{}'s transformation is not given, defaulting to Identity.", mesh._id);
-                Matrix4::IDENTITY  // Default to identity if no transform is given
-            };
-            debug!("Composite transform for mesh '{}' is {}", mesh._id, mesh.matrix);
+            setup_single_mesh_transform(mesh, transforms);
+        }
+        for lightmesh in self.light_meshes.iter_mut() {
+            setup_single_mesh_transform(&mut lightmesh.data, transforms);
         }
 
         for mint in self.mesh_instances.iter_mut() {
@@ -466,71 +543,22 @@ impl SceneObjects {
 
         bboxable_shapes.extend(self.triangles.all().into_iter().map(|t| Arc::new(t) as HeapAllocatedShape));
         bboxable_shapes.extend(self.spheres.all().into_iter().map(|s| Arc::new(s) as HeapAllocatedShape));
+        bboxable_shapes.extend(self.light_spheres.all().into_iter().map(|s| Arc::new(s) as HeapAllocatedShape));
+
         unbboxable_shapes.extend(self.planes.all().into_iter().map(|p| Arc::new(p) as HeapAllocatedShape));
         
-        // Convert meshes: UPDATE: do not convert it into individual triangles
-        let mut tot_mesh_faces: usize = 0;
-        for mesh in self.meshes.iter_mut() {
-            //let mut mesh = mesh;
-
-            if !mesh.faces._ply_file.is_empty() {
-
-                // Get path containing the JSON (_plyFile in json is relative to that json)
+        
+        // Get path containing the JSON (_plyFile in json is relative to that json)
                 let json_dir = Path::new(jsonpath)
                     .parent()
                     .unwrap_or(Path::new("."));
-                let ply_file = &mesh.faces._ply_file;
-                let ply_path = json_dir.join(ply_file);
-
-                if ply_path.exists() {
-                    debug!("PLY file exists: {:?}", ply_path);
-                } else {
-                    error!("PLY file NOT found at: {:?}", ply_path);
-                }
-
-                debug!("Loading mesh {} from PLY file path: {:?}", mesh._id, ply_path);
-
-                let file = File::open(ply_path)?;
-                let reader = BufReader::new(file);
-                let plymesh: PlyMesh = serde_ply::from_reader(reader)?;
-                let old_vertex_count = verts._data.len();
-                // Append loaded ply to vertexdata
-                for vert in &plymesh.vertex {
-                    verts._data.push(Vector3::new(vert.x as Float, vert.y as Float, vert.z as Float));
-                
-                    let uv = match (vert.u, vert.v) {
-                        (Some(u), Some(v)) => {
-                            Some([u as Float , v as Float])
-                        },
-                        _ => None,
-                    };
-                    uv_coords.push(uv);
-                }
-                // Shift faces._data by offset
-                mesh.faces._type = String::from("triangle");
-                if let Some(faces) = &plymesh.face {
-                    mesh.faces._data = faces
-                        .iter()
-                        .flat_map(|f| f.vertex_indices.clone()) // each face is a list of 3 indices
-                        .map(|idx| idx + old_vertex_count)      // shift by existing vertices
-                        .collect();
-                    //info!(">> Mesh {} has {} faces.", mesh._id, mesh.faces._data.len());
-                    tot_mesh_faces += mesh.faces._data.len();
-                }
-                else {
-                    warn!("PLY mesh {} has no face data!", mesh._id);
-                }
-            }
-
-            // For vertex cache, get the triangles in a single mesh 
-            // TODO: this is done because we have global vertex_data
-            let offset = verts._data.len();
-            let triangles: Vec<Triangle> = mesh.setup(verts, offset);
-            all_triangles.extend(triangles.into_iter());
-
-            // Push mesh to shapes (previously I was deconstructing it into individual triangles)
-            debug!("Pushing mesh {} into all_shapes...", mesh._id);
-            bboxable_shapes.push(Arc::new(mesh.clone()) as HeapAllocatedShape);
+        // Convert meshes: UPDATE: do not convert it into individual triangles
+        let mut tot_mesh_faces: usize = 0;
+        for mesh in self.meshes.iter_mut() {
+            unnecessarily_long_setup_function_for_scene_meshes(mesh, &mut bboxable_shapes, json_dir, verts, &mut all_triangles, &mut uv_coords, &mut tot_mesh_faces);
+        }
+        for lightmesh in self.light_meshes.iter_mut() {
+            unnecessarily_long_setup_function_for_scene_meshes(&mut lightmesh.data, &mut bboxable_shapes, json_dir, verts, &mut all_triangles, &mut uv_coords, &mut tot_mesh_faces);
         }
 
         // Find which meshes the mesh refers to
