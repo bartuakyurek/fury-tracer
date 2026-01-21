@@ -352,7 +352,9 @@ pub struct SceneObjects {
     #[serde(skip)]
     pub bboxable_shapes: ShapeList, 
     #[serde(skip)]
-    pub unbboxable_shapes: ShapeList, 
+    pub unbboxable_shapes: ShapeList,
+    #[serde(skip)]
+    pub emissive_shapes: ShapeList,  
 }
 
 fn resolve_all_mesh_instances(
@@ -407,7 +409,6 @@ fn setup_single_mesh_transform(mesh: &mut Mesh,  transforms: &Transformations) {
 
 fn unnecessarily_long_setup_function_for_scene_meshes(
     mesh: &mut Mesh, 
-    bboxable_shapes: &mut ShapeList, 
     json_dir: &Path,
     verts: &mut VertexData,
     all_triangles: &mut Vec<Triangle>,
@@ -467,10 +468,6 @@ fn unnecessarily_long_setup_function_for_scene_meshes(
             let triangles: Vec<Triangle> = mesh.setup(verts, offset);
             all_triangles.extend(triangles.into_iter());
 
-            // Push mesh to shapes (previously I was deconstructing it into individual triangles)
-            debug!("Pushing mesh {} into all_shapes...", mesh._id);
-            bboxable_shapes.push(Arc::new(mesh.clone()) as HeapAllocatedShape);
-
             Ok(())
 }
 
@@ -522,6 +519,7 @@ impl SceneObjects {
 
         let mut bboxable_shapes: ShapeList = Vec::new();
         let mut unbboxable_shapes: ShapeList = Vec::new();
+        let mut emissive_shapes: ShapeList = Vec::new();
         let mut all_triangles: Vec<Triangle> = self.triangles.all();
         
         // Initiate uv_coords from given texture coords or if not available with a new vector
@@ -547,18 +545,23 @@ impl SceneObjects {
 
         unbboxable_shapes.extend(self.planes.all().into_iter().map(|p| Arc::new(p) as HeapAllocatedShape));
         
-        
+        emissive_shapes.extend(self.light_spheres.all().into_iter().map(|s| Arc::new(s) as HeapAllocatedShape));
+
         // Get path containing the JSON (_plyFile in json is relative to that json)
-                let json_dir = Path::new(jsonpath)
+        let json_dir = Path::new(jsonpath)
                     .parent()
                     .unwrap_or(Path::new("."));
         // Convert meshes: UPDATE: do not convert it into individual triangles
         let mut tot_mesh_faces: usize = 0;
         for mesh in self.meshes.iter_mut() {
-            unnecessarily_long_setup_function_for_scene_meshes(mesh, &mut bboxable_shapes, json_dir, verts, &mut all_triangles, &mut uv_coords, &mut tot_mesh_faces);
+            unnecessarily_long_setup_function_for_scene_meshes(mesh, json_dir, verts, &mut all_triangles, &mut uv_coords, &mut tot_mesh_faces)?;            
+            bboxable_shapes.push(Arc::new(mesh.clone()) as HeapAllocatedShape);
         }
+
         for lightmesh in self.light_meshes.iter_mut() {
-            unnecessarily_long_setup_function_for_scene_meshes(&mut lightmesh.data, &mut bboxable_shapes, json_dir, verts, &mut all_triangles, &mut uv_coords, &mut tot_mesh_faces);
+            unnecessarily_long_setup_function_for_scene_meshes(&mut lightmesh.data, json_dir, verts, &mut all_triangles, &mut uv_coords, &mut tot_mesh_faces)?;
+            bboxable_shapes.push(Arc::new(lightmesh.data.clone()) as HeapAllocatedShape);
+            emissive_shapes.push(Arc::new(lightmesh.clone()) as HeapAllocatedShape);
         }
 
         // Find which meshes the mesh refers to
@@ -575,11 +578,8 @@ impl SceneObjects {
         info!(">> There are {} vertices in the scene (excluding {} instance mesh). Meshes have {} faces in total.", verts._data.len(), self.mesh_instances.len(), tot_mesh_faces);
         self.bboxable_shapes = bboxable_shapes;
         self.unbboxable_shapes = unbboxable_shapes;
+        self.emissive_shapes = emissive_shapes;
         let normals_cache = VertexCache::build_normals(verts, &all_triangles);
-        
-        // Build uv coords (deserialized JSON is converted to cache data for ease of use but I'm not sure how to organize all this cache setup pipeline better)
-        let n_verts = verts._data.len();
-        //let uv_coords = VertexCache::build_uv(n_verts, texture_coords, &ply_uv_coords);  
         
         let cache = VertexCache { vertex_data: verts.clone(), vertex_normals: normals_cache, uv_coords }; 
         Ok(cache)
