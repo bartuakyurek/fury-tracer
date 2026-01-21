@@ -77,6 +77,16 @@ impl MeshInstanceField {
     }
 }
 
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct LightMesh {
+    #[serde(flatten)]
+    pub data: Mesh,
+
+    #[serde(rename = "Radiance", deserialize_with = "deser_vec3")]
+    pub radiance: Vector3,
+}
+
 #[derive(Debug, Deserialize, Clone)]
 #[derive(SmartDefault)]
 #[serde(default)]

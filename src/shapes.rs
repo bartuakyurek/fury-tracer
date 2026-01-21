@@ -240,7 +240,7 @@ pub struct Sphere {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct LightSphere {
+pub struct LightSphere { // TODO: how can we use generics to store generic objects in data and have radiance field? 
     #[serde(flatten)]
     pub data: Sphere,
 

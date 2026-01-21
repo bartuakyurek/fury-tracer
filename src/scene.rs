@@ -19,7 +19,7 @@ use crate::brdf::BRDFs;
 use crate::image::Textures;
 use crate::material::{*};
 use crate::shapes::{*};
-use crate::mesh::{Mesh, MeshInstanceField};
+use crate::mesh::{LightMesh, Mesh, MeshInstanceField};
 use crate::json_structs::{*};
 use crate::camera::{Cameras};
 use crate::interval::{Interval, FloatConst};
@@ -341,6 +341,8 @@ pub struct SceneObjects {
     #[serde(rename = "Mesh")]
     pub meshes: SingleOrVec<Mesh>,
     
+    #[serde(rename = "LightMesh")]
+    pub light_meshes: SingleOrVec<LightMesh>,
     #[serde(rename = "LightSphere")]
     pub light_spheres: SingleOrVec<LightSphere>,
 
