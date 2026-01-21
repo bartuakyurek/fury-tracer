@@ -239,17 +239,8 @@ pub struct Sphere {
 
 }
 
-#[derive(Debug, Deserialize, Clone)]
-pub struct LightSphere { // TODO: how can we use generics to store generic objects in data and have radiance field? 
-    #[serde(flatten)]
-    pub data: Sphere,
-
-    #[serde(rename = "Radiance", deserialize_with = "deser_vec3")]
-    pub radiance: Vector3,
-}
-
-impl Shape for Sphere {
-    fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts)
+impl Sphere {
+    fn intersect(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts)
         -> Option<HitRecord>
     {
         // --- Transform ray into local space ---
@@ -330,10 +321,8 @@ impl Shape for Sphere {
         let rec = HitRecord::new_from(ray.origin, p_world, final_normal, t_world, self._data.material_idx, front_face, texs, uv, tbn);
         Some(rec)
     }
-}
 
-impl BBoxable for Sphere {
-    fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
+    fn bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
         
         let center = verts[self.center_idx];
 
@@ -356,7 +345,39 @@ impl BBoxable for Sphere {
     }
 }
 
+#[derive(Debug, Deserialize, Clone)]
+pub struct LightSphere { // TODO: how can we use generics to store generic objects in data and have radiance field? 
+    #[serde(flatten)]
+    pub data: Sphere,
 
+    #[serde(rename = "Radiance", deserialize_with = "deser_vec3")]
+    pub radiance: Vector3,
+}
+
+
+impl Shape for Sphere {
+    fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
+        self.intersect(ray, t_interval, vertex_cache)
+    }
+}
+
+impl BBoxable for Sphere {
+    fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
+        self.bbox(verts, apply_t)
+    }
+}
+
+impl Shape for LightSphere {
+    fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
+        self.data.intersect(ray, t_interval, vertex_cache)
+    }
+}
+
+impl BBoxable for LightSphere {
+    fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
+        self.data.bbox(verts, apply_t)
+    }
+}
 // =======================================================================================================
 // Plane (impl Shape)
 // =======================================================================================================
