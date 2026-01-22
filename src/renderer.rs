@@ -155,10 +155,11 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
         }
 
         // Spawn a shadow ray to test intersection
+        let ray_origin = hit_record.hit_point + (hit_record.normal * scene.data.shadow_ray_epsilon);
         let shadow_ray = Ray::new(
-        hit_record.hit_point + w_i * scene.data.shadow_ray_epsilon,
-        w_i,
-        ray_in.time,
+            ray_origin,
+            w_i,
+            ray_in.time,
         );
 
         // Intersection test for this shadow ray in the scene
@@ -201,10 +202,10 @@ fn intersect_object_light(scene: &Scene, shadow_ray: &Ray, object_light: &Arc<dy
             &Interval::positive(scene.data.intersection_test_epsilon),
             false,
         ) {
-            // Accept only if we hit this emissive object
-            if let Some(hit_emissive) = &shadow_hit.emissive_ptr {
-                //debug!("Found the emissive object without occlusion!");
-                return Arc::ptr_eq(hit_emissive, object_light);
+            // Accept only if we hit this emissive object by comparing IDs
+            if let Some(hit_shape_id) = shadow_hit.emissive_shape_id {
+                let object_light_id = object_light.shape_id();
+                return hit_shape_id == object_light_id;
             }
     }
     false

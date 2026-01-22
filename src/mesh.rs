@@ -86,6 +86,9 @@ pub struct LightMesh {
 
     #[serde(rename = "Radiance", deserialize_with = "deser_vec3")]
     pub radiance: Vector3,
+
+    #[serde(skip)]
+    pub nonce: u64, // Unique identifier (random large number to avoid collisions)
 }
 
 impl Shape for LightMesh {
@@ -95,6 +98,7 @@ impl Shape for LightMesh {
         if let Some(mut rec) = hit_record {
             rec.radiance = Some(self.radiance);
             rec.emissive_ptr =  Some(Arc::new(self.clone()) as Arc<dyn EmissiveShape>); // TODO: This is very easy to forget if a new light object kind is added!
+            rec.emissive_shape_id = Some(self.shape_id());
             Some(rec)
         } else {
             None
@@ -106,6 +110,10 @@ impl Shape for LightMesh {
 impl EmissiveShape for LightMesh {
     fn radiance(&self) -> Vector3 {
         self.radiance
+    }
+
+    fn shape_id(&self) -> usize {
+        self.nonce as usize
     }
 
     fn sample_from_bsphere(&self, verts: &VertexData, point: Vector3, psi1: Float, psi2: Float) -> crate::shapes::ShapeSample {

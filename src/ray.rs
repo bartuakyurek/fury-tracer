@@ -117,6 +117,7 @@ pub struct HitRecord {
 
     pub radiance: Option<Vector3>,
     pub emissive_ptr: Option<Arc<dyn crate::shapes::EmissiveShape>>,
+    pub emissive_shape_id: Option<usize>, // ID of the emissive shape to identify it reliably
 }
 
 impl HitRecord {
@@ -142,6 +143,7 @@ impl HitRecord {
             tbn_matrix: tbn,
             radiance: None,
             emissive_ptr: None,
+            emissive_shape_id: None,
         }
     }
 

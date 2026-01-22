@@ -548,11 +548,15 @@ impl SceneObjects {
 
         bboxable_shapes.extend(self.triangles.all().into_iter().map(|t| Arc::new(t) as HeapAllocatedShape));
         bboxable_shapes.extend(self.spheres.all().into_iter().map(|s| Arc::new(s) as HeapAllocatedShape));
-        bboxable_shapes.extend(self.light_spheres.all().into_iter().map(|s| Arc::new(s) as HeapAllocatedShape));
+        
+        // Assign nonces to light spheres and add them to emissive shapes
+        for light_sphere in self.light_spheres.iter_mut() {
+            light_sphere.nonce = rand::random::<u64>();
+            bboxable_shapes.push(Arc::new(light_sphere.clone()) as HeapAllocatedShape);
+            emissive_shapes.push(Arc::new(light_sphere.clone()) as Arc<dyn EmissiveShape>);
+        }
 
         unbboxable_shapes.extend(self.planes.all().into_iter().map(|p| Arc::new(p) as HeapAllocatedShape));
-        
-        emissive_shapes.extend(self.light_spheres.all().into_iter().map(|s| Arc::new(s) as Arc<dyn EmissiveShape>));
 
         // Get path containing the JSON (_plyFile in json is relative to that json)
         let json_dir = Path::new(jsonpath)
@@ -567,6 +571,10 @@ impl SceneObjects {
 
         for lightmesh in self.light_meshes.iter_mut() {
             unnecessarily_long_setup_function_for_scene_meshes(&mut lightmesh.data, json_dir, verts, &mut all_triangles, &mut uv_coords, &mut tot_mesh_faces)?;
+            
+            // Assign random nonce
+            lightmesh.nonce = rand::random::<u64>();
+            
             bboxable_shapes.push(Arc::new(lightmesh.clone()) as HeapAllocatedShape);
             emissive_shapes.push(Arc::new(lightmesh.clone()) as Arc<dyn EmissiveShape>);
         }

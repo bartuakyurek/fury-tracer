@@ -37,6 +37,7 @@ pub struct ShapeSample {
 pub trait EmissiveShape : Debug + Send + Sync + BBoxable + Shape {
     fn radiance(&self) -> Vector3;
     fn sample_from_bsphere(&self, verts: &VertexData, point: Vector3, psi1: Float, psi2: Float) -> ShapeSample;
+    fn shape_id(&self) -> usize; // Unique identifier for this emissive shape
     
 }
 
@@ -384,6 +385,9 @@ pub struct LightSphere { // TODO: how can we use generics to store generic objec
 
     #[serde(rename = "Radiance", deserialize_with = "deser_vec3")]
     pub radiance: Vector3,
+
+    #[serde(skip)]
+    pub nonce: u64, // Unique identifier (random large number to avoid collisions)
 }
 
 impl Shape for LightSphere {
@@ -393,6 +397,7 @@ impl Shape for LightSphere {
         if let Some(mut rec) = hit_record {
             rec.radiance = Some(self.radiance);
             rec.emissive_ptr =  Some(Arc::new(self.clone()) as Arc<dyn EmissiveShape>);
+            rec.emissive_shape_id = Some(self.shape_id());
             Some(rec)
         } else {
             None
@@ -410,6 +415,10 @@ impl BBoxable for LightSphere {
 impl EmissiveShape for LightSphere {
     fn radiance(&self) -> Vector3 {
         self.radiance
+    }
+
+    fn shape_id(&self) -> usize {
+        self.nonce as usize
     }
 
     // TODO: the only reason why verts is here to access self.center, perhaps we should've stored a pointer to 
