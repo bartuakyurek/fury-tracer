@@ -358,6 +358,8 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         //  in actual scene structs, that needs to be changed maybe.
         // TODO: std::OnceCell can be handy to integrate setup( ) calls of our deserialized structs  
         cam.setup(&scene.data.transformations); 
+        info!(cam.comment);
+        
         let n_samples = cam.num_samples as usize;
         
         let max_depth = 

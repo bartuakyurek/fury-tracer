@@ -100,6 +100,10 @@ fn print_my_dummy_debug(scene: &Scene) {
     dbg!(&scene.data.objects.light_spheres);
     dbg!("-------------------");
     dbg!(&scene.data.objects.emissive_shapes);
+    
+    for cam in scene.data.cameras.all() {
+        info!(cam.comment);
+    }
 }
 
 /// Given the JSON file path, and its parent name ("inputs" in our case), return the output path to be used while saving .png image

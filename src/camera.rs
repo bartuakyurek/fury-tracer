@@ -91,6 +91,9 @@ pub struct Camera {
     #[serde(rename = "Tonemap")]
     pub(crate) tone_maps: SingleOrVec<ToneMap>,
 
+    #[serde(rename = "Comment")]
+    pub comment: String,
+
     #[serde(skip)]
     w : Vector3,
 
