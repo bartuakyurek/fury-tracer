@@ -94,6 +94,9 @@ pub struct Camera {
     #[serde(rename = "Comment")]
     pub comment: String,
 
+    #[serde(rename = "Renderer")]
+    pub renderer: String,
+
     #[serde(skip)]
     w : Vector3,
 

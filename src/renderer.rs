@@ -215,7 +215,7 @@ fn intersect_object_light(scene: &Scene, shadow_ray: &Ray, object_light: &Arc<dy
     false
 }
 
-pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 { 
+pub fn ray_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 { 
   
    if depth >= max_depth {
         //return Vector3::X * 255.;
@@ -242,7 +242,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, de
             },
             "mirror" | "conductor" => { 
                     if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        shade_diffuse(scene,  &mut hit_record, ray_in) + attenuation * get_color(&reflected_ray, scene, cam, max_depth, depth + 1) 
+                        shade_diffuse(scene,  &mut hit_record, ray_in) + attenuation * ray_trace(&reflected_ray, scene, cam, max_depth, depth + 1) 
                     }
                     else {
                         warn!("Material not reflecting...");
@@ -259,12 +259,12 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, de
  
                 // Reflected 
                 if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        tot_radiance += attenuation * get_color(&reflected_ray, scene, cam, max_depth, depth + 1);
+                        tot_radiance += attenuation * ray_trace(&reflected_ray, scene, cam, max_depth, depth + 1);
                 }
         
                 // Refracted 
                 if let Some((refracted_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, false) {
-                        tot_radiance += attenuation * get_color(&refracted_ray, scene, cam, max_depth, depth + 1);
+                        tot_radiance += attenuation * ray_trace(&refracted_ray, scene, cam, max_depth, depth + 1);
                 }
                 tot_radiance
             },
@@ -281,6 +281,24 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, de
    }
 }
 
+pub fn path_trace(ray_in: &Ray,  scene: &Scene, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 {
+    todo!()
+}
+
+pub fn trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize) -> Vector3 { 
+
+    match cam.renderer.to_ascii_lowercase().as_str() {
+        "pathtracing" => { 
+            //info!("Using path tracing...");
+            path_trace(ray_in, scene, cam, max_depth, 0)
+        }
+        _ => { 
+            //info!("Using ray tracing (direct lighting) by default.");
+            ray_trace(ray_in, scene, cam, max_depth, 0) 
+        }
+    }
+    
+}
 
 fn sample_background(ray_in: &Ray, scene: &Scene, cam: &Camera) -> Vector3 {
     // TODO: avoid iterating over textures, cache if background texture is
@@ -359,9 +377,10 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         // TODO: std::OnceCell can be handy to integrate setup( ) calls of our deserialized structs  
         cam.setup(&scene.data.transformations); 
         info!(cam.comment);
-        
+
         let n_samples = cam.num_samples as usize;
         
+        // Infer maximum recursion depth
         let max_depth = 
         if let Some(depth) = cam.max_recursion_depth {
             info!("Found max recursion depth inside Camera: {}", depth);
@@ -377,7 +396,7 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         info!("Starting ray tracing...");
         let colors: Vec<_> = eye_rays
             .par_iter()
-            .map(|ray| get_color(ray, scene, &cam, max_depth, 0))
+            .map(|ray| trace(ray, scene, &cam, max_depth))
             .collect();
         info!("Ray tracing completed.");
         // -----------------------------
