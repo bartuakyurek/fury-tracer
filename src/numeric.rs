@@ -31,6 +31,26 @@ pub type Vector2 = DVec2;
 // TODO: Use your own Vector3 to implement its deserialization 
 // this requires trait bounds to be satisfied, so it breaks most of the code atm
 
+// Formula given in slides 11, p.52
+pub fn pdf_sphere_inv(x: Float, cos_max: Float) -> Float {
+    (1. - x + (x * cos_max)).acos()
+}
+
+pub fn max_scale(mat: &Matrix4, ignore_w: bool) -> Float {
+    
+    let sx = mat.mul_vec4(Vector4::X).length();
+    let sy = mat.mul_vec4(Vector4::Y).length();
+    let sz = mat.mul_vec4(Vector4::Z).length();
+    
+    let max_xyz = sx.max(sy).max(sz);
+    if ignore_w {
+        max_xyz
+    } else {
+        let sw = mat.mul_vec4(Vector4::W).length();
+        max_xyz.max(sw)
+    }
+}
+
 pub fn is_zerovec(v: Vector3) -> bool {
     v.abs().element_sum() < 1e-8
 }

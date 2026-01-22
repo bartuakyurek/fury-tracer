@@ -106,7 +106,7 @@ impl EmissiveShape for LightMesh {
         self.radiance
     }
 
-    fn sample_visible(&self, point: Vector3, psi1: Float, psi2: Float) -> crate::shapes::ShapeSample {
+    fn sample_from_bsphere(&self, verts: &VertexData, point: Vector3, psi1: Float, psi2: Float) -> crate::shapes::ShapeSample {
         todo!()
     }
 }

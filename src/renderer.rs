@@ -143,13 +143,31 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
         let psi1 = random_float();
         let psi2 = random_float();
         
-        let sample = object_light.sample_visible(hit_record.hit_point, psi1, psi2);
+        let sample = object_light.sample_from_bsphere(&scene.data.vertex_data, hit_record.hit_point, psi1, psi2);
         
-        info!("{:?}", sample);
+        let w_i = sample.direction;
+        let pdf = sample.pdf;
+
+        if pdf <= 0.0 {
+            info!("This shouldnt happen?");
+            continue;
+        }
+        //let shadow_ray = Ray::new(hit_record.hit_point, ray_direction, ray_in.time);  
+        //intersect_object_light(hit_record.hit_point, ray_direction, object_light);
         todo!()
     }
 
     color
+}
+
+// Return radiance
+fn intersect_object_light(scene: &Scene, ray_origin: Vector3, ray_direction: Vector3, object: Arc<dyn Shape>, ) -> bool {
+    let ray_in = Ray::new_from(ray_origin, ray_direction);
+    if let Some(mut hit_record) = scene.hit_bvh(ray_in, &Interval::positive(scene.data.intersection_test_epsilon),false) {
+        true
+    } else {
+        false
+    }
 }
 
 pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 { 

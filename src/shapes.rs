@@ -17,7 +17,7 @@ use crate::ray::{Ray, HitRecord}; // TODO: Can we create a small crate for gathe
 use crate::interval::{FloatConst, Interval};
 use crate::json_structs::{VertexData};
 use crate::scene::HeapAllocatedVerts;
-use crate::prelude::*;
+use crate::{numeric, prelude::*};
 
 pub type HeapAllocatedShape = Arc<dyn Shape>;
 pub type ShapeList = Vec<HeapAllocatedShape>; 
@@ -27,8 +27,7 @@ pub type EmissiveShapeList = Vec<Arc<dyn EmissiveShape>>;
 
 #[derive(Debug, Clone)]
 pub struct ShapeSample {
-    pub position: Vector3,
-    pub normal: Vector3,
+    pub direction: Vector3,
     pub pdf: Float, // Probability Density Function   
 }
 
@@ -37,7 +36,7 @@ pub struct ShapeSample {
 // =======================================================================================================
 pub trait EmissiveShape : Debug + Send + Sync + BBoxable {
     fn radiance(&self) -> Vector3;
-    fn sample_visible(&self, point: Vector3, psi1: Float, psi2: Float) -> ShapeSample;
+    fn sample_from_bsphere(&self, verts: &VertexData, point: Vector3, psi1: Float, psi2: Float) -> ShapeSample;
     
 }
 
@@ -386,7 +385,6 @@ pub struct LightSphere { // TODO: how can we use generics to store generic objec
     pub radiance: Vector3,
 }
 
-
 impl Shape for LightSphere {
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
         // TODO: this is a duplicate of LightMesh, maybe we can merge them
@@ -412,8 +410,52 @@ impl EmissiveShape for LightSphere {
         self.radiance
     }
 
-    fn sample_visible(&self, point: Vector3, psi1: Float, psi2: Float) -> ShapeSample {
-        todo!()
+    // TODO: the only reason why verts is here to access self.center, perhaps we should've stored a pointer to 
+    // actual vertex data 
+    fn sample_from_bsphere(&self, verts: &VertexData, point: Vector3, psi1: Float, psi2: Float) -> ShapeSample {
+        
+        // WARNING: Assumes hitpoint is given in world coordinates
+        let center_local = verts[self.data.center_idx];
+        
+        // TODO: It probably wasn't a wise choice to wrap matrices with Arc because I end up cloning them in order to 
+        // actually use them. Perhaps Box or even storing on stack would work better
+        let mut center_world = center_local;
+        let mut radius_world = self.data.radius;
+        
+        if let Some(mat) = self.data.matrix.clone() {
+            debug!("Applying the following matrix to obtain sphere center in world coordinates: \n {:?}", mat);
+            center_world = transform_point(&mat, &center_world);
+            let max_scale = numeric::max_scale(&mat, true);
+            radius_world *= max_scale;
+        } 
+        
+        
+        // See slides 11 p.48 for notation
+        let distance_vec = center_world - point;
+        let d_recip = distance_vec.length_recip();
+        let sin_theta_max = radius_world * d_recip;
+        let cos_theta_max = (1. - sin_theta_max * sin_theta_max).sqrt();
+        
+        let theta = numeric::pdf_sphere_inv(psi1, cos_theta_max);
+        let rho = 2. * Float::PI * psi2;
+
+        let sin_theta = theta.sin();
+        let cos_theta = theta.cos();
+        let sin_rho = rho.sin();
+        let cos_rho = rho.cos();
+        let local_direction = Vector3::new(sin_theta * cos_rho, sin_theta * sin_rho, cos_theta);
+
+        let w = distance_vec.normalize();
+        let (u, v) = numeric::get_onb(&w);
+
+        let final_direction = local_direction.x * u + local_direction.y * v + local_direction.z * w;
+        let pdf = 1. / (2. * Float::PI * (1. - cos_theta_max));
+
+        ShapeSample { 
+            direction: final_direction, 
+            pdf, 
+        }
+
     }
 }
 // =======================================================================================================
