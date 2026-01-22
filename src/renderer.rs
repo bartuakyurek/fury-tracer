@@ -24,8 +24,9 @@ use crate::light::{LightKind};
 use crate::scene::{Scene};
 use crate::camera::Camera;
 use crate::image::{DecalMode, ImageData, Interpolation, Textures};
-use crate::interval::{Interval};
+use crate::interval::{Interval, FloatConst};
 use crate::prelude::*;
+use crate::shapes::EmissiveShape;
 
 
 pub fn update_brdf_and_get_normal(textures: &Textures, texmap_ids: &Vec<usize>, hit_record: &HitRecord, brdf: &mut ReflectanceParams) -> Vector3 {
@@ -138,12 +139,85 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
         }
     }
 
+    for object_light in scene.data.objects.emissive_shapes.iter() {
+
+        let psi1 = random_float();
+        let psi2 = random_float();
+        
+        let sample = object_light.sample_from_bsphere(&scene.data.vertex_data, hit_record.hit_point, psi1, psi2);
+        
+        let w_i = sample.direction;
+        let pdf = sample.pdf;
+
+        if pdf <= 0.0 {
+            info!("This shouldnt happen?");
+            continue;
+        }
+
+        // Spawn a shadow ray to test intersection
+        let ray_origin = hit_record.hit_point + (hit_record.normal * scene.data.shadow_ray_epsilon);
+        let shadow_ray = Ray::new(
+            ray_origin,
+            w_i,
+            ray_in.time,
+        );
+
+        // Intersection test for this shadow ray in the scene
+        if intersect_object_light(scene, &shadow_ray, object_light) {
+            // Evaluate BRDF
+            let w_o = -ray_in.direction;
+            let n = hit_record.normal;
+            let cos_theta = w_i.dot(n).max(0.0);
+
+            if cos_theta <= 0.0 {
+                continue;
+            }
+
+            let reflection = brdf::eval_brdf(
+                brdf_id,
+                mat,
+                scene_brdfs,
+                w_i,
+                w_o,
+                n,
+                &material_params,
+            );
+
+            let radiance = object_light.radiance();
+
+            // TODO: distance attenuation?
+            color += reflection * cos_theta * radiance / pdf;
+        }
+
+        }
+
     color
 }
 
-pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vector3 { 
+// Return radiance
+fn intersect_object_light(scene: &Scene, shadow_ray: &Ray, object_light: &Arc<dyn EmissiveShape>) -> bool {
+    
+    // Use a much smaller interval min to catch intersections close to the ray origin
+    // This is important for transformed lights where the intersection might be very close
+    let shadow_interval = Interval::new(1e-6, FloatConst::INF);
+    
+    if let Some(shadow_hit) = scene.hit_bvh(
+            &shadow_ray,
+            &shadow_interval,
+            false,
+        ) {
+            // Accept only if we hit this emissive object by comparing IDs
+            if let Some(hit_shape_id) = shadow_hit.emissive_shape_id {
+                let object_light_id = object_light.shape_id();
+                return hit_shape_id == object_light_id;
+            }
+    }
+    false
+}
+
+pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 { 
   
-   if depth >= scene.data.max_recursion_depth {
+   if depth >= max_depth {
         //return Vector3::X * 255.;
         return sample_background(ray_in, scene, cam);
         //return scene.data.background_color;
@@ -151,6 +225,12 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vec
    
    let t_interval = Interval::positive(scene.data.intersection_test_epsilon);
    if let Some(mut hit_record) = scene.hit_bvh(ray_in, &t_interval, false) {
+
+        if let Some(rad) = hit_record.radiance {
+            return rad; // Object lights overrive radiance field in hitrecord
+        }
+
+
         let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
                 
         let mut color = Vector3::ZERO;
@@ -162,7 +242,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vec
             },
             "mirror" | "conductor" => { 
                     if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        shade_diffuse(scene,  &mut hit_record, ray_in) + attenuation * get_color(&reflected_ray, scene, cam, depth + 1) 
+                        shade_diffuse(scene,  &mut hit_record, ray_in) + attenuation * get_color(&reflected_ray, scene, cam, max_depth, depth + 1) 
                     }
                     else {
                         warn!("Material not reflecting...");
@@ -179,12 +259,12 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, depth: usize) -> Vec
  
                 // Reflected 
                 if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        tot_radiance += attenuation * get_color(&reflected_ray, scene, cam, depth + 1);
+                        tot_radiance += attenuation * get_color(&reflected_ray, scene, cam, max_depth, depth + 1);
                 }
         
                 // Refracted 
                 if let Some((refracted_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, false) {
-                        tot_radiance += attenuation * get_color(&refracted_ray, scene, cam, depth + 1);
+                        tot_radiance += attenuation * get_color(&refracted_ray, scene, cam, max_depth, depth + 1);
                 }
                 tot_radiance
             },
@@ -280,13 +360,22 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         cam.setup(&scene.data.transformations); 
         let n_samples = cam.num_samples as usize;
         
+        let max_depth = 
+        if let Some(depth) = cam.max_recursion_depth {
+            info!("Found max recursion depth inside Camera: {}", depth);
+            depth
+        } else {
+            info!("Using scene's global max recursion depth {}", scene.data.max_recursion_depth);
+            scene.data.max_recursion_depth
+        };
+
         // --- Rayon Multithreading ---
         let start = Instant::now();
         let eye_rays: Vec<Ray> = cam.generate_primary_rays(n_samples);
         info!("Starting ray tracing...");
         let colors: Vec<_> = eye_rays
             .par_iter()
-            .map(|ray| get_color(ray, scene, &cam, 0))
+            .map(|ray| get_color(ray, scene, &cam, max_depth, 0))
             .collect();
         info!("Ray tracing completed.");
         // -----------------------------

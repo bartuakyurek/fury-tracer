@@ -89,14 +89,17 @@ fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Er
 }
 
 fn print_my_dummy_debug(scene: &Scene) {
+    //dbg!("-------------------");
+    //dbg!("Texture Coords:");
+    //dbg!(&scene.data.tex_coord_data);
+    //dbg!(&scene.vertex_cache.uv_coords);
+    //dbg!("-------------------");
+    //dbg!(&scene.data.textures.as_ref().unwrap().texture_maps); // TODO https://github.com/casey/just see this one to have commands like "just print textures"
+    //dbg!(&scene.data.lights);
+    dbg!(&scene.data.objects.light_meshes);
+    dbg!(&scene.data.objects.light_spheres);
     dbg!("-------------------");
-    dbg!("Texture Coords:");
-    dbg!(&scene.data.tex_coord_data);
-    dbg!(&scene.vertex_cache.uv_coords);
-    dbg!("-------------------");
-    dbg!(&scene.data.textures.as_ref().unwrap().texture_maps); // TODO https://github.com/casey/just see this one to have commands like "just print textures"
-    dbg!(&scene.data.lights);
-    dbg!("-------------------");
+    dbg!(&scene.data.objects.emissive_shapes);
 }
 
 /// Given the JSON file path, and its parent name ("inputs" in our case), return the output path to be used while saving .png image

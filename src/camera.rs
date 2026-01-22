@@ -40,6 +40,9 @@ pub struct Camera {
     #[default = ""]
     _type: String,
 
+    #[serde(rename = "MaxRecursionDepth", deserialize_with = "deser_opt_usize")]
+    pub max_recursion_depth: Option<usize>,
+
     #[serde(rename = "Position", deserialize_with = "deser_vec3")]
     position: Vector3,
 

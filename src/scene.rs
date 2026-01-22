@@ -19,13 +19,13 @@ use crate::brdf::BRDFs;
 use crate::image::Textures;
 use crate::material::{*};
 use crate::shapes::{*};
-use crate::mesh::{Mesh, MeshInstanceField};
+use crate::mesh::{LightMesh, Mesh, MeshInstanceField};
 use crate::json_structs::{*};
 use crate::camera::{Cameras};
 use crate::interval::{Interval, FloatConst};
 use crate::ray::{Ray, HitRecord};
 use crate::acceleration::BVHSubtree;
-use crate::light::*;
+use crate::{light::*, numeric};
 use crate::prelude::*; // TODO: Excuse me but what's the point of prelude if there are so many use crate::yet_another_mod above?
 
 pub type HeapAllocatedVerts = Arc<VertexCache>;
@@ -341,6 +341,8 @@ pub struct SceneObjects {
     #[serde(rename = "Mesh")]
     pub meshes: SingleOrVec<Mesh>,
     
+    #[serde(rename = "LightMesh")]
+    pub light_meshes: SingleOrVec<LightMesh>,
     #[serde(rename = "LightSphere")]
     pub light_spheres: SingleOrVec<LightSphere>,
 
@@ -350,7 +352,9 @@ pub struct SceneObjects {
     #[serde(skip)]
     pub bboxable_shapes: ShapeList, 
     #[serde(skip)]
-    pub unbboxable_shapes: ShapeList, 
+    pub unbboxable_shapes: ShapeList,
+    #[serde(skip)]
+    pub emissive_shapes: EmissiveShapeList,  
 }
 
 fn resolve_all_mesh_instances(
@@ -389,94 +393,32 @@ fn resolve_all_mesh_instances(
     }
 }
 
-impl SceneObjects {
 
-    fn setup_transforms(&mut self, transforms: &Transformations) { // TODO: What's the deal with setting matrices within scene? these could be impl in shapes.rs 
+fn setup_single_mesh_transform(mesh: &mut Mesh,  transforms: &Transformations) {
+    mesh.matrix = if mesh.transformation_names.is_some() {
+        parse_transform_expression(
+            mesh.transformation_names.as_deref().unwrap_or(""),
+            transforms,  
+        )
+    } else {
+        debug!("Mesh '{}'s transformation is not given, defaulting to Identity.", mesh._id);
+        Matrix4::IDENTITY  // Default to identity if no transform is given
+    };
+    debug!("Composite transform for mesh '{}' is {}", mesh._id, mesh.matrix);
+}
 
-        for mesh in self.meshes.iter_mut() {
-            mesh.matrix = if mesh.transformation_names.is_some() {
-                parse_transform_expression(
-                    mesh.transformation_names.as_deref().unwrap_or(""),
-                    transforms,  
-                )
-            } else {
-                debug!("Mesh '{}'s transformation is not given, defaulting to Identity.", mesh._id);
-                Matrix4::IDENTITY  // Default to identity if no transform is given
-            };
-            debug!("Composite transform for mesh '{}' is {}", mesh._id, mesh.matrix);
-        }
+fn unnecessarily_long_setup_function_for_scene_meshes(
+    mesh: &mut Mesh, 
+    json_dir: &Path,
+    verts: &mut VertexData,
+    all_triangles: &mut Vec<Triangle>,
+    uv_coords: &mut Vec<Option<[Float; 2]>>,
+    tot_mesh_faces: &mut usize,
+) -> Result<(), Box<dyn Error>> 
+{
+    if !mesh.faces._ply_file.is_empty() {
 
-        for mint in self.mesh_instances.iter_mut() {
-            mint.matrix = parse_transform_expression(
-                    mint.transformation_names.as_str(),
-                    transforms,  
-            );
-            debug!("Composite transform for mesh '{}' is {}", mint._id, mint.matrix);
-        }
-
-        for tri in self.triangles.iter_mut() {
-            debug!("Setting up transforms for mesh._id '{}'", tri._data._id.clone());
-            tri.matrix = Some(Arc::new(parse_transform_expression(
-                    tri._data.transformation_names.as_deref().unwrap_or(""),
-                    transforms,  
-            )));
-        }
-
-        for sphere in self.spheres.iter_mut() {
-            sphere.matrix = Some(Arc::new(parse_transform_expression(
-                sphere._data.transformation_names.as_deref().unwrap_or(""), 
-                transforms)));
-        }
-
-        for plane in self.planes.iter_mut() {
-            debug!("Setting up transforms for mesh._id '{}'", plane._data._id.clone());
-            plane.matrix = Some(Arc::new(parse_transform_expression(
-                    plane._data.transformation_names.as_deref().unwrap_or(""),
-                    transforms,  
-            )));
-        }
-    }
-
-    pub fn setup_and_get_cache(&mut self, verts: &mut VertexData, texture_coords: &Option<TexCoordData>, jsonpath: &Path) -> Result<VertexCache, Box<dyn Error>> {
-        // NOTE: Vec::extend( ) pushes a collection of data all at once, 
-        // if you have a single object to push, then use Vec::push( )
-
-        let mut bboxable_shapes: ShapeList = Vec::new();
-        let mut unbboxable_shapes: ShapeList = Vec::new();
-        let mut all_triangles: Vec<Triangle> = self.triangles.all();
-        
-        // Initiate uv_coords from given texture coords or if not available with a new vector
-        let mut uv_coords: Vec<Option<[Float; 2]>> = if let Some(tc) = texture_coords {
-            let raw = &tc._data;
-            let mut out = Vec::with_capacity(verts._data.len());
-            for chunk in raw.chunks_exact(2) {
-                out.push(Some([chunk[0], chunk[1]]));
-            }
-            out
-        } else {
-            Vec::new()
-        };
-
-        // Step 2: Fill missing slots for any dummy vertices at the start (note that verts will be mutated as we push more verts read from ply files)
-        while uv_coords.len() < verts._data.len() {
-            uv_coords.push(None);
-        }
-
-        bboxable_shapes.extend(self.triangles.all().into_iter().map(|t| Arc::new(t) as HeapAllocatedShape));
-        bboxable_shapes.extend(self.spheres.all().into_iter().map(|s| Arc::new(s) as HeapAllocatedShape));
-        unbboxable_shapes.extend(self.planes.all().into_iter().map(|p| Arc::new(p) as HeapAllocatedShape));
-        
-        // Convert meshes: UPDATE: do not convert it into individual triangles
-        let mut tot_mesh_faces: usize = 0;
-        for mesh in self.meshes.iter_mut() {
-            //let mut mesh = mesh;
-
-            if !mesh.faces._ply_file.is_empty() {
-
-                // Get path containing the JSON (_plyFile in json is relative to that json)
-                let json_dir = Path::new(jsonpath)
-                    .parent()
-                    .unwrap_or(Path::new("."));
+                
                 let ply_file = &mesh.faces._ply_file;
                 let ply_path = json_dir.join(ply_file);
 
@@ -513,7 +455,7 @@ impl SceneObjects {
                         .map(|idx| idx + old_vertex_count)      // shift by existing vertices
                         .collect();
                     //info!(">> Mesh {} has {} faces.", mesh._id, mesh.faces._data.len());
-                    tot_mesh_faces += mesh.faces._data.len();
+                    *tot_mesh_faces += mesh.faces._data.len();
                 }
                 else {
                     warn!("PLY mesh {} has no face data!", mesh._id);
@@ -526,9 +468,115 @@ impl SceneObjects {
             let triangles: Vec<Triangle> = mesh.setup(verts, offset);
             all_triangles.extend(triangles.into_iter());
 
-            // Push mesh to shapes (previously I was deconstructing it into individual triangles)
-            debug!("Pushing mesh {} into all_shapes...", mesh._id);
+            Ok(())
+}
+
+impl SceneObjects {
+
+    fn setup_transforms(&mut self, transforms: &Transformations) { // TODO: What's the deal with setting matrices within scene? these could be impl in shapes.rs 
+
+        for mesh in self.meshes.iter_mut() {
+            setup_single_mesh_transform(mesh, transforms);
+        }
+        for lightmesh in self.light_meshes.iter_mut() {
+            setup_single_mesh_transform(&mut lightmesh.data, transforms);
+        }
+
+        for mint in self.mesh_instances.iter_mut() {
+            mint.matrix = parse_transform_expression(
+                    mint.transformation_names.as_str(),
+                    transforms,  
+            );
+            debug!("Composite transform for mesh '{}' is {}", mint._id, mint.matrix);
+        }
+
+        for tri in self.triangles.iter_mut() {
+            debug!("Setting up transforms for mesh._id '{}'", tri._data._id.clone());
+            tri.matrix = Some(Arc::new(parse_transform_expression(
+                    tri._data.transformation_names.as_deref().unwrap_or(""),
+                    transforms,  
+            )));
+        }
+
+        for sphere in self.spheres.iter_mut() {
+            sphere.matrix = Some(Arc::new(parse_transform_expression(
+                sphere._data.transformation_names.as_deref().unwrap_or(""), 
+                transforms)));
+        }
+
+        
+        for light_sphere in self.light_spheres.iter_mut() {
+            light_sphere.data.matrix = Some(Arc::new(parse_transform_expression(
+                light_sphere.data._data.transformation_names.as_deref().unwrap_or(""), 
+                transforms)));
+        }
+
+        for plane in self.planes.iter_mut() {
+            debug!("Setting up transforms for mesh._id '{}'", plane._data._id.clone());
+            plane.matrix = Some(Arc::new(parse_transform_expression(
+                    plane._data.transformation_names.as_deref().unwrap_or(""),
+                    transforms,  
+            )));
+        }
+    }
+
+    pub fn setup_and_get_cache(&mut self, verts: &mut VertexData, texture_coords: &Option<TexCoordData>, jsonpath: &Path) -> Result<VertexCache, Box<dyn Error>> {
+        // NOTE: Vec::extend( ) pushes a collection of data all at once, 
+        // if you have a single object to push, then use Vec::push( )
+
+        let mut bboxable_shapes: ShapeList = Vec::new();
+        let mut unbboxable_shapes: ShapeList = Vec::new();
+        let mut emissive_shapes: EmissiveShapeList = Vec::new();
+        let mut all_triangles: Vec<Triangle> = self.triangles.all();
+        
+        // Initiate uv_coords from given texture coords or if not available with a new vector
+        let mut uv_coords: Vec<Option<[Float; 2]>> = if let Some(tc) = texture_coords {
+            let raw = &tc._data;
+            let mut out = Vec::with_capacity(verts._data.len());
+            for chunk in raw.chunks_exact(2) {
+                out.push(Some([chunk[0], chunk[1]]));
+            }
+            out
+        } else {
+            Vec::new()
+        };
+
+        // Step 2: Fill missing slots for any dummy vertices at the start (note that verts will be mutated as we push more verts read from ply files)
+        while uv_coords.len() < verts._data.len() {
+            uv_coords.push(None);
+        }
+
+        bboxable_shapes.extend(self.triangles.all().into_iter().map(|t| Arc::new(t) as HeapAllocatedShape));
+        bboxable_shapes.extend(self.spheres.all().into_iter().map(|s| Arc::new(s) as HeapAllocatedShape));
+        
+        // Assign nonces to light spheres and add them to emissive shapes
+        for light_sphere in self.light_spheres.iter_mut() {
+            light_sphere.nonce = numeric::next_uuid(); //rand::random::<u64>();
+            bboxable_shapes.push(Arc::new(light_sphere.clone()) as HeapAllocatedShape);
+            emissive_shapes.push(Arc::new(light_sphere.clone()) as Arc<dyn EmissiveShape>);
+        }
+
+        unbboxable_shapes.extend(self.planes.all().into_iter().map(|p| Arc::new(p) as HeapAllocatedShape));
+
+        // Get path containing the JSON (_plyFile in json is relative to that json)
+        let json_dir = Path::new(jsonpath)
+                    .parent()
+                    .unwrap_or(Path::new("."));
+        // Convert meshes: UPDATE: do not convert it into individual triangles
+        let mut tot_mesh_faces: usize = 0;
+        for mesh in self.meshes.iter_mut() {
+            unnecessarily_long_setup_function_for_scene_meshes(mesh, json_dir, verts, &mut all_triangles, &mut uv_coords, &mut tot_mesh_faces)?;            
             bboxable_shapes.push(Arc::new(mesh.clone()) as HeapAllocatedShape);
+        }
+
+        for lightmesh in self.light_meshes.iter_mut() {
+            unnecessarily_long_setup_function_for_scene_meshes(&mut lightmesh.data, json_dir, verts, &mut all_triangles, &mut uv_coords, &mut tot_mesh_faces)?;
+            
+            // Assign random nonce
+            lightmesh.nonce = numeric::next_uuid(); // rand::random::<u64>();
+            
+            bboxable_shapes.push(Arc::new(lightmesh.clone()) as HeapAllocatedShape);
+            emissive_shapes.push(Arc::new(lightmesh.clone()) as Arc<dyn EmissiveShape>);
         }
 
         // Find which meshes the mesh refers to
@@ -545,11 +593,8 @@ impl SceneObjects {
         info!(">> There are {} vertices in the scene (excluding {} instance mesh). Meshes have {} faces in total.", verts._data.len(), self.mesh_instances.len(), tot_mesh_faces);
         self.bboxable_shapes = bboxable_shapes;
         self.unbboxable_shapes = unbboxable_shapes;
+        self.emissive_shapes = emissive_shapes;
         let normals_cache = VertexCache::build_normals(verts, &all_triangles);
-        
-        // Build uv coords (deserialized JSON is converted to cache data for ease of use but I'm not sure how to organize all this cache setup pipeline better)
-        let n_verts = verts._data.len();
-        //let uv_coords = VertexCache::build_uv(n_verts, texture_coords, &ply_uv_coords);  
         
         let cache = VertexCache { vertex_data: verts.clone(), vertex_normals: normals_cache, uv_coords }; 
         Ok(cache)

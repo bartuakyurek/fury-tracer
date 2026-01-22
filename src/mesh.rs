@@ -6,13 +6,14 @@ UPDATE: Acceleration structure added Mesh::bvh
 @author: Bartu
 
 */
+use bevy_math::NormedVectorSpace;
 
 
 use crate::json_structs::{FaceType, SingleOrVec, VertexData, TexCoordData};
 use crate::geometry::{get_tri_normal, is_degenerate_triangle};
-use crate::shapes::{CommonPrimitiveData, Shape, Triangle};
+use crate::shapes::{CommonPrimitiveData, EmissiveShape, Shape, Triangle};
 use crate::ray::{Ray, HitRecord};
-use crate::interval::Interval;
+use crate::interval::{FloatConst, Interval};
 use crate::bbox::{BBoxable, BBox};
 use crate::scene::{HeapAllocatedVerts};
 use crate::acceleration::BVHSubtree;
@@ -74,6 +75,97 @@ impl MeshInstanceField {
         if !flag {
             warn!("Couldn't find base mesh id {} ", self.base_mesh_id);
         }
+    }
+}
+
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct LightMesh {
+    #[serde(flatten)]
+    pub data: Mesh,
+
+    #[serde(rename = "Radiance", deserialize_with = "deser_vec3")]
+    pub radiance: Vector3,
+
+    #[serde(skip)]
+    pub nonce: u64, // Unique identifier (random large number to avoid collisions)
+}
+
+impl Shape for LightMesh {
+    fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
+        
+        let hit_record = self.data.intersect(ray, t_interval, vertex_cache);
+        if let Some(mut rec) = hit_record {
+            rec.radiance = Some(self.radiance);
+            rec.emissive_ptr =  Some(Arc::new(self.clone()) as Arc<dyn EmissiveShape>); // TODO: This is very easy to forget if a new light object kind is added!
+            rec.emissive_shape_id = Some(self.shape_id());
+            Some(rec)
+        } else {
+            None
+        }
+        
+    }
+}
+
+impl EmissiveShape for LightMesh {
+    fn radiance(&self) -> Vector3 {
+        self.radiance
+    }
+
+    fn shape_id(&self) -> usize {
+        self.nonce as usize
+    }
+
+    fn sample_from_bsphere(&self, verts: &VertexData, point: Vector3, psi1: Float, psi2: Float) -> crate::shapes::ShapeSample {
+        // Use bounding box to compute bounding sphere efficiently
+        // Convert bbox to bsphere
+        let bbox = self.data.bbox(verts, false); // Get bbox in local space
+        let center_local = bbox.get_center();
+        let radius_local = bbox.get_sphere_radius();
+        
+        // Transform center and radius to world space
+        let center_world = crate::prelude::transform_point(&self.data.matrix, &center_local);
+        let max_scale = crate::numeric::max_scale(&self.data.matrix, true);
+        let radius_world = radius_local * max_scale;
+        
+        // Sample direction using solid angle around bounding sphere (same as LightSphere)
+        // See slides 11 p.48 for notation
+        let distance_vec = center_world - point;
+        let d_recip = distance_vec.length_recip();
+        let sin_theta_max = (radius_world * d_recip).clamp(0.0, 1.0); // Clamp to avoid numerical issues
+        
+        // Handle case when point is inside bounding sphere
+        let cos_theta_max = if sin_theta_max >= 1.0 {
+            0.0  // Point is inside sphere, can see entire hemisphere
+        } else {
+            (1.0 - sin_theta_max * sin_theta_max).sqrt()
+        };
+        
+        let theta = crate::numeric::pdf_sphere_inv(psi1, cos_theta_max);
+        let rho: Float = 2.0 * Float::PI * psi2;
+
+        let sin_theta = theta.sin();
+        let cos_theta = theta.cos();
+        let sin_rho = rho.sin();
+        let cos_rho = rho.cos();
+        let local_direction = Vector3::new(sin_theta * cos_rho, sin_theta * sin_rho, cos_theta);
+
+        let w = distance_vec.normalize();
+        let (u, v) = crate::numeric::get_onb(&w);
+
+        let final_direction = local_direction.x * u + local_direction.y * v + local_direction.z * w;
+        let pdf: Float = 1.0 / (2.0 * Float::PI * (1.0 - cos_theta_max));
+
+        crate::shapes::ShapeSample {
+            direction: final_direction,
+            pdf,
+        }
+    }
+}
+
+impl BBoxable for LightMesh {
+    fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
+        self.data.bbox(verts, apply_t)
     }
 }
 
@@ -212,7 +304,7 @@ impl Mesh {
         triangles
     }
 
-    fn intersect_naive(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
+    fn _intersect_naive(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
         // Delegate intersection test to per-mesh Triangle objects 
         // by iterating over all the triangles (hence naive, accelerated intersection function is to be added soon)
         let mut closest: Option<HitRecord> = None;
@@ -229,7 +321,7 @@ impl Mesh {
         closest
     }
 
-    fn intersect_bvh(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
+    fn _intersect_bvh(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
          if let Some(bvh) = &self.bvh {
                 let mut closest = HitRecord::default();    
                 if bvh.intersect(ray, t_interval, vertex_cache, &mut closest, false) { // Early break: false for BLAS (adding it to BLAS didn't improve results, only cluttered my intersect( ) functions in impl Shape trait)
@@ -241,16 +333,12 @@ impl Mesh {
             } 
             else {
                 warn!("Intersecting naively.... this shouldn't happen.");
-                self.intersect_naive(ray, t_interval, vertex_cache)
+                self._intersect_naive(ray, t_interval, vertex_cache)
             }
     }
 
-}
 
-
-impl Shape for Mesh {
-    
-    fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
+    fn intersect(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
         
         // Motion blur (Note: normally we inverse transform the ray along translation but here I add it first, it is transformed to inverse in the next step tgogether with object transformation since they have the same logic)
         let mut ray = ray.clone();
@@ -261,7 +349,7 @@ impl Shape for Mesh {
         let local_ray = ray.inverse_transform(&inv_matrix);
 
         // Intersect in local space
-        let rec = self.intersect_bvh(&local_ray, t_interval, vertex_cache);
+        let rec = self._intersect_bvh(&local_ray, t_interval, vertex_cache);
 
         rec.map(|mut r| {
             r.to_world(&self.matrix);
@@ -269,10 +357,8 @@ impl Shape for Mesh {
             r
         }) // Added to reduce if let verbosity but it didn't reduce nesting above...
     }
-}
 
-impl BBoxable for Mesh {
-    fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
+    fn bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
         let (mut xint, mut yint, mut zint) = (Interval::EMPTY, Interval::EMPTY, Interval::EMPTY);
 
         // TODO: This is not an optimal way to get bbox, as it uses faces
@@ -308,6 +394,21 @@ impl BBoxable for Mesh {
 }
 
 
+impl Shape for Mesh {
+    
+    fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord> {
+    
+        self.intersect(ray, t_interval, vertex_cache)
+    }
+}
+
+impl BBoxable for Mesh {
+    fn get_bbox(&self, verts: &VertexData, apply_t: bool) -> BBox {
+        self.bbox(verts, apply_t)
+    }
+}
+
+
 // =======================================================================================================
 // MeshInstanceField: Shape + BBoxable
 // =======================================================================================================
@@ -327,7 +428,7 @@ impl Shape for MeshInstanceField {
             let local_ray = ray.inverse_transform(&inv_instance);
             
             // Intersect without applying base mesh's transform
-            if let Some(mut hit) = base_mesh.intersect_bvh(&local_ray, t_interval, vertex_cache) {
+            if let Some(mut hit) = base_mesh._intersect_bvh(&local_ray, t_interval, vertex_cache) {
                 hit.material = self.material_id.unwrap_or(self.base_mesh.clone().unwrap().material_idx);
                 hit.textures = self.texture_idxs.clone();
                 hit.to_world(&self.matrix);  // this transforms normals and hitpoints p.53
@@ -345,7 +446,7 @@ impl Shape for MeshInstanceField {
             let local_ray = ray.inverse_transform(&inv_composite);
             
             // Intersect with BVH 
-            if let Some(mut hit) = base_mesh.intersect_bvh(&local_ray, t_interval, vertex_cache) {
+            if let Some(mut hit) = base_mesh._intersect_bvh(&local_ray, t_interval, vertex_cache) {
                 hit.material = self.material_id.unwrap_or(self.base_mesh.clone().unwrap().material_idx);
                 hit.textures = self.texture_idxs.clone();
                 hit.to_world(&composite_matrix);  // this transforms normals and hitpoints p.53

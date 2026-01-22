@@ -16,6 +16,7 @@
 
 use bevy_math::{DMat2, DMat3, DMat4, DVec2, DVec3, DVec4};
 use crate::prelude::*;
+use std::sync::atomic;
 
 pub type Int = i32;
 pub type Float = f64; // WARNING: If you want to change it to f32, don't forget to update Vector3 and Matrix3 types
@@ -30,6 +31,33 @@ pub type Vector2 = DVec2;
 //pub struct Vector3(pub DVec3); // To declare a type and use impl traits on this type
 // TODO: Use your own Vector3 to implement its deserialization 
 // this requires trait bounds to be satisfied, so it breaks most of the code atm
+
+
+static SCENE_OBJECT_UUID: atomic::AtomicU64 = atomic::AtomicU64::new(1); 
+pub fn next_uuid() -> u64 { 
+    SCENE_OBJECT_UUID.fetch_add(1, atomic::Ordering::Relaxed) 
+}
+
+
+// Formula given in slides 11, p.52
+pub fn pdf_sphere_inv(x: Float, cos_max: Float) -> Float {
+    (1. - x + (x * cos_max)).acos()
+}
+
+pub fn max_scale(mat: &Matrix4, ignore_w: bool) -> Float {
+    
+    let sx = mat.mul_vec4(Vector4::X).length();
+    let sy = mat.mul_vec4(Vector4::Y).length();
+    let sz = mat.mul_vec4(Vector4::Z).length();
+    
+    let max_xyz = sx.max(sy).max(sz);
+    if ignore_w {
+        max_xyz
+    } else {
+        let sw = mat.mul_vec4(Vector4::W).length();
+        max_xyz.max(sw)
+    }
+}
 
 pub fn is_zerovec(v: Vector3) -> bool {
     v.abs().element_sum() < 1e-8
