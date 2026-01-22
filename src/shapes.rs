@@ -445,7 +445,14 @@ impl EmissiveShape for LightSphere {
         let distance_vec = center_world - point;
         let d_recip = distance_vec.length_recip();
         let sin_theta_max = radius_world * d_recip;
-        let cos_theta_max = (1. - sin_theta_max * sin_theta_max).sqrt();
+        
+        // Fixing the ellipsoid scene bug:
+        // when point is inside bounding sphere 
+        let cos_theta_max = if sin_theta_max >= 1.0 {
+            0.0  // Point is inside sphere, can see entire shape
+        } else {
+            (1. - sin_theta_max * sin_theta_max).sqrt()
+        };
         
         let theta = numeric::pdf_sphere_inv(psi1, cos_theta_max);
         let rho = 2. * Float::PI * psi2;
