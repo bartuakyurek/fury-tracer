@@ -94,6 +94,13 @@ impl BBox {
          Vector3::new((self.xmin + self.xmax) * 0.5, (self.ymin + self.ymax) * 0.5, (self.zmin + self.zmax) * 0.5)
     }
 
+    pub fn get_sphere_radius(&self) -> Float {
+        0.5 * Vector3::new(
+            self.xmax - self.xmin,
+            self.ymax - self.ymin,
+            self.zmax - self.zmin,
+        ).length()
+    }
     pub fn intersect(&self, ray: &Ray) -> bool {
         // See slides 03, p.5-6
         

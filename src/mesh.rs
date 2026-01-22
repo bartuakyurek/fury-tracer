@@ -117,47 +117,29 @@ impl EmissiveShape for LightMesh {
     }
 
     fn sample_from_bsphere(&self, verts: &VertexData, point: Vector3, psi1: Float, psi2: Float) -> crate::shapes::ShapeSample {
-        // Calculate bounding sphere for the mesh
-        // Strategy: find center as average of all mesh vertices, then radius as max distance from center
-        let mut center_local = Vector3::ZERO;
-        let mut vertex_count = 0;
-        
-        // Use faces to get all vertex indices
-        for &vert_idx in &self.data.faces._data {
-            center_local += verts[vert_idx];
-            vertex_count += 1;
-        }
-        
-        if vertex_count > 0 {
-            center_local /= vertex_count as Float;
-        }
-        
-        // Find maximum radius from center
-        let mut radius_local = 0.0;
-        for &vert_idx in &self.data.faces._data {
-            let dist = (verts[vert_idx] - center_local).length();
-            if dist > radius_local {
-                radius_local = dist;
-            }
-        }
+        // Use bounding box to compute bounding sphere efficiently
+        // Convert bbox to bsphere
+        let bbox = self.data.bbox(verts, false); // Get bbox in local space
+        let center_local = bbox.get_center();
+        let radius_local = bbox.get_sphere_radius();
         
         // Transform center and radius to world space
-        let mut center_world = center_local;
-        let mut radius_world = radius_local;
-        
-        let mat = self.data.matrix;
-        {
-            center_world = crate::prelude::transform_point(&mat, &center_world);
-            let max_scale = crate::numeric::max_scale(&mat, true);
-            radius_world *= max_scale;
-        }
+        let center_world = crate::prelude::transform_point(&self.data.matrix, &center_local);
+        let max_scale = crate::numeric::max_scale(&self.data.matrix, true);
+        let radius_world = radius_local * max_scale;
         
         // Sample direction using solid angle around bounding sphere (same as LightSphere)
         // See slides 11 p.48 for notation
         let distance_vec = center_world - point;
         let d_recip = distance_vec.length_recip();
         let sin_theta_max = (radius_world * d_recip).clamp(0.0, 1.0); // Clamp to avoid numerical issues
-        let cos_theta_max = (1.0 - sin_theta_max * sin_theta_max).sqrt();
+        
+        // Handle case when point is inside bounding sphere
+        let cos_theta_max = if sin_theta_max >= 1.0 {
+            0.0  // Point is inside sphere, can see entire hemisphere
+        } else {
+            (1.0 - sin_theta_max * sin_theta_max).sqrt()
+        };
         
         let theta = crate::numeric::pdf_sphere_inv(psi1, cos_theta_max);
         let rho: Float = 2.0 * Float::PI * psi2;
