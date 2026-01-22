@@ -116,6 +116,7 @@ pub struct HitRecord {
     pub tbn_matrix: Option<Matrix3>, // Tangent space matric (TBN matrix in slides 07 pp.10-16)
 
     pub radiance: Option<Vector3>,
+    pub emissive_ptr: Option<Arc<dyn crate::shapes::EmissiveShape>>,
 }
 
 impl HitRecord {
@@ -140,6 +141,7 @@ impl HitRecord {
             texture_uv: uv,
             tbn_matrix: tbn,
             radiance: None,
+            emissive_ptr: None,
         }
     }
 

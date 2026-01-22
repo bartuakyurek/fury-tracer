@@ -93,6 +93,7 @@ impl Shape for LightMesh {
         let hit_record = self.data.intersect(ray, t_interval, vertex_cache);
         if let Some(mut rec) = hit_record {
             rec.radiance = Some(self.radiance);
+            rec.emissive_ptr =  Some(Arc::new(self.clone()) as Arc<dyn EmissiveShape>); // TODO: This is very easy to forget if a new light object kind is added!
             Some(rec)
         } else {
             None

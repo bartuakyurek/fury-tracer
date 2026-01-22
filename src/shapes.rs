@@ -34,7 +34,7 @@ pub struct ShapeSample {
 // =======================================================================================================
 // Emissive Shape Trait
 // =======================================================================================================
-pub trait EmissiveShape : Debug + Send + Sync + BBoxable {
+pub trait EmissiveShape : Debug + Send + Sync + BBoxable + Shape {
     fn radiance(&self) -> Vector3;
     fn sample_from_bsphere(&self, verts: &VertexData, point: Vector3, psi1: Float, psi2: Float) -> ShapeSample;
     
@@ -45,6 +45,7 @@ pub trait EmissiveShape : Debug + Send + Sync + BBoxable {
 // =======================================================================================================
 pub trait Shape : Debug + Send + Sync + BBoxable {
     fn intersects_with(&self, ray: &Ray, t_interval: &Interval, vertex_cache: &HeapAllocatedVerts) -> Option<HitRecord>;
+
 }
 
 #[derive(Debug, Deserialize, Clone, SmartDefault)]
@@ -391,6 +392,7 @@ impl Shape for LightSphere {
         let hit_record = self.data.intersect(ray, t_interval, vertex_cache);
         if let Some(mut rec) = hit_record {
             rec.radiance = Some(self.radiance);
+            rec.emissive_ptr =  Some(Arc::new(self.clone()) as Arc<dyn EmissiveShape>);
             Some(rec)
         } else {
             None

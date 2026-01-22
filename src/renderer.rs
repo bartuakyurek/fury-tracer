@@ -26,6 +26,7 @@ use crate::camera::Camera;
 use crate::image::{DecalMode, ImageData, Interpolation, Textures};
 use crate::interval::{Interval};
 use crate::prelude::*;
+use crate::shapes::EmissiveShape;
 
 
 pub fn update_brdf_and_get_normal(textures: &Textures, texmap_ids: &Vec<usize>, hit_record: &HitRecord, brdf: &mut ReflectanceParams) -> Vector3 {
@@ -152,22 +153,61 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
             info!("This shouldnt happen?");
             continue;
         }
-        //let shadow_ray = Ray::new(hit_record.hit_point, ray_direction, ray_in.time);  
-        //intersect_object_light(hit_record.hit_point, ray_direction, object_light);
-        todo!()
-    }
+
+        // Spawn a shadow ray to test intersection
+        let shadow_ray = Ray::new(
+        hit_record.hit_point + w_i * scene.data.shadow_ray_epsilon,
+        w_i,
+        ray_in.time,
+        );
+
+        // Intersection test for this shadow ray in the scene
+        if intersect_object_light(scene, &shadow_ray, object_light) {
+            // Evaluate BRDF
+            let w_o = -ray_in.direction;
+            let n = hit_record.normal;
+            let cos_theta = w_i.dot(n).max(0.0);
+
+            if cos_theta <= 0.0 {
+                continue;
+            }
+
+            let reflection = brdf::eval_brdf(
+                brdf_id,
+                mat,
+                scene_brdfs,
+                w_i,
+                w_o,
+                n,
+                &material_params,
+            );
+
+            let radiance = object_light.radiance();
+
+            // TODO: distance attenuation?
+            color += reflection * cos_theta * radiance / pdf;
+        }
+
+        }
 
     color
 }
 
 // Return radiance
-fn intersect_object_light(scene: &Scene, ray_origin: Vector3, ray_direction: Vector3, object: Arc<dyn Shape>, ) -> bool {
-    let ray_in = Ray::new_from(ray_origin, ray_direction);
-    if let Some(mut hit_record) = scene.hit_bvh(ray_in, &Interval::positive(scene.data.intersection_test_epsilon),false) {
-        true
-    } else {
-        false
+fn intersect_object_light(scene: &Scene, shadow_ray: &Ray, object_light: &Arc<dyn EmissiveShape>) -> bool {
+    
+    if let Some(shadow_hit) = scene.hit_bvh(
+            &shadow_ray,
+            &Interval::positive(scene.data.intersection_test_epsilon),
+            false,
+        ) {
+            // Accept only if we hit this emissive object
+            if let Some(hit_emissive) = &shadow_hit.emissive_ptr {
+                //debug!("Found the emissive object without occlusion!");
+                return Arc::ptr_eq(hit_emissive, object_light);
+            }
     }
+    false
 }
 
 pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 { 
