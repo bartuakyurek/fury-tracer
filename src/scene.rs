@@ -25,7 +25,7 @@ use crate::camera::{Cameras};
 use crate::interval::{Interval, FloatConst};
 use crate::ray::{Ray, HitRecord};
 use crate::acceleration::BVHSubtree;
-use crate::light::*;
+use crate::{light::*, numeric};
 use crate::prelude::*; // TODO: Excuse me but what's the point of prelude if there are so many use crate::yet_another_mod above?
 
 pub type HeapAllocatedVerts = Arc<VertexCache>;
@@ -551,7 +551,7 @@ impl SceneObjects {
         
         // Assign nonces to light spheres and add them to emissive shapes
         for light_sphere in self.light_spheres.iter_mut() {
-            light_sphere.nonce = rand::random::<u64>();
+            light_sphere.nonce = numeric::next_uuid(); //rand::random::<u64>();
             bboxable_shapes.push(Arc::new(light_sphere.clone()) as HeapAllocatedShape);
             emissive_shapes.push(Arc::new(light_sphere.clone()) as Arc<dyn EmissiveShape>);
         }
@@ -573,7 +573,7 @@ impl SceneObjects {
             unnecessarily_long_setup_function_for_scene_meshes(&mut lightmesh.data, json_dir, verts, &mut all_triangles, &mut uv_coords, &mut tot_mesh_faces)?;
             
             // Assign random nonce
-            lightmesh.nonce = rand::random::<u64>();
+            lightmesh.nonce = numeric::next_uuid(); // rand::random::<u64>();
             
             bboxable_shapes.push(Arc::new(lightmesh.clone()) as HeapAllocatedShape);
             emissive_shapes.push(Arc::new(lightmesh.clone()) as Arc<dyn EmissiveShape>);

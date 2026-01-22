@@ -24,7 +24,7 @@ use crate::light::{LightKind};
 use crate::scene::{Scene};
 use crate::camera::Camera;
 use crate::image::{DecalMode, ImageData, Interpolation, Textures};
-use crate::interval::{Interval};
+use crate::interval::{Interval, FloatConst};
 use crate::prelude::*;
 use crate::shapes::EmissiveShape;
 
@@ -197,9 +197,13 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
 // Return radiance
 fn intersect_object_light(scene: &Scene, shadow_ray: &Ray, object_light: &Arc<dyn EmissiveShape>) -> bool {
     
+    // Use a much smaller interval min to catch intersections close to the ray origin
+    // This is important for transformed lights where the intersection might be very close
+    let shadow_interval = Interval::new(1e-6, FloatConst::INF);
+    
     if let Some(shadow_hit) = scene.hit_bvh(
             &shadow_ray,
-            &Interval::positive(scene.data.intersection_test_epsilon),
+            &shadow_interval,
             false,
         ) {
             // Accept only if we hit this emissive object by comparing IDs
