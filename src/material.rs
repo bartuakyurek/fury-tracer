@@ -185,37 +185,45 @@ impl Material for DiffuseMaterial{
 
     fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, importance_sampling: bool) -> Option<(Ray, Vector3)> {
         
-        //if importance_sampling {
-        //    todo!()
-        //}
-        //else { // UNIFORM
-        //    todo!()
-        //}
-
+        // Sample theta and phi angles wrt given sampling (Either importance or uniform sampling)
+        let (psi1, psi2) = (random_float(), random_float());
+        let (theta, phi, pdf) = if importance_sampling { // COSINE SAMPLING
+            let theta = psi1.sqrt().asin();
+            let phi = 2.0 * Float::PI * psi2;
+            let pdf = theta.cos() / Float::PI; 
+            (theta, phi, pdf)
+        } else { // UNIFORM
+            let theta = psi1.acos();
+            let phi = 2.0 * Float::PI * psi2;
+            let pdf = 1.0 / (2.0 * Float::PI); 
+            (theta,phi, pdf)
+        };
+        
+        // Compute local direction from the angle samples
+        let (sin_theta, cos_theta, sin_phi, cos_phi) = (theta.sin(), theta.cos(), phi.sin(), phi.cos());
+        let local_dir = Vector3::new(
+                sin_theta * cos_phi,
+                sin_theta * sin_phi,
+                cos_theta,
+        );
+        // Compute scattered direction
         let n = hit_record.normal;
         let (u, v) = get_onb(&n);
+        let scattered_dir = local_dir.x * u + local_dir.y * v + local_dir.z * n; // World coordinates
+        debug_assert!(scattered_dir.is_normalized());
+        debug_assert!(pdf > 0.0, "PDF must be positive, got: {}", pdf);
         
-        let psi1 = random_float();
-        let psi2 = random_float();
-        let cos_theta = psi1.sqrt();
-        let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
-        let phi: Float = 2.0 * Float::PI * psi2;
-        
-        let local_dir = Vector3::new(
-            sin_theta * phi.cos(),
-            sin_theta * phi.sin(),
-            cos_theta,
-        );
-        
-        let scattered_dir = local_dir.x * u + local_dir.y * v + local_dir.z * n;
+        // Create corresponding ray
         let ray_origin = hit_record.hit_point + (n * epsilon);
         let scattered_ray = Ray::new(ray_origin, scattered_dir.normalize(), ray_in.time);
         
-        let pdf: Float = cos_theta / Float::PI;
-        let attenuation = self.brdf_common.diffuse_rf / pdf;
+        // Compute attenuation wrt Monte Carlo estimator
+        let cos_theta = scattered_dir.dot(n).max(0.0);
+        let brdf_value = self.brdf_common.diffuse_rf / Float::PI;
+        let attenuation = brdf_value * cos_theta / pdf;
         
-        Some((scattered_ray, attenuation))
-    }
+        Some((scattered_ray, attenuation))  
+}
 
 
 }
