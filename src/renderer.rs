@@ -313,8 +313,8 @@ pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, d
 
         // Indirect lighting with splitting
         let splitting_factor = cam.splitting_factor;
-        if splitting_factor > 1 {
-            // Spawn multiple rays and average their contributions
+        if splitting_factor > 1 && depth == 0 {
+            // Spawn multiple rays
             let mut indirect_sum = Vector3::ZERO;
             
             for _ in 0..splitting_factor {
