@@ -15,6 +15,7 @@ use rayon::prelude::*;
 use bevy_math::{NormedVectorSpace};
 
 use std::f64::consts::PI;
+use std::ops::Mul;
 use std::{self, time::Instant};
 
 use crate::brdf;
@@ -282,15 +283,17 @@ pub fn ray_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, de
 }
 
 
-const SURVIVAL_PROBABILITY: Float = 0.5; // TODO: is this given in the json?
-pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 {
+//const SURVIVAL_PROBABILITY: Float = 0.5; // TODO: THIS SHOULDNT BE A FIXED PROBABILITY
+pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize, mut throughput: Vector3) -> Vector3 {
     if depth >= max_depth {
         return sample_background(ray_in, scene, cam);
     }
 
+    // slides 11, p.32 TODO: is it correct to apply it here?
+    let rr_probability: Float = throughput.max_element().max(0.99); // As throughput reduces, probability of survival drops
     if cam.renderer_params.russian_roulette && depth > 0 { 
         let psi = random_float();
-        if psi > SURVIVAL_PROBABILITY {
+        if psi > rr_probability {
             return Vector3::ZERO;
         } 
     }
@@ -299,7 +302,7 @@ pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, d
     if let Some(mut hit_record) = scene.hit_bvh(ray_in, &t_interval, false) {
         
         if let Some(rad) = hit_record.radiance {
-            return rad;
+            return throughput * rad;
         }
         
         let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
@@ -307,8 +310,10 @@ pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, d
         let mut radiance = Vector3::ZERO;
 
         // Direct lighting (NEE)
-        if cam.renderer_params.nee && hit_record.is_front_face {
-            radiance += shade_diffuse(scene, &mut hit_record, ray_in);
+        // TODO: THIS IS NOT HOW NEE WORKS I SHOULD'VE SAMPLED A LIGHT SOURCE; NOT CONNECTING THEM ALL
+        if cam.renderer_params.nee && hit_record.is_front_face { // TODO: I added is_front_face assuming a material could be dielectric but is it correct..?
+            let direct = shade_diffuse(scene, &mut hit_record, ray_in);
+            radiance += throughput * direct;
         }
 
         // Indirect lighting with splitting
@@ -319,8 +324,9 @@ pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, d
             
             for _ in 0..splitting_factor {
                 if let Some((scattered_ray, attenuation)) = mat.scatter(ray_in, &hit_record, epsilon, cam.renderer_params.importance_sampling) {
-                    let indirect = path_trace(&scattered_ray, scene, cam, max_depth, depth + 1);
-                    indirect_sum += attenuation * indirect;
+                    let indirect = path_trace(&scattered_ray, scene, cam, max_depth, depth + 1, throughput);
+                    throughput = throughput.mul(attenuation);
+                    indirect_sum += throughput * indirect;
                 }
             }
             
@@ -330,14 +336,15 @@ pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, d
         } else {
             // Single ray without splitting
             if let Some((scattered_ray, attenuation)) = mat.scatter(ray_in, &hit_record, epsilon, cam.renderer_params.importance_sampling) {
-                let indirect = path_trace(&scattered_ray, scene, cam, max_depth, depth + 1);
-                radiance += attenuation * indirect;
+                let indirect = path_trace(&scattered_ray, scene, cam, max_depth, depth + 1, throughput);
+                throughput = throughput.mul(attenuation);
+                radiance += throughput * indirect;
             }
         }
 
         // Russian Roulette compensation (slides 11, p.29)
         if cam.renderer_params.russian_roulette && depth > 0 {
-            radiance /= SURVIVAL_PROBABILITY;
+            radiance /= rr_probability;
         }
        
         radiance
@@ -351,7 +358,7 @@ pub fn trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize) -> Vec
     match cam.renderer.to_ascii_lowercase().as_str() {
         "pathtracing" => { 
             //info!("Using path tracing...");
-            path_trace(ray_in, scene, cam, max_depth, 0)
+            path_trace(ray_in, scene, cam, max_depth, 0, Vector3::ONE)
         }
         _ => { 
             //info!("Using ray tracing (direct lighting) by default.");
