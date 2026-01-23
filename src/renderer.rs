@@ -281,8 +281,53 @@ pub fn ray_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, de
    }
 }
 
-pub fn path_trace(ray_in: &Ray,  scene: &Scene, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 {
-    todo!()
+
+
+pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 {
+    if depth >= max_depth {
+        return sample_background(ray_in, scene, cam);
+    }
+
+    if cam.renderer_params.russian_roulette {
+        const ROULETTE_PROBABILITY: Float = 0.5; // TODO: is this given in the json?
+        let psi = random_float();
+        if psi > ROULETTE_PROBABILITY {
+            return sample_background(ray_in, scene, cam);
+        } 
+    }
+
+    let t_interval = Interval::positive(scene.data.intersection_test_epsilon);
+    if let Some(mut hit_record) = scene.hit_bvh(ray_in, &t_interval, false) {
+        
+        // If we hit an emissive object, return its radiance
+        if let Some(rad) = hit_record.radiance {
+            return rad;
+        }
+        
+        let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
+        let epsilon = scene.data.intersection_test_epsilon;     
+        let mut radiance = Vector3::ZERO;
+
+        // CASE: If material scatters the ray
+        if let Some((scattered_ray, attenuation)) = mat.scatter(ray_in, &hit_record, epsilon, cam.renderer_params.importance_sampling) {
+            // Direct lighting 
+            if cam.renderer_params.nee {
+                if hit_record.is_front_face { 
+                        radiance += shade_diffuse(scene, &mut hit_record, ray_in);
+                }
+            }
+
+            // Indirect lighting
+            let indirect = path_trace(&scattered_ray, scene, cam, max_depth, depth + 1);
+
+            radiance += attenuation * indirect;
+            return radiance;
+        }
+        
+        radiance
+    } else {
+        sample_background(ray_in, scene, cam)
+    }
 }
 
 pub fn trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize) -> Vector3 { 

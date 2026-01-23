@@ -22,10 +22,10 @@ use crate::json_structs::{SingleOrVec, Transformations};
 
 #[derive(Clone, Debug, Default)]
 pub struct RendererParameters {
-    importance_sampling: bool,
-    nee: bool,
-    mis_balance: bool,
-    russian_roulette: bool,
+    pub importance_sampling: bool,
+    pub nee: bool,
+    pub mis_balance: bool,
+    pub russian_roulette: bool,
 }
 
 impl<'de> Deserialize<'de> for RendererParameters {
