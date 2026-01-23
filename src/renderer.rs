@@ -283,23 +283,21 @@ pub fn ray_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, de
 
 
 const SURVIVAL_PROBABILITY: Float = 0.5; // TODO: is this given in the json?
-
 pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 {
     if depth >= max_depth {
         return sample_background(ray_in, scene, cam);
     }
 
-    if cam.renderer_params.russian_roulette {
+    if cam.renderer_params.russian_roulette && depth > 0 { 
         let psi = random_float();
         if psi > SURVIVAL_PROBABILITY {
-            return Vector3::ZERO; // Kill the ray and return 0 (slides 11, p.29) 
+            return Vector3::ZERO;
         } 
     }
 
     let t_interval = Interval::positive(scene.data.intersection_test_epsilon);
     if let Some(mut hit_record) = scene.hit_bvh(ray_in, &t_interval, false) {
         
-        // If we hit an emissive object, return its radiance
         if let Some(rad) = hit_record.radiance {
             return rad;
         }
@@ -308,26 +306,40 @@ pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, d
         let epsilon = scene.data.intersection_test_epsilon;     
         let mut radiance = Vector3::ZERO;
 
-        // CASE: If material scatters the ray
-        if let Some((scattered_ray, attenuation)) = mat.scatter(ray_in, &hit_record, epsilon, cam.renderer_params.importance_sampling) {
-            // Direct lighting 
-            if cam.renderer_params.nee {
-                if hit_record.is_front_face { 
-                        radiance += shade_diffuse(scene, &mut hit_record, ray_in);
+        // Direct lighting (NEE)
+        if cam.renderer_params.nee && hit_record.is_front_face {
+            radiance += shade_diffuse(scene, &mut hit_record, ray_in);
+        }
+
+        // Indirect lighting with splitting
+        let splitting_factor = cam.splitting_factor;
+        if splitting_factor > 1 {
+            // Spawn multiple rays and average their contributions
+            let mut indirect_sum = Vector3::ZERO;
+            
+            for _ in 0..splitting_factor {
+                if let Some((scattered_ray, attenuation)) = mat.scatter(ray_in, &hit_record, epsilon, cam.renderer_params.importance_sampling) {
+                    let indirect = path_trace(&scattered_ray, scene, cam, max_depth, depth + 1);
+                    indirect_sum += attenuation * indirect;
                 }
             }
-
-            // Indirect lighting
-            let indirect = path_trace(&scattered_ray, scene, cam, max_depth, depth + 1);
-
-            radiance += attenuation * indirect;
-
-            if cam.renderer_params.russian_roulette {
-                radiance /= SURVIVAL_PROBABILITY; // Weighting (slides 11, p.29)
+            
+            // Average the contributions
+            radiance += indirect_sum / (splitting_factor as Float);
+            
+        } else {
+            // Single ray without splitting
+            if let Some((scattered_ray, attenuation)) = mat.scatter(ray_in, &hit_record, epsilon, cam.renderer_params.importance_sampling) {
+                let indirect = path_trace(&scattered_ray, scene, cam, max_depth, depth + 1);
+                radiance += attenuation * indirect;
             }
-            return radiance;
         }
-        
+
+        // Russian Roulette compensation (slides 11, p.29)
+        if cam.renderer_params.russian_roulette && depth > 0 {
+            radiance /= SURVIVAL_PROBABILITY;
+        }
+       
         radiance
     } else {
         sample_background(ray_in, scene, cam)
