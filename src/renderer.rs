@@ -426,6 +426,20 @@ fn box_filter(colors: &Vec<Vector3>, n_samples: usize) -> Vec<Vector3> {
             .collect()
 }
 
+fn clamp_colors(colors: &Vec<Vector3>, max_value: Float) -> Vec<Vector3> {
+     
+        let mut clamped_colors: Vec<Vector3> = Vec::with_capacity(colors.capacity());
+        for color in colors.iter() {
+            // Clamping (see pathtracing.pdf, section 6)
+            let x = color.x.min(max_value);
+            let y = color.y.min(max_value);
+            let z = color.z.min(max_value);
+            let col = Vector3::new(x, y, z);
+            clamped_colors.push(col);
+        }
+        clamped_colors
+}
+
 pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error>>
 {
     let mut images: Vec<ImageData> = Vec::new();
@@ -455,13 +469,18 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         let start = Instant::now();
         let eye_rays: Vec<Ray> = cam.generate_primary_rays(n_samples);
         info!("Starting ray tracing...");
-        let colors: Vec<_> = eye_rays
+        let mut colors: Vec<_> = eye_rays
             .par_iter()
             .map(|ray| trace(ray, scene, &cam, max_depth))
             .collect();
         info!("Ray tracing completed.");
         // -----------------------------
         
+        // Clamping before aggregating pixel values 
+        if let Some(max_value) = cam.sample_maxval {
+            colors = clamp_colors(&colors, max_value);
+        }
+
         let pixel_colors = if n_samples > 1 {
             box_filter(&colors, n_samples)
         } else {

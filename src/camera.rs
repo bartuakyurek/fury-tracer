@@ -163,6 +163,9 @@ pub struct Camera {
     #[default = 1]
     pub splitting_factor: usize,
 
+    #[serde(rename = "SampleMaxVal", deserialize_with = "deser_opt_float")]
+    pub sample_maxval: Option<Float>,
+
     #[serde(skip)]
     w : Vector3,
 
