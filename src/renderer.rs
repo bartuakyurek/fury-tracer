@@ -282,6 +282,7 @@ pub fn ray_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, de
 }
 
 
+const SURVIVAL_PROBABILITY: Float = 0.5; // TODO: is this given in the json?
 
 pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 {
     if depth >= max_depth {
@@ -289,10 +290,9 @@ pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, d
     }
 
     if cam.renderer_params.russian_roulette {
-        const ROULETTE_PROBABILITY: Float = 0.5; // TODO: is this given in the json?
         let psi = random_float();
-        if psi > ROULETTE_PROBABILITY {
-            return sample_background(ray_in, scene, cam);
+        if psi > SURVIVAL_PROBABILITY {
+            return Vector3::ZERO; // Kill the ray and return 0 (slides 11, p.29) 
         } 
     }
 
@@ -321,6 +321,10 @@ pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, d
             let indirect = path_trace(&scattered_ray, scene, cam, max_depth, depth + 1);
 
             radiance += attenuation * indirect;
+
+            if cam.renderer_params.russian_roulette {
+                radiance /= SURVIVAL_PROBABILITY; // Weighting (slides 11, p.29)
+            }
             return radiance;
         }
         
