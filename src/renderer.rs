@@ -426,15 +426,20 @@ fn box_filter(colors: &Vec<Vector3>, n_samples: usize) -> Vec<Vector3> {
             .collect()
 }
 
+
+fn clamp_vec3(color: &Vector3, max_value: Float) -> Vector3 {
+    let x = color.x.min(max_value);
+    let y = color.y.min(max_value);
+    let z = color.z.min(max_value);
+    Vector3::new(x, y, z)
+}
+
 fn clamp_colors(colors: &Vec<Vector3>, max_value: Float) -> Vec<Vector3> {
      
         let mut clamped_colors: Vec<Vector3> = Vec::with_capacity(colors.capacity());
         for color in colors.iter() {
             // Clamping (see pathtracing.pdf, section 6)
-            let x = color.x.min(max_value);
-            let y = color.y.min(max_value);
-            let z = color.z.min(max_value);
-            let col = Vector3::new(x, y, z);
+            let col = clamp_vec3(color, max_value);
             clamped_colors.push(col);
         }
         clamped_colors
@@ -451,7 +456,7 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         //  in actual scene structs, that needs to be changed maybe.
         // TODO: std::OnceCell can be handy to integrate setup( ) calls of our deserialized structs  
         cam.setup(&scene.data.transformations); 
-        info!(cam.comment);
+        info!("{}\nSplitting factor: {}", cam.comment, cam.splitting_factor);
 
         let n_samples = cam.num_samples as usize;
         
