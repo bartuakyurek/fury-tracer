@@ -290,7 +290,7 @@ pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, d
     }
 
     // slides 11, p.32 TODO: is it correct to apply it here?
-    let rr_probability: Float = throughput.max_element().max(0.99); // As throughput reduces, probability of survival drops
+    let rr_probability: Float = throughput.max_element().min(0.99); // As throughput reduces, probability of survival drops
     if cam.renderer_params.russian_roulette && depth > 0 { 
         let psi = random_float();
         if psi > rr_probability {
