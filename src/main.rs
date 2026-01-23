@@ -104,6 +104,7 @@ fn print_my_dummy_debug(scene: &Scene) {
     for cam in scene.data.cameras.all() {
         info!(cam.comment);
         info!("{:?}", cam.renderer_params);
+        info!(cam.splitting_factor);
     }
 }
 

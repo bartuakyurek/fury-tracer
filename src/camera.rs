@@ -159,6 +159,10 @@ pub struct Camera {
     #[serde(rename = "RendererParams", default)]
     pub renderer_params: RendererParameters,
 
+    #[serde(rename = "SplittingFactor", deserialize_with = "deser_usize")]
+    #[default = 1]
+    pub splitting_factor: usize,
+
     #[serde(skip)]
     w : Vector3,
 
