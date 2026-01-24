@@ -76,6 +76,22 @@ where
 }
 
 
+pub(crate) fn deser_opt_float<'de, D>(deserializer: D) -> Result<Option<Float>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let opt = Option::<String>::deserialize(deserializer)?;
+
+    match opt {
+        Some(s) if !s.is_empty() => {
+            let parsed = s.parse::<Float>().map_err(serde::de::Error::custom)?;
+            Ok(Some(parsed))
+        }
+        _ => Ok(None),
+    }
+}
+
+
 pub(crate) fn deser_usize<'de, D>(deserializer: D) -> Result<usize, D::Error>
 where
     D: Deserializer<'de>,

@@ -11,11 +11,70 @@ use rand::{SeedableRng, random};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom; // for shuffle()
 
+use serde::{Deserialize, Deserializer};
+use serde::de::{self, Visitor};
+use std::fmt;
 
 use crate::tonemap::ToneMap;
 use crate::prelude::*;
 use crate::{image, ray::Ray};
 use crate::json_structs::{SingleOrVec, Transformations};
+
+#[derive(Clone, Debug, Default)]
+pub struct RendererParameters {
+    pub importance_sampling: bool,
+    pub nee: bool,
+    pub mis_balance: bool,
+    pub russian_roulette: bool,
+}
+
+impl<'de> Deserialize<'de> for RendererParameters {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct RendererParamsVisitor;
+
+        impl<'de> Visitor<'de> for RendererParamsVisitor {
+            type Value = RendererParameters;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a space-separated list of renderer parameters")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                let mut params = RendererParameters::default();
+
+                for token in v.split_whitespace() {
+                    match token {
+                        "ImportanceSampling" => params.importance_sampling = true,
+                        "NextEventEstimation" => params.nee = true,
+                        "MIS_BALANCE" => params.mis_balance = true,
+                        "RussianRoulette" => params.russian_roulette = true,
+                        unknown => {
+                            return Err(E::unknown_variant(
+                                unknown,
+                                &[
+                                    "ImportanceSampling",
+                                    "NextEventEstimation",
+                                    "MIS_BALANCE",
+                                    "RussianRoulette",
+                                ],
+                            ));
+                        }
+                    }
+                }
+
+                Ok(params)
+            }
+        }
+
+        deserializer.deserialize_str(RendererParamsVisitor)
+    }
+}
 
 #[derive(Debug, Deserialize, Default)]
 pub struct Cameras {
@@ -90,6 +149,22 @@ pub struct Camera {
 
     #[serde(rename = "Tonemap")]
     pub(crate) tone_maps: SingleOrVec<ToneMap>,
+
+    #[serde(rename = "Comment")]
+    pub comment: String,
+
+    #[serde(rename = "Renderer")]
+    pub renderer: String,
+
+    #[serde(rename = "RendererParams", default)]
+    pub renderer_params: RendererParameters,
+
+    #[serde(rename = "SplittingFactor", deserialize_with = "deser_usize")]
+    #[default = 1]
+    pub splitting_factor: usize,
+
+    #[serde(rename = "SampleMaxVal", deserialize_with = "deser_opt_float")]
+    pub sample_maxval: Option<Float>,
 
     #[serde(skip)]
     w : Vector3,

@@ -17,6 +17,7 @@ use std::fmt::Debug;
 use bevy_math::NormedVectorSpace;
 use serde::{Deserialize, de::DeserializeOwned};
 
+use crate::interval::FloatConst;
 use crate::ray::{Ray, HitRecord}; 
 use crate::prelude::*;
 use crate::brdf;
@@ -80,6 +81,8 @@ impl ReflectanceParams {
 
 pub trait Material : Debug + Send + Sync  {
     // TODO: could’ve implemet shade_diffuse(shadow_ray: &Ray, …) inside Material for cleaner logic ?
+    fn setup(&mut self) { debug!("Empty setup called for a material, ignoring..."); }
+
     fn new_from(value: &serde_json::Value) -> Self 
     where
         Self: Sized + DeserializeOwned + Default,
@@ -93,16 +96,14 @@ pub trait Material : Debug + Send + Sync  {
         }
     }
 
-    fn reflectance_data(&self) -> &ReflectanceParams;
-    
     fn get_type(&self) -> &str; 
-    fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)>; //(Ray, attenuation)
-
     fn brdf(&self) -> Option<usize>; // Returns BRDF _id if specified
-
+    fn reflectance_data(&self) -> &ReflectanceParams;
     fn get_fresnel_indices(&self) -> Option<(Float, Float)>; 
     
-    fn setup(&mut self) { debug!("Empty setup called for a material, ignoring..."); }
+    fn interact(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, does_reflect: bool) -> Option<(Ray, Vector3)>; //(Ray, attenuation) --> Used for Ray Tracing requiring Shadow Rays, deterministically reflecting refracting rays if needed (e.g. in Mirror materials) and Diffuse material does not spawn a ray
+    fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, importance_sampling: bool) -> Option<(Ray, Vector3)>; // Intended to be used for Path Tracing, spawning rays randomly
+    // TODO: Should we merge interact( ) and scatter( )?
 }
 
 pub type HeapAllocMaterial = Box<dyn Material>; // Box, Rc, Arc -> Probably will be Arc when we use rayon
@@ -181,6 +182,48 @@ impl Material for DiffuseMaterial{
         info!("Diffuse material returning fresnel indices as none... Consider adding type field to Material in JSON file if this behaviour is unexpected.");
         None
     }
+
+    fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, importance_sampling: bool) -> Option<(Ray, Vector3)> {
+        
+        // Sample theta and phi angles wrt given sampling (Either importance or uniform sampling)
+        let (psi1, psi2) = (random_float(), random_float());
+        let (theta, phi, pdf) = if importance_sampling { // COSINE SAMPLING
+            let theta = psi1.sqrt().asin();
+            let phi = 2.0 * Float::PI * psi2;
+            let pdf = theta.cos() / Float::PI; 
+            (theta, phi, pdf)
+        } else { // UNIFORM
+            let theta = psi1.acos();
+            let phi = 2.0 * Float::PI * psi2;
+            let pdf = 1.0 / (2.0 * Float::PI); 
+            (theta,phi, pdf)
+        };
+        
+        // Compute local direction from the angle samples
+        let (sin_theta, cos_theta, sin_phi, cos_phi) = (theta.sin(), theta.cos(), phi.sin(), phi.cos());
+        let local_dir = Vector3::new(
+                sin_theta * cos_phi,
+                sin_theta * sin_phi,
+                cos_theta,
+        );
+        // Compute scattered direction
+        let n = hit_record.normal;
+        let (u, v) = get_onb(&n);
+        let scattered_dir = local_dir.x * u + local_dir.y * v + local_dir.z * n; // World coordinates
+        debug_assert!(scattered_dir.is_normalized());
+        debug_assert!(pdf > 0.0, "PDF must be positive, got: {}", pdf);
+        
+        // Create corresponding ray
+        let ray_origin = hit_record.hit_point + (n * epsilon);
+        let scattered_ray = Ray::new(ray_origin, scattered_dir.normalize(), ray_in.time);
+        
+        // Compute attenuation wrt Monte Carlo estimator
+        let cos_theta = scattered_dir.dot(n).max(0.0);
+        let brdf_value = self.brdf_common.diffuse_rf / Float::PI;
+        let attenuation = brdf_value * cos_theta / pdf;
+        
+        Some((scattered_ray, attenuation))  
+}
 
 
 }
@@ -290,6 +333,11 @@ impl Material for MirrorMaterial {
     fn get_fresnel_indices(&self) -> Option<(Float, Float)> {
         info!("Mirror material returning fresnel indices as none");
         None
+    }
+
+    fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, _: bool) -> Option<(Ray, Vector3)> {
+        // TODO: is it safe to ignore importance sampling here?
+        self.reflect(ray_in, hit_record, epsilon)
     }
     
 }
@@ -523,6 +571,22 @@ impl Material for DielectricMaterial {
         // (absorption coefficient is not used in the same way for dielectrics)
         Some((0.0, self.refraction_index))
     }
+
+    fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, _: bool) -> Option<(Ray, Vector3)> {
+        
+        let mut fresnel = FresnelData::default();
+        if !self.fresnel(ray_in, hit_record, &mut fresnel) {
+            // Total internal reflection
+            return self.reflect(ray_in, hit_record, epsilon);
+        }
+        
+        // TODO: is this correct way to handle?
+        if random_float() < fresnel.f_r {
+            self.reflect(ray_in, hit_record, epsilon)
+        } else {
+            self.refract(ray_in, hit_record, epsilon)
+        }
+    }
 }
 
 
@@ -685,5 +749,10 @@ impl Material for ConductorMaterial {
 
     fn get_fresnel_indices(&self) -> Option<(Float, Float)> {
         Some((self.absorption_index, self.refraction_index))
+    }
+
+    fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord, epsilon: Float, _: bool) -> Option<(Ray, Vector3)> {
+        // TODO: just like mirror here I assume
+        self.reflect(ray_in, hit_record, epsilon)
     }
 }

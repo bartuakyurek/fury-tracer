@@ -150,7 +150,7 @@ impl EmissiveShape for LightMesh {
         let cos_rho = rho.cos();
         let local_direction = Vector3::new(sin_theta * cos_rho, sin_theta * sin_rho, cos_theta);
 
-        let w = distance_vec.normalize();
+        let w = distance_vec.normalize(); // WARNING: this corresponds to v in eqn. 13, i.e. aligning with the normal
         let (u, v) = crate::numeric::get_onb(&w);
 
         let final_direction = local_direction.x * u + local_direction.y * v + local_direction.z * w;

@@ -15,6 +15,7 @@ use rayon::prelude::*;
 use bevy_math::{NormedVectorSpace};
 
 use std::f64::consts::PI;
+use std::ops::Mul;
 use std::{self, time::Instant};
 
 use crate::brdf;
@@ -215,7 +216,7 @@ fn intersect_object_light(scene: &Scene, shadow_ray: &Ray, object_light: &Arc<dy
     false
 }
 
-pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 { 
+pub fn ray_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 { 
   
    if depth >= max_depth {
         //return Vector3::X * 255.;
@@ -242,7 +243,7 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, de
             },
             "mirror" | "conductor" => { 
                     if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        shade_diffuse(scene,  &mut hit_record, ray_in) + attenuation * get_color(&reflected_ray, scene, cam, max_depth, depth + 1) 
+                        shade_diffuse(scene,  &mut hit_record, ray_in) + attenuation * ray_trace(&reflected_ray, scene, cam, max_depth, depth + 1) 
                     }
                     else {
                         warn!("Material not reflecting...");
@@ -259,12 +260,12 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, de
  
                 // Reflected 
                 if let Some((reflected_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, true) {
-                        tot_radiance += attenuation * get_color(&reflected_ray, scene, cam, max_depth, depth + 1);
+                        tot_radiance += attenuation * ray_trace(&reflected_ray, scene, cam, max_depth, depth + 1);
                 }
         
                 // Refracted 
                 if let Some((refracted_ray, attenuation)) = mat.interact(ray_in, &hit_record, epsilon, false) {
-                        tot_radiance += attenuation * get_color(&refracted_ray, scene, cam, max_depth, depth + 1);
+                        tot_radiance += attenuation * ray_trace(&refracted_ray, scene, cam, max_depth, depth + 1);
                 }
                 tot_radiance
             },
@@ -281,6 +282,91 @@ pub fn get_color(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, de
    }
 }
 
+
+//const SURVIVAL_PROBABILITY: Float = 0.5; // TODO: THIS SHOULDNT BE A FIXED PROBABILITY
+pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize, mut throughput: Vector3) -> Vector3 {
+    if depth >= max_depth {
+        return sample_background(ray_in, scene, cam);
+    }
+
+    // slides 11, p.32 TODO: is it correct to apply it here?
+    let rr_probability: Float = throughput.max_element().min(0.99); // As throughput reduces, probability of survival drops
+    if cam.renderer_params.russian_roulette && depth > 0 { 
+        let psi = random_float();
+        if psi > rr_probability {
+            return Vector3::ZERO;
+        } 
+    }
+
+    let t_interval = Interval::positive(scene.data.intersection_test_epsilon);
+    if let Some(mut hit_record) = scene.hit_bvh(ray_in, &t_interval, false) {
+        
+        if let Some(rad) = hit_record.radiance {
+            return throughput * rad;
+        }
+        
+        let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
+        let epsilon = scene.data.intersection_test_epsilon;     
+        let mut radiance = Vector3::ZERO;
+
+        // Direct lighting (NEE)
+        // TODO: THIS IS NOT HOW NEE WORKS I SHOULD'VE SAMPLED A LIGHT SOURCE; NOT CONNECTING THEM ALL
+        if cam.renderer_params.nee && hit_record.is_front_face { // TODO: I added is_front_face assuming a material could be dielectric but is it correct..?
+            let direct = shade_diffuse(scene, &mut hit_record, ray_in);
+            radiance += throughput * direct;
+        }
+
+        // Indirect lighting with splitting
+        let splitting_factor = cam.splitting_factor;
+        if splitting_factor > 1 && depth == 0 {
+            // Spawn multiple rays
+            let mut indirect_sum = Vector3::ZERO;
+            
+            for _ in 0..splitting_factor {
+                if let Some((scattered_ray, attenuation)) = mat.scatter(ray_in, &hit_record, epsilon, cam.renderer_params.importance_sampling) {
+                    let indirect = path_trace(&scattered_ray, scene, cam, max_depth, depth + 1, throughput);
+                    throughput = throughput.mul(attenuation);
+                    indirect_sum += throughput * indirect;
+                }
+            }
+            
+            // Average the contributions
+            radiance += indirect_sum / (splitting_factor as Float);
+            
+        } else {
+            // Single ray without splitting
+            if let Some((scattered_ray, attenuation)) = mat.scatter(ray_in, &hit_record, epsilon, cam.renderer_params.importance_sampling) {
+                let indirect = path_trace(&scattered_ray, scene, cam, max_depth, depth + 1, throughput);
+                throughput = throughput.mul(attenuation);
+                radiance += throughput * indirect;
+            }
+        }
+
+        // Russian Roulette compensation (slides 11, p.29)
+        if cam.renderer_params.russian_roulette && depth > 0 {
+            radiance /= rr_probability;
+        }
+       
+        radiance
+    } else {
+        sample_background(ray_in, scene, cam)
+    }
+}
+
+pub fn trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize) -> Vector3 { 
+
+    match cam.renderer.to_ascii_lowercase().as_str() {
+        "pathtracing" => { 
+            //info!("Using path tracing...");
+            path_trace(ray_in, scene, cam, max_depth, 0, Vector3::ONE)
+        }
+        _ => { 
+            //info!("Using ray tracing (direct lighting) by default.");
+            ray_trace(ray_in, scene, cam, max_depth, 0) 
+        }
+    }
+    
+}
 
 fn sample_background(ray_in: &Ray, scene: &Scene, cam: &Camera) -> Vector3 {
     // TODO: avoid iterating over textures, cache if background texture is
@@ -347,6 +433,25 @@ fn box_filter(colors: &Vec<Vector3>, n_samples: usize) -> Vec<Vector3> {
             .collect()
 }
 
+
+fn clamp_vec3(color: &Vector3, max_value: Float) -> Vector3 {
+    let x = color.x.min(max_value);
+    let y = color.y.min(max_value);
+    let z = color.z.min(max_value);
+    Vector3::new(x, y, z)
+}
+
+fn clamp_colors(colors: &Vec<Vector3>, max_value: Float) -> Vec<Vector3> {
+     
+        let mut clamped_colors: Vec<Vector3> = Vec::with_capacity(colors.capacity());
+        for color in colors.iter() {
+            // Clamping (see pathtracing.pdf, section 6)
+            let col = clamp_vec3(color, max_value);
+            clamped_colors.push(col);
+        }
+        clamped_colors
+}
+
 pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error>>
 {
     let mut images: Vec<ImageData> = Vec::new();
@@ -358,8 +463,11 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         //  in actual scene structs, that needs to be changed maybe.
         // TODO: std::OnceCell can be handy to integrate setup( ) calls of our deserialized structs  
         cam.setup(&scene.data.transformations); 
+        info!("{}\nSplitting factor: {}", cam.comment, cam.splitting_factor);
+
         let n_samples = cam.num_samples as usize;
         
+        // Infer maximum recursion depth
         let max_depth = 
         if let Some(depth) = cam.max_recursion_depth {
             info!("Found max recursion depth inside Camera: {}", depth);
@@ -373,13 +481,18 @@ pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error
         let start = Instant::now();
         let eye_rays: Vec<Ray> = cam.generate_primary_rays(n_samples);
         info!("Starting ray tracing...");
-        let colors: Vec<_> = eye_rays
+        let mut colors: Vec<_> = eye_rays
             .par_iter()
-            .map(|ray| get_color(ray, scene, &cam, max_depth, 0))
+            .map(|ray| trace(ray, scene, &cam, max_depth))
             .collect();
         info!("Ray tracing completed.");
         // -----------------------------
         
+        // Clamping before aggregating pixel values 
+        if let Some(max_value) = cam.sample_maxval {
+            colors = clamp_colors(&colors, max_value);
+        }
+
         let pixel_colors = if n_samples > 1 {
             box_filter(&colors, n_samples)
         } else {
