@@ -36,13 +36,14 @@ pub type HeapAllocatedVerts = Arc<VertexCache>;
 #[derive(Debug, Deserialize)]
 pub struct RootScene {
     #[serde(rename = "Scene")]
-    pub scene: SceneJSON,
+    pub scene: Scene3D,
 }
+
 
 #[derive(Debug, Deserialize, SmartDefault)]
 #[serde(rename_all = "PascalCase")]
 #[serde(default)]
-pub struct SceneJSON {
+pub struct Scene3D {
     #[default = 5]
     #[serde(deserialize_with = "deser_usize")]
     pub max_recursion_depth: usize,
@@ -75,7 +76,7 @@ pub struct SceneJSON {
     
 }
 
-impl SceneJSON {
+impl Scene3D {
     pub fn setup_and_get_cache(&mut self, jsonpath: &Path) -> Result<VertexCache, Box<dyn Error>>{
         // Implement required adjustments after loading from a JSON file
         debug!(">> Scene transformations: {:?}", self.transformations);
@@ -126,7 +127,7 @@ pub struct Scene <'a>
 //where 
 //   T: Shape + BBoxable + 'static,
 {
-    pub data: &'a SceneJSON, // I'm figuring out data composition in Rust here
+    pub data: &'a Scene3D, // I'm figuring out data composition in Rust here
                              // in order not to clutter deserialized Scene with additional data.
                              // Otherwise it requires serde[skip] annotations for each addition.
 
@@ -139,7 +140,7 @@ impl<'a> Scene <'a>  // Lifetime annotation 'a looks scary but it was needed for
 //where 
 //    T: Shape + BBoxable + 'static,
     { 
-    pub fn new_from(scene_json: &'a mut SceneJSON, jsonpath: &Path) -> Self {
+    pub fn new_from(scene_json: &'a mut Scene3D, jsonpath: &Path) -> Self {
 
         let cache = scene_json.setup_and_get_cache(jsonpath).unwrap(); 
 
