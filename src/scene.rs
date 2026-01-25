@@ -70,7 +70,7 @@ pub struct Layer2D {
     image_relative_path: String,
 
     #[serde(skip)]
-    data: ImageData,
+    data: Vec<crate::pixel::PixelData>,
 }
 
 impl Layer2D {
@@ -78,7 +78,9 @@ impl Layer2D {
         let path = jsonpath.parent().unwrap_or(jsonpath).join(self.image_relative_path.clone());
         info!("Reading layer image from {:?} ", path);
         let img = image::open(path).unwrap();
-        info!("{:?}", img);
+
+        let img_rgba = img.as_rgba8().unwrap();
+        todo!("Turn img into actual data holding PixelData");
     }
 }
 
