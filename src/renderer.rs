@@ -544,6 +544,10 @@ impl crate::scene::Scene for Scene3D {
 
 
 impl crate::scene::Scene for Scene2D {
+
+    fn print_my_dummy_debug(&self) {
+        dbg!(self);
+    }
     fn render(&self) -> Result<Vec<crate::image::ImageData>, Box<dyn std::error::Error>> {
         todo!()
     }
