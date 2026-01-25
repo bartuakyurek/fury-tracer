@@ -22,7 +22,7 @@ use crate::brdf;
 use crate::material::{HeapAllocMaterial, ReflectanceParams};
 use crate::ray::{HitRecord, Ray};
 use crate::light::{LightKind};
-use crate::scene::{Scene};
+use crate::scene::{Scene2D, Scene3D};
 use crate::camera::Camera;
 use crate::image::{DecalMode, ImageData, Interpolation, Textures};
 use crate::interval::{Interval, FloatConst};
@@ -84,7 +84,7 @@ pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, ray_in: &Ray, e
     (shadow_ray, interval)
 }
 
-pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) -> Vector3 {
+pub fn shade_diffuse(scene: &Scene3D, hit_record: &mut HitRecord, ray_in: &Ray) -> Vector3 {
     let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
     let mut material_params = mat.reflectance_data().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
         
@@ -196,7 +196,7 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
 }
 
 // Return radiance
-fn intersect_object_light(scene: &Scene, shadow_ray: &Ray, object_light: &Arc<dyn EmissiveShape>) -> bool {
+fn intersect_object_light(scene: &Scene3D, shadow_ray: &Ray, object_light: &Arc<dyn EmissiveShape>) -> bool {
     
     // Use a much smaller interval min to catch intersections close to the ray origin
     // This is important for transformed lights where the intersection might be very close
@@ -216,7 +216,7 @@ fn intersect_object_light(scene: &Scene, shadow_ray: &Ray, object_light: &Arc<dy
     false
 }
 
-pub fn ray_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 { 
+pub fn ray_trace(ray_in: &Ray, scene: &Scene3D, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 { 
   
    if depth >= max_depth {
         //return Vector3::X * 255.;
@@ -284,7 +284,7 @@ pub fn ray_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, de
 
 
 //const SURVIVAL_PROBABILITY: Float = 0.5; // TODO: THIS SHOULDNT BE A FIXED PROBABILITY
-pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize, mut throughput: Vector3) -> Vector3 {
+pub fn path_trace(ray_in: &Ray, scene: &Scene3D, cam: &Camera, max_depth: usize, depth: usize, mut throughput: Vector3) -> Vector3 {
     if depth >= max_depth {
         return sample_background(ray_in, scene, cam);
     }
@@ -353,7 +353,7 @@ pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, d
     }
 }
 
-pub fn trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize) -> Vector3 { 
+pub fn trace(ray_in: &Ray, scene: &Scene3D, cam: &Camera, max_depth: usize) -> Vector3 { 
 
     match cam.renderer.to_ascii_lowercase().as_str() {
         "pathtracing" => { 
@@ -368,7 +368,7 @@ pub fn trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize) -> Vec
     
 }
 
-fn sample_background(ray_in: &Ray, scene: &Scene, cam: &Camera) -> Vector3 {
+fn sample_background(ray_in: &Ray, scene: &Scene3D, cam: &Camera) -> Vector3 {
     // TODO: avoid iterating over textures, cache if background texture is
     // provided in json file
 
@@ -452,65 +452,99 @@ fn clamp_colors(colors: &Vec<Vector3>, max_value: Float) -> Vec<Vector3> {
         clamped_colors
 }
 
-pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error>>
-{
-    let mut images: Vec<ImageData> = Vec::new();
 
-    for mut cam in scene.data.cameras.all() {
-        // TODO: Could setup() be integrated to deserialization? Because it's easy to forget calling it
-        // but for that to be done in Scene creation (or in setup() of scene), cameras need to be
-        // vectorized via .all( ) call, however we don't hold the vec versions (currently they are SingleOrVec) 
-        //  in actual scene structs, that needs to be changed maybe.
-        // TODO: std::OnceCell can be handy to integrate setup( ) calls of our deserialized structs  
-        cam.setup(&scene.data.transformations); 
-        info!("{}\nSplitting factor: {}", cam.comment, cam.splitting_factor);
-
-        let n_samples = cam.num_samples as usize;
-        
-        // Infer maximum recursion depth
-        let max_depth = 
-        if let Some(depth) = cam.max_recursion_depth {
-            info!("Found max recursion depth inside Camera: {}", depth);
-            depth
-        } else {
-            info!("Using scene's global max recursion depth {}", scene.data.max_recursion_depth);
-            scene.data.max_recursion_depth
-        };
-
-        // --- Rayon Multithreading ---
-        let start = Instant::now();
-        let eye_rays: Vec<Ray> = cam.generate_primary_rays(n_samples);
-        info!("Starting ray tracing...");
-        let mut colors: Vec<_> = eye_rays
-            .par_iter()
-            .map(|ray| trace(ray, scene, &cam, max_depth))
-            .collect();
-        info!("Ray tracing completed.");
-        // -----------------------------
-        
-        // Clamping before aggregating pixel values 
-        if let Some(max_value) = cam.sample_maxval {
-            colors = clamp_colors(&colors, max_value);
-        }
-
-        let pixel_colors = if n_samples > 1 {
-            box_filter(&colors, n_samples)
-        } else {
-            colors
-        };
-
-        let im_raw = ImageData::new_from_colors(cam.image_resolution, cam.image_name.clone(), pixel_colors);
-        
-        for tonemap in cam.tone_maps.all().iter() {
-            info!("Applying tone map {}", tonemap);
-            let tonemapped_im = tonemap.apply(&im_raw);
-            images.push(tonemapped_im);
-        }
-
-        images.push(im_raw); 
-        info!("Rendering of {} took: {:?}", cam.image_name, start.elapsed()); 
-    }
+// TODO: Could we make Render a separate trait from Scene? otherwise this renderer.rs is meaningless
+// if render is a part of Scene trait (or maybe make Scenes enum instead of a trait)
     
-    Ok(images)
+
+
+impl crate::scene::Scene for Scene3D {
+            
+    fn print_my_dummy_debug(&self) {
+        //dbg!("-------------------");
+        //dbg!("Texture Coords:");
+        //dbg!(&scene.data.tex_coord_data);
+        //dbg!(&scene.vertex_cache.uv_coords);
+        //dbg!("-------------------");
+        //dbg!(&scene.data.textures.as_ref().unwrap().texture_maps); // TODO https://github.com/casey/just see this one to have commands like "just print textures"
+        //dbg!(&scene.data.lights);
+        //dbg!(&scene.data.objects.light_meshes);
+        //dbg!(&scene.data.objects.light_spheres);
+        //dbg!("-------------------");
+        // dbg!(&scene.data.objects.emissive_shapes);
+        for cam in self.data.cameras.all() {
+            info!(cam.comment);
+            info!("{:?}", cam.renderer_params);
+            info!(cam.splitting_factor);
+        }
+    }
+
+    fn render(&self) -> Result<Vec<ImageData>, Box<dyn std::error::Error>>
+    {
+        let mut images: Vec<ImageData> = Vec::new();
+
+        for mut cam in self.data.cameras.all() {
+            // TODO: Could setup() be integrated to deserialization? Because it's easy to forget calling it
+            // but for that to be done in Scene creation (or in setup() of scene), cameras need to be
+            // vectorized via .all( ) call, however we don't hold the vec versions (currently they are SingleOrVec) 
+            //  in actual scene structs, that needs to be changed maybe.
+            // TODO: std::OnceCell can be handy to integrate setup( ) calls of our deserialized structs  
+            cam.setup(&self.data.transformations); 
+            info!("{}\nSplitting factor: {}", cam.comment, cam.splitting_factor);
+
+            let n_samples = cam.num_samples as usize;
+            
+            // Infer maximum recursion depth
+            let max_depth = 
+            if let Some(depth) = cam.max_recursion_depth {
+                info!("Found max recursion depth inside Camera: {}", depth);
+                depth
+            } else {
+                info!("Using scene's global max recursion depth {}", self.data.max_recursion_depth);
+                self.data.max_recursion_depth
+            };
+
+            // --- Rayon Multithreading ---
+            let start = Instant::now();
+            let eye_rays: Vec<Ray> = cam.generate_primary_rays(n_samples);
+            info!("Starting ray tracing...");
+            let mut colors: Vec<_> = eye_rays
+                .par_iter()
+                .map(|ray| trace(ray, self, &cam, max_depth))
+                .collect();
+            info!("Ray tracing completed.");
+            // -----------------------------
+            
+            // Clamping before aggregating pixel values 
+            if let Some(max_value) = cam.sample_maxval {
+                colors = clamp_colors(&colors, max_value);
+            }
+
+            let pixel_colors = if n_samples > 1 {
+                box_filter(&colors, n_samples)
+            } else {
+                colors
+            };
+
+            let im_raw = ImageData::new_from_colors(cam.image_resolution, cam.image_name.clone(), pixel_colors);
+            
+            for tonemap in cam.tone_maps.all().iter() {
+                info!("Applying tone map {}", tonemap);
+                let tonemapped_im = tonemap.apply(&im_raw);
+                images.push(tonemapped_im);
+            }
+
+            images.push(im_raw); 
+            info!("Rendering of {} took: {:?}", cam.image_name, start.elapsed()); 
+        }
+        
+        Ok(images)
+    }
 }
 
+
+impl crate::scene::Scene for Scene2D {
+    fn render(&self) -> Result<Vec<crate::image::ImageData>, Box<dyn std::error::Error>> {
+        todo!()
+    }
+}

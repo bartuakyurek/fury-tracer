@@ -30,20 +30,41 @@ use crate::prelude::*; // TODO: Excuse me but what's the point of prelude if the
 
 pub type HeapAllocatedVerts = Arc<VertexCache>;
 
+pub trait Scene {
 
+    fn print_my_dummy_debug(&self) {
+        dbg!("No debug message found for the scene. Make sure to implement Scene trait print function.");
+    }
+
+    fn render(&self) -> Result<Vec<crate::image::ImageData>, Box<dyn std::error::Error>>;
+}
 
 
 #[derive(Debug, Deserialize)]
 pub struct RootScene {
     #[serde(rename = "Scene")]
-    pub scene: Scene3D,
+    pub scene_3d: Option<Scene3DJSON>,
+
+    #[serde(rename = "Scene2D")]
+    pub scene_2d: Option<Scene2D>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct Scene2D {
+    #[serde(rename = "BackgroundColor", deserialize_with = "deser_vec3")]
+    pub background_color: Vector3,
+
+    
+}
+
+impl Scene2D {
+    
+}
 
 #[derive(Debug, Deserialize, SmartDefault)]
 #[serde(rename_all = "PascalCase")]
 #[serde(default)]
-pub struct Scene3D {
+pub struct Scene3DJSON {
     #[default = 5]
     #[serde(deserialize_with = "deser_usize")]
     pub max_recursion_depth: usize,
@@ -76,7 +97,7 @@ pub struct Scene3D {
     
 }
 
-impl Scene3D {
+impl Scene3DJSON {
     pub fn setup_and_get_cache(&mut self, jsonpath: &Path) -> Result<VertexCache, Box<dyn Error>>{
         // Implement required adjustments after loading from a JSON file
         debug!(">> Scene transformations: {:?}", self.transformations);
@@ -123,29 +144,28 @@ impl Scene3D {
 }
 
 #[derive(Debug)]
-pub struct Scene <'a> 
+pub struct Scene3D 
 //where 
 //   T: Shape + BBoxable + 'static,
 {
-    pub data: &'a Scene3D, // I'm figuring out data composition in Rust here
-                             // in order not to clutter deserialized Scene with additional data.
-                             // Otherwise it requires serde[skip] annotations for each addition.
+    pub data: Box<Scene3DJSON>, // Now owns the data instead of borrowing
 
     pub vertex_cache: HeapAllocatedVerts,
     pub bvh: Option<BVHSubtree>,
 }
 
 
-impl<'a> Scene <'a>  // Lifetime annotation 'a looks scary but it was needed for storing a pointer to deserialized data
+impl Scene3D 
 //where 
 //    T: Shape + BBoxable + 'static,
     { 
-    pub fn new_from(scene_json: &'a mut Scene3D, jsonpath: &Path) -> Self {
+    pub fn new_from(scene_json: Scene3DJSON, jsonpath: &Path) -> Self {
 
+        let mut scene_json = scene_json;
         let cache = scene_json.setup_and_get_cache(jsonpath).unwrap(); 
 
         let mut scene = Self {
-            data: scene_json,
+            data: Box::new(scene_json),
             vertex_cache: Arc::new(cache),
             bvh: None,
         };
@@ -329,7 +349,7 @@ impl SceneMaterials {
 }
 
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Clone, Debug, Deserialize, Default)]
 #[serde(default)] // If any of the fields below is missing in the JSON, use default (empty vector, hopefully)
 // #[serde(rename_all = "PascalCase")] // Do NOT do that here, naming is different in json file
 pub struct SceneObjects {

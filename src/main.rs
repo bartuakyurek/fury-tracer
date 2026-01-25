@@ -1,3 +1,4 @@
+use fury_tracer::scene::Scene;
 /*
 
     A simple ray tracer implemented for CENG 795 course.
@@ -11,7 +12,7 @@ use std::{env, path::Path, path::PathBuf};
 
 use fury_tracer::*; // lib.rs mods
 use crate::prelude::*; 
-use crate::scene::Scene;
+use crate::scene::Scene3D;
 
 fn main()  -> Result<(), Box<dyn std::error::Error>> {
 
@@ -57,24 +58,32 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
 fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Error>>  {
     // Parse JSON
     debug!("Loading scene from {}...", json_path);
-    let mut root = parse_json795(json_path).map_err(|e| {
+    let root = parse_json795(json_path).map_err(|e| {
         error!("Failed to load scene: {}", e);
         e
     })?;
 
     let json_path = Path::new(json_path).canonicalize()?;
-    let scene = Scene::new_from(&mut root.scene, &json_path); 
-    debug!("Scene is setup successfully.");
+
+    let scene: Box<dyn Scene> = if let Some(scene_3d_contents) = root.scene_3d {
+        let scene3d = Scene3D::new_from(scene_3d_contents, &json_path); 
+        Box::new(scene3d)
+    } else if let Some(scene2d) = root.scene_2d {
+        Box::new(scene2d)
+    } else {
+        return Err("Found no 3D or 2D scene. Please provide either 2D or 3D scene JSON files.".into());
+    };
+
     
     // UPDATE: If environment variable is given, just load the json, print it and exit. ---------------------------------------------------------
     if std::env::var("JUST_LOAD").is_ok() {
-        print_my_dummy_debug(&scene);
+        scene.print_my_dummy_debug();
         std::process::exit(0);
     }
     // ------------------------------------------------------------------------------------------------------------------------------------------
 
     // Render images and return array of RGB
-    let images = renderer::render(&scene)?;
+    let images = scene.render()?;
     
     // Write images to .png files
     let imagefolder_pathbuf = get_output_dir(json_path, "inputs", "outputs")?;
@@ -88,25 +97,6 @@ fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Er
     Ok(())
 }
 
-fn print_my_dummy_debug(scene: &Scene) {
-    //dbg!("-------------------");
-    //dbg!("Texture Coords:");
-    //dbg!(&scene.data.tex_coord_data);
-    //dbg!(&scene.vertex_cache.uv_coords);
-    //dbg!("-------------------");
-    //dbg!(&scene.data.textures.as_ref().unwrap().texture_maps); // TODO https://github.com/casey/just see this one to have commands like "just print textures"
-    //dbg!(&scene.data.lights);
-    //dbg!(&scene.data.objects.light_meshes);
-    //dbg!(&scene.data.objects.light_spheres);
-    //dbg!("-------------------");
-    // dbg!(&scene.data.objects.emissive_shapes);
-    
-    for cam in scene.data.cameras.all() {
-        info!(cam.comment);
-        info!("{:?}", cam.renderer_params);
-        info!(cam.splitting_factor);
-    }
-}
 
 /// Given the JSON file path, and its parent name ("inputs" in our case), return the output path to be used while saving .png image
 /// (it doesn't include .png name, only up to its parent folder)
