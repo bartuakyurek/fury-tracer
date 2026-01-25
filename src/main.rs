@@ -68,12 +68,12 @@ fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Er
     let scene: Box<dyn Scene> = if let Some(scene_3d_contents) = root.scene_3d {
         let scene3d = Scene3D::new_from(scene_3d_contents, &json_path); 
         Box::new(scene3d)
-    } else if let Some(scene2d) = root.scene_2d {
+    } else if let Some(mut scene2d) = root.scene_2d {
+        scene2d.setup(&json_path);
         Box::new(scene2d)
     } else {
         return Err("Found no 3D or 2D scene. Please provide either 2D or 3D scene JSON files.".into());
     };
-
     
     // UPDATE: If environment variable is given, just load the json, print it and exit. ---------------------------------------------------------
     if std::env::var("JUST_LOAD").is_ok() {

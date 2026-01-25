@@ -16,7 +16,7 @@ use bevy_math::NormedVectorSpace;
 use rand::random; // traits needed for norm_squared( ) 
 
 use crate::brdf::BRDFs;
-use crate::image::Textures;
+use crate::image::{ImageData, Textures};
 use crate::material::{*};
 use crate::shapes::{*};
 use crate::mesh::{LightMesh, Mesh, MeshInstanceField};
@@ -55,7 +55,31 @@ pub struct Scene2D {
     pub background_color: Vector3,
 
     #[serde(rename = "Lights")]
-    pub lights: SceneLights2D,    
+    pub lights: SceneLights2D,
+
+    #[serde(rename = "Layers")]
+    pub layers: SingleOrVec<Layer2D>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Layer2D {
+    #[serde(rename = "_id", deserialize_with = "deser_usize")]
+    _id: usize,
+
+    #[serde(rename = "Image")]
+    image_relative_path: String,
+
+    #[serde(skip)]
+    data: ImageData,
+}
+
+impl Layer2D {
+    pub fn setup(&mut self, jsonpath: &Path) {
+        let path = jsonpath.parent().unwrap_or(jsonpath).join(self.image_relative_path.clone());
+        info!("Reading layer image from {:?} ", path);
+        let img = image::open(path).unwrap();
+        info!("{:?}", img);
+    }
 }
 
 
@@ -67,7 +91,11 @@ pub struct SceneLights2D {
 }
 
 impl Scene2D {
-    
+    pub fn setup(&mut self, jsonpath: &Path) {
+        for layer in self.layers.iter_mut() {
+            layer.setup(jsonpath);
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, SmartDefault)]
