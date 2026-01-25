@@ -347,6 +347,15 @@ impl AreaLight {
    
 }
 
+#[derive(Debug, Deserialize, Clone)]
+pub struct PointLight2D {
+    #[serde(deserialize_with = "deser_vec3")]
+    _indicator_color: Vector3,
+
+    #[serde(rename = "Intensity", deserialize_with = "deser_vec3")]
+    intensity: Vector3,
+}
+
 #[derive(Debug, Deserialize, Clone, Default)]
 pub struct PointLight {
     #[serde(rename = "_id", deserialize_with = "deser_int")]

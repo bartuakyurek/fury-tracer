@@ -54,7 +54,16 @@ pub struct Scene2D {
     #[serde(rename = "BackgroundColor", deserialize_with = "deser_vec3")]
     pub background_color: Vector3,
 
-    
+    #[serde(rename = "Lights")]
+    pub lights: SceneLights2D,    
+}
+
+
+#[derive(Debug, Deserialize)]
+pub struct SceneLights2D {
+    #[serde(rename = "PointLight2D")]
+    pub point_lights: SingleOrVec<PointLight2D>,
+
 }
 
 impl Scene2D {
