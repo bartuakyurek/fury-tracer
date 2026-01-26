@@ -41,6 +41,10 @@ Note: on windows these commands work on git bash in VSCode, not powershell.
 
 # TODO 
 ---
+- [ ] Exploding HDR radiance from HW 5
+- [ ] Veach ajar scene causes memory allocation problem in HW 6
+- [ ] Textures of veach ajar does not work as expected
+- [ ] Sponza scene reading is missing
 - [ ] Currently epsilon is added before transforming the ray, which doesn't cause discrepency in expected output but should we consider
 adding epsilon after the transformed rays?
 - [ ] Cache inverse transforms as calling .inverse( ) is inefficient 
@@ -66,10 +70,11 @@ it is dyn Material so ... I guess this wouldn't work.
     struct SomeShape : Shape {
         some_other_member: SomeType,
     }
-```
+    ```
     What is recommended is to use composition, e.g.
 
-    ```struct ShapeData {
+    ```
+    struct ShapeData {
         material: Index,
     }
 
