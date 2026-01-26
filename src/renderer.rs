@@ -582,11 +582,10 @@ pub fn raytrace_2d(layer: &Layer2D) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Bo
     let mut output: ImageBuffer<Rgba<u8>, Vec<u8>> = image::RgbaImage::new(layer.width, layer.height);
 
     // Define emission color (white light)
-    let emission = Vector3::ONE * 255.0;
+    let emission = Vector3::ONE * 255.0 * 5.;
     
-    // Lighting parameters
-    let ambient_light = Vector3::ONE * 5.0;
-    let light_intensity = 20.0; // TODO: here i use a single value, white light
+    // TODO: this should've inferred from the scene but I need a refactor for that
+    let ambient_light = Vector3::ONE * 0.1;
     let distance_constant = 1.0; // Controls falloff rate
     let phong_exponent = 2.0; // 
 
@@ -639,7 +638,7 @@ pub fn raytrace_2d(layer: &Layer2D) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Bo
                 let dy = light_y as Float - y as Float;
                 let distance = (dx * dx + dy * dy).sqrt();
 
-                let mut attenuation = 1.;
+                let mut attenuation = 1.; //Vector3::ONE;
                 if layer.is_line_blocked(x, y, light_x, light_y) { // assuming same layer for object and light
                      continue;
                    // attenuation *= 1. / distance.powf(0.2); 
@@ -655,7 +654,7 @@ pub fn raytrace_2d(layer: &Layer2D) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Bo
                     let light_dir = Vector3::new(dx, dy, z_component).normalize(); 
 
                     // WARNING: Using distance squared attenuates a lot in tiny pixel world, so using a linear term below
-                    attenuation = light_intensity / (distance_constant + distance);
+                    attenuation = 1. / (distance_constant + distance);
                     
 
                     // Blinn-Phong shading similar to what we did in the homeworks:
@@ -674,7 +673,7 @@ pub fn raytrace_2d(layer: &Layer2D) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Bo
             // Add reflective components (just like what we did starting from Homework 1)
             // One difference is that here we use material's "color", i.e. pixel colors but in homeworks we 
             // used k_d, k_s, k_a instead of color. 
-            let ambient_color = (ambient_light / 255.0) * color;
+            let ambient_color = (ambient_light / 255.0) * color; // Color here acts as k_ambient, k_d, k_s... that would be replaced when we define materials
             let diffuse_color = (diffuse_irradiance / 255.0) * color;
             let specular_color = specular_irradiance / 255.0; // For specular let's just use light without material's components
             
