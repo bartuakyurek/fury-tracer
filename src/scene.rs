@@ -95,7 +95,7 @@ impl Layer2D {
         for y in 0..height {
             for x in 0..width {
                 let pixel = rgba.get_pixel(x, y);
-                let light_intensity = Vector3::ONE * 2550.; // TODO: will be read from json
+                let light_intensity = Vector3::ONE * 255.; // TODO: will be read from json
                 let emissive_indicator = Vector3::new(0., 255., 255.); // TODO: SHOULD'VE READ FROM JSON but code became too spaghetti, it needs a refactor first
                 pixels.push(PixelData::from_rgba(*pixel, emissive_indicator, light_intensity));
             }

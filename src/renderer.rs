@@ -635,11 +635,19 @@ pub fn raytrace_2d(layer: &Layer2D) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Bo
                     continue;
                 }
 
-                if !layer.is_line_blocked(x, y, light_x, light_y) {
+                let dx = light_x as Float - x as Float;
+                let dy = light_y as Float - y as Float;
+                let distance = (dx * dx + dy * dy).sqrt();
+
+                let mut attenuation = 1.;
+                if layer.is_line_blocked(x, y, light_x, light_y) { // assuming same layer for object and light
+                     continue;
+                   // attenuation *= 1. / distance.powf(0.2); 
+                }
+
+                //if !layer.is_line_blocked(x, y, light_x, light_y) {
                     // Distance and direction to light
-                    let dx = light_x as Float - x as Float;
-                    let dy = light_y as Float - y as Float;
-                    let distance = (dx * dx + dy * dy).sqrt();
+                    
 
                     // Light direction in 3D (light comes from the 2D plane but also has z-component pointing toward surface)
                     // For flat 2D surfaces, we assume light rays travel slightly "above" the plane
@@ -647,7 +655,7 @@ pub fn raytrace_2d(layer: &Layer2D) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Bo
                     let light_dir = Vector3::new(dx, dy, z_component).normalize(); 
 
                     // WARNING: Using distance squared attenuates a lot in tiny pixel world, so using a linear term below
-                    let attenuation = light_intensity / (distance_constant + distance);
+                    attenuation = light_intensity / (distance_constant + distance);
                     
 
                     // Blinn-Phong shading similar to what we did in the homeworks:
@@ -662,7 +670,7 @@ pub fn raytrace_2d(layer: &Layer2D) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Bo
                     let n_dot_h = normal.dot(half_vector).max(0.0);
                     let spec = n_dot_h.powf(phong_exponent);
                     specular_irradiance += emission * attenuation * spec;
-                }
+                //}
             }
 
             // Add reflective components (just like what we did starting from Homework 1)
