@@ -673,11 +673,11 @@ pub fn raytrace_2d(layer: &Layer2D) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Bo
             // Add reflective components (just like what we did starting from Homework 1)
             // One difference is that here we use material's "color", i.e. pixel colors but in homeworks we 
             // used k_d, k_s, k_a instead of color. 
-            let ambient_color = (ambient_light / 255.0) * color; // Color here acts as k_ambient, k_d, k_s... that would be replaced when we define materials
-            let diffuse_color = (diffuse_irradiance / 255.0) * color;
-            let specular_color = specular_irradiance / 255.0; // For specular let's just use light without material's components
+            let ambient_color = (ambient_light) * color; // Color here acts as k_ambient, k_d, k_s... that would be replaced when we define materials
+            let diffuse_color = (diffuse_irradiance) * color;
+            let specular_color = specular_irradiance; // For specular let's just use light without material's components (somehow it worked better but that should be further investigated)
             
-            let final_color = ambient_color + diffuse_color + specular_color;
+            let final_color = (ambient_color + diffuse_color + specular_color) / 255.; // TODO: dividing by 255 because our "color" variable is defined in .png, but if it was actual material k_d k_s etc, then we shouldnt do that! 
             
             output.put_pixel(
                 x,
