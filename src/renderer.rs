@@ -585,10 +585,10 @@ pub fn raytrace_2d(layer: &Layer2D) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Bo
     let emission = Vector3::ONE * 255.0;
     
     // Lighting parameters
-    let ambient_light = Vector3::ONE * 5.0; // Ambient illumination
-    let light_intensity = 20.0; // Scale up the light contribution (adjust 10-20 range)
+    let ambient_light = Vector3::ONE * 5.0;
+    let light_intensity = 20.0; // TODO: here i use a single value, white light
     let distance_constant = 1.0; // Controls falloff rate
-    let phong_exponent = 32.0; // Specular highlight sharpness
+    let phong_exponent = 2.0; // 
 
     // For each pixel in the scene
     for y in 0..layer.height {
@@ -660,8 +660,6 @@ pub fn raytrace_2d(layer: &Layer2D) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Bo
 
                     // Blinn-Phong shading similar to what we did in the homeworks:
                     // Diffuse 
-                    
-                    
                     let n_dot_l = normal.dot(light_dir).max(0.0);
                     diffuse_irradiance += emission * attenuation * n_dot_l;
 
