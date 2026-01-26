@@ -11,10 +11,10 @@
     @author: Bartu
 */
 
+use image::{ImageBuffer, Rgba};
 use rayon::prelude::*;
 use bevy_math::{NormedVectorSpace};
 
-use std::f64::consts::PI;
 use std::ops::Mul;
 use std::{self, time::Instant};
 
@@ -22,7 +22,7 @@ use crate::brdf;
 use crate::material::{HeapAllocMaterial, ReflectanceParams};
 use crate::ray::{HitRecord, Ray};
 use crate::light::{LightKind};
-use crate::scene::{Scene2D, Scene3D};
+use crate::scene::{Layer2D, Scene2D, Scene3D};
 use crate::camera::Camera;
 use crate::image::{DecalMode, ImageData, Interpolation, Textures};
 use crate::interval::{Interval, FloatConst};
@@ -549,6 +549,144 @@ impl crate::scene::Scene for Scene2D {
         dbg!(self);
     }
     fn render(&self) -> Result<Vec<crate::image::ImageData>, Box<dyn std::error::Error>> {
-        todo!()
+        // TODO: Implement proper 2D rendering
+        // For now, return empty images vector
+
+        for layer in self.layers.iter() {
+            let output_img = raytrace_2d(layer)?;
+
+            // TODO: should've either convert ImageBuffer to our ImageData struct  (but I've found save option of Image crate very useful, I want to use it from now on, so maybe 3D scenes can be refactored for it) 
+            let output_path = self.image_name.clone(); // TODO: This does not consider outputs folder structure 
+            println!("Saving output to: {:?}", output_path);
+            output_img.save(output_path)?;
+            println!("Done!");
+        }
+
+        let empty_images: Vec<ImageData> = Vec::new();
+        Ok(empty_images)
     }
+}
+
+
+pub fn raytrace_2d(layer: &Layer2D) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Box<dyn std::error::Error>> {
+    
+    // Collect all emissive pixels
+    let emissive_pixels = layer.collect_emissive_pixels();
+    println!("Found {} emissive pixels", emissive_pixels.len());
+
+    if emissive_pixels.is_empty() {
+        println!("WARNING: No emissive pixels found! Make sure input has cyan (0,255,255) pixels.");
+    }
+
+    // Create output image
+    let mut output: ImageBuffer<Rgba<u8>, Vec<u8>> = image::RgbaImage::new(layer.width, layer.height);
+
+    // Define emission color (white light)
+    let emission = Vector3::ONE * 255.0;
+    
+    // Lighting parameters
+    let ambient_light = Vector3::ONE * 5.0; // Ambient illumination
+    let light_intensity = 20.0; // Scale up the light contribution (adjust 10-20 range)
+    let distance_constant = 1.0; // Controls falloff rate
+    let phong_exponent = 32.0; // Specular highlight sharpness
+
+    // For each pixel in the scene
+    for y in 0..layer.height {
+        for x in 0..layer.width {
+            let current_pixel = layer.get_pixel(x, y).unwrap();
+
+            // If pixel is transparent, keep it transparent
+            if current_pixel.color.is_none() {
+                output.put_pixel(x, y, image::Rgba([0, 0, 0, 0]));
+                continue;
+            }
+
+            let color = current_pixel.color.unwrap();
+            if current_pixel.is_emissive {
+                // Emissive pixels show their emission
+                let final_color = emission;
+                output.put_pixel(
+                    x,
+                    y,
+                    image::Rgba([
+                        final_color.x.clamp(0.0, 255.0) as u8,
+                        final_color.y.clamp(0.0, 255.0) as u8,
+                        final_color.z.clamp(0.0, 255.0) as u8,
+                        255,
+                    ]),
+                );
+                continue;
+            }
+
+            // For non-emissive pixels, compute lighting from all light sources
+            let mut diffuse_irradiance = Vector3::ZERO;
+            let mut specular_irradiance = Vector3::ZERO;
+
+            // Camera/view direction (assume looking straight at the image, perpendicular to 2D plane)
+            let view_dir = Vector3::new(0.0, 0.0, 1.0); // Looking into the screen
+
+            // Surface normal for 2D (pointing out of screen toward viewer)
+            let normal =  Vector3::new(0.0, 0.0, 1.0);
+
+           
+            // Connect to every emissive pixel
+            for &(light_x, light_y) in &emissive_pixels {
+
+                if light_x == x && light_y == y {
+                    continue;
+                }
+
+                if !layer.is_line_blocked(x, y, light_x, light_y) {
+                    // Distance and direction to light
+                    let dx = light_x as Float - x as Float;
+                    let dy = light_y as Float - y as Float;
+                    let distance = (dx * dx + dy * dy).sqrt();
+
+                    // Light direction in 3D (light comes from the 2D plane but also has z-component pointing toward surface)
+                    // For flat 2D surfaces, we assume light rays travel slightly "above" the plane
+                    let z_component = distance;
+                    let light_dir = Vector3::new(dx, dy, z_component).normalize(); 
+
+                    // WARNING: Using distance squared attenuates a lot in tiny pixel world, so using a linear term below
+                    let attenuation = light_intensity / (distance_constant + distance);
+                    
+
+                    // Blinn-Phong shading similar to what we did in the homeworks:
+                    // Diffuse 
+                    
+                    
+                    let n_dot_l = normal.dot(light_dir).max(0.0);
+                    diffuse_irradiance += emission * attenuation * n_dot_l;
+
+                    // Specular 
+                    let half_vector = (light_dir + view_dir).normalize();
+                    let n_dot_h = normal.dot(half_vector).max(0.0);
+                    let spec = n_dot_h.powf(phong_exponent);
+                    specular_irradiance += emission * attenuation * spec;
+                }
+            }
+
+            // Add reflective components (just like what we did starting from Homework 1)
+            // One difference is that here we use material's "color", i.e. pixel colors but in homeworks we 
+            // used k_d, k_s, k_a instead of color. 
+            let ambient_color = (ambient_light / 255.0) * color;
+            let diffuse_color = (diffuse_irradiance / 255.0) * color;
+            let specular_color = specular_irradiance / 255.0; // For specular let's just use light without material's components
+            
+            let final_color = ambient_color + diffuse_color + specular_color;
+            
+            output.put_pixel(
+                x,
+                y,
+                image::Rgba([
+                    final_color.x.clamp(0.0, 255.0) as u8,
+                    final_color.y.clamp(0.0, 255.0) as u8,
+                    final_color.z.clamp(0.0, 255.0) as u8,
+                    255,
+                ]),
+            );
+        }
+    }
+
+    Ok(output)
 }

@@ -64,35 +64,46 @@ fn read_json_and_render(json_path: &String) -> Result<(), Box<dyn std::error::Er
     })?;
 
     let json_path = Path::new(json_path).canonicalize()?;
-
-    let scene: Box<dyn Scene> = if let Some(scene_3d_contents) = root.scene_3d {
-        let scene3d = Scene3D::new_from(scene_3d_contents, &json_path); 
-        Box::new(scene3d)
+    // HOMEWORK PARTS 3D Renders:
+    if let Some(scene_3d_contents) = root.scene_3d {
+        let scene = Scene3D::new_from(scene_3d_contents, &json_path); 
+        //Box::new(scene3d)
+        // UPDATE: If environment variable is given, just load the json, print it and exit. ---------------------------------------------------------
+        if std::env::var("JUST_LOAD").is_ok() {
+            scene.print_my_dummy_debug();
+            std::process::exit(0);
+        }   
+        // ------------------------------------------------------------------------------------------------------------------------------------------
+        // Render images and return array of RGB
+        let images = scene.render()?;
+        // Write images to .png files
+        let imagefolder_pathbuf = get_output_dir(json_path, "inputs", "outputs")?;
+        let imagefolder = imagefolder_pathbuf.to_str().unwrap();
+        for im in images.into_iter() {
+            if let Err(e) = im.export(imagefolder) {
+                eprintln!("Failed to save {}: {}", imagefolder, e);
+            }
+        }
+    // PROJECT PART 2D Renders:
     } else if let Some(mut scene2d) = root.scene_2d {
         scene2d.setup(&json_path);
-        Box::new(scene2d)
+
+        let imagefolder_pathbuf = get_output_dir(json_path.clone(), "inputs", "outputs")?;
+        
+        // Define cyan as the emissive indicator color (0, 255, 255 in standard RGB)
+        let emissive_indicator = Vector3::new(0.0, 1.0, 1.0);
+
+        if std::env::var("JUST_LOAD").is_ok() {
+            scene2d.print_my_dummy_debug();
+            std::process::exit(0);
+        }
+        
+        // Render the 2D scene
+        scene2d.render()?;
     } else {
         return Err("Found no 3D or 2D scene. Please provide either 2D or 3D scene JSON files.".into());
     };
     
-    // UPDATE: If environment variable is given, just load the json, print it and exit. ---------------------------------------------------------
-    if std::env::var("JUST_LOAD").is_ok() {
-        scene.print_my_dummy_debug();
-        std::process::exit(0);
-    }
-    // ------------------------------------------------------------------------------------------------------------------------------------------
-
-    // Render images and return array of RGB
-    let images = scene.render()?;
-    
-    // Write images to .png files
-    let imagefolder_pathbuf = get_output_dir(json_path, "inputs", "outputs")?;
-    let imagefolder = imagefolder_pathbuf.to_str().unwrap();
-    for im in images.into_iter() {
-        if let Err(e) = im.export(imagefolder) {
-            eprintln!("Failed to save {}: {}", imagefolder, e);
-        }
-    }
 
     Ok(())
 }

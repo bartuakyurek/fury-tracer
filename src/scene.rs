@@ -13,11 +13,13 @@
 */
 use std::{path::Path, io::BufReader, error::Error, fs::File};
 use bevy_math::NormedVectorSpace;
+use image::Pixel;
 use rand::random; // traits needed for norm_squared( ) 
 
 use crate::brdf::BRDFs;
 use crate::image::{ImageData, Textures};
 use crate::material::{*};
+use crate::pixel::PixelData;
 use crate::shapes::{*};
 use crate::mesh::{LightMesh, Mesh, MeshInstanceField};
 use crate::json_structs::{*};
@@ -51,6 +53,9 @@ pub struct RootScene {
 
 #[derive(Debug, Deserialize)]
 pub struct Scene2D {
+    #[serde(rename = "ImageName")]
+    pub image_name: String, // output image name TODO: normally this was encapsulated in camera but for 2d case im not sure using it, it's more OOP that Rust is not very compatible with
+
     #[serde(rename = "BackgroundColor", deserialize_with = "deser_vec3")]
     pub background_color: Vector3,
 
@@ -70,19 +75,106 @@ pub struct Layer2D {
     image_relative_path: String,
 
     #[serde(skip)]
-    data: Vec<crate::pixel::PixelData>,
+    pub pixels: Vec<PixelData>,
+    #[serde(skip)]
+    pub width: u32,
+    #[serde(skip)]
+    pub height: u32,
 }
 
 impl Layer2D {
-    pub fn setup(&mut self, jsonpath: &Path) {
+    pub fn setup(&mut self, jsonpath: &Path)  -> Result<(), Box<dyn std::error::Error>> {
         let path = jsonpath.parent().unwrap_or(jsonpath).join(self.image_relative_path.clone());
         info!("Reading layer image from {:?} ", path);
         let img = image::open(path).unwrap();
 
-        let img_rgba = img.as_rgba8().unwrap();
-        todo!("Turn img into actual data holding PixelData");
+        let rgba = img.as_rgba8().unwrap();
+        let (width, height) = rgba.dimensions();
+
+        let mut pixels = Vec::with_capacity((width * height) as usize);
+        for y in 0..height {
+            for x in 0..width {
+                let pixel = rgba.get_pixel(x, y);
+                let light_intensity = Vector3::ONE * 2550.; // TODO: will be read from json
+                let emissive_indicator = Vector3::new(0., 255., 255.); // TODO: SHOULD'VE READ FROM JSON but code became too spaghetti, it needs a refactor first
+                pixels.push(PixelData::from_rgba(*pixel, emissive_indicator, light_intensity));
+            }
+        }
+
+        self.width = width;
+        self.height = height;
+        self.pixels = pixels;
+        Ok(())
+
+    }
+
+    #[inline]
+    pub fn get_pixel(&self, x: u32, y: u32) -> Option<&PixelData> {
+        if x < self.width && y < self.height {
+            Some(&self.pixels[(y * self.width + x) as usize])
+        } else {
+            None
+        }
+    }
+
+    pub fn collect_emissive_pixels(&self) -> Vec<(u32, u32)> {
+        let mut emissive = Vec::new();
+        for y in 0..self.height {
+            for x in 0..self.width {
+                if let Some(pixel) = self.get_pixel(x, y) {
+                    if pixel.is_emissive {
+                        emissive.push((x, y));
+                    }
+                }
+            }
+        }
+        emissive
+    }
+
+    // Bresenham's line algorithm to check if line is blocked by a pixel
+    // See also https://www.geeksforgeeks.org/dsa/bresenhams-line-generation-algorithm/
+    pub fn is_line_blocked(&self, x0: u32, y0: u32, x1: u32, y1: u32) -> bool {
+        let dx = (x1 as i32 - x0 as i32).abs();
+        let dy = (y1 as i32 - y0 as i32).abs();
+        let sx = if x0 < x1 { 1 } else { -1 };
+        let sy = if y0 < y1 { 1 } else { -1 };
+        let mut err = dx - dy;
+
+        let mut x = x0 as i32;
+        let mut y = y0 as i32;
+
+        loop {
+            // Skip the start and end points
+            if (x as u32, y as u32) != (x0, y0) && (x as u32, y as u32) != (x1, y1) {
+                if let Some(pixel) = self.get_pixel(x as u32, y as u32) {
+                    
+                    if pixel.color.is_some() {
+                        return true;
+                    }
+                }
+            }
+
+            if x == x1 as i32 && y == y1 as i32 {
+                break;
+            }
+
+            let e2 = 2 * err;
+            if e2 > -dy {
+                err -= dy;
+                x += sx;
+            }
+            if e2 < dx {
+                err += dx;
+                y += sy;
+            }
+        }
+
+        false
     }
 }
+
+
+
 
 
 #[derive(Debug, Deserialize)]
