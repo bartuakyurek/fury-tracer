@@ -21,35 +21,42 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
 
     // Parse args
     let args: Vec<String> = env::args().collect();
-    let input_path: &String = if args.len() == 1 {
-        warn!("No arguments were provided, setting default scene path...");
-        &String::from("./inputs/hw2/mirror_room.json")
-    } else if args.len() == 2 {
-        &args[1]
-    } else {
-        error!("Usage: {} <filename>.json or <path/to/folder>", args[0]);
-        std::process::exit(1);
-    };
-    
-    let path = Path::new(&input_path);
-    if path.is_file() {
-        // Scenario 1: input contains JSON file
-        read_json_and_render(&path.to_str().unwrap().to_string())?; // TODO: Perhaps I should make these functions accept path directly
-    } else if path.is_dir() {
-        // Scenario 2: input is a directory, explore all .jsons recursively
-        for entry in WalkDir::new(path).into_iter().filter_map(Result::ok) {
-            let entry_path = entry.path();
-            let is_json = entry_path.extension().map(|s| s == "json").unwrap_or(false);
-            if entry_path.is_file() && is_json {
-                info!("Rendering JSON: {:?}", entry_path);
-                read_json_and_render(&entry_path.to_str().unwrap().to_string())?;
-            }
-        }
-    } else {
-        error!("Expected input path to be a file or a directory, got: {:?}", path);
-        std::process::exit(1);
-    }
 
+    // If quick test mode on, use input output arguments for .png images
+    if std::env::var("QUICK_PNG").is_ok() {
+        todo!()
+    } else {
+        
+        // If not quick test mode, use JSON input files to render images
+        let input_path: &String = if args.len() == 1 {
+            warn!("No arguments were provided, setting default scene path...");
+            &String::from("./inputs/hw2/mirror_room.json")
+        } else if args.len() == 2 {
+            &args[1]
+        } else {
+            error!("Usage: {} <filename>.json or <path/to/folder>", args[0]);
+            std::process::exit(1);
+        };
+        
+        let path = Path::new(&input_path);
+        if path.is_file() {
+            // Scenario 1: input contains JSON file
+            read_json_and_render(&path.to_str().unwrap().to_string())?; // TODO: Perhaps I should make these functions accept path directly
+        } else if path.is_dir() {
+            // Scenario 2: input is a directory, explore all .jsons recursively
+            for entry in WalkDir::new(path).into_iter().filter_map(Result::ok) {
+                let entry_path = entry.path();
+                let is_json = entry_path.extension().map(|s| s == "json").unwrap_or(false);
+                if entry_path.is_file() && is_json {
+                    info!("Rendering JSON: {:?}", entry_path);
+                    read_json_and_render(&entry_path.to_str().unwrap().to_string())?;
+                }
+            }
+        } else {
+            error!("Expected input path to be a file or a directory, got: {:?}", path);
+            std::process::exit(1);
+        }
+    }
     info!("Finished execution.");
     Ok(())
 }
