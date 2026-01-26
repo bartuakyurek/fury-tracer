@@ -610,7 +610,7 @@ pub fn raytrace_2d(layer: &Layer2D) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Bo
                     y,
                     image::Rgba([
                         final_color.x.clamp(0.0, 255.0) as u8,
-                        final_color.y.clamp(0.0, 255.0) as u8,
+                        final_color.y.clamp(0.0, 255.0) as u8, // TODO: dont forget to remove clamping later to replace it with our tone mapping
                         final_color.z.clamp(0.0, 255.0) as u8,
                         255,
                     ]),
@@ -618,17 +618,16 @@ pub fn raytrace_2d(layer: &Layer2D) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Bo
                 continue;
             }
 
-            // For non-emissive pixels, compute lighting from all light sources
+            // For regular pixels, compute lighting from all emissive pixels 
             let mut diffuse_irradiance = Vector3::ZERO;
             let mut specular_irradiance = Vector3::ZERO;
 
-            // Camera/view direction (assume looking straight at the image, perpendicular to 2D plane)
-            let view_dir = Vector3::new(0.0, 0.0, 1.0); // Looking into the screen
+            // Camera/view direction (assume looking straight at the image)
+            let view_dir = Vector3::new(0.0, 0.0, 1.0); 
 
             // Surface normal for 2D (pointing out of screen toward viewer)
             let normal =  Vector3::new(0.0, 0.0, 1.0);
 
-           
             // Connect to every emissive pixel
             for &(light_x, light_y) in &emissive_pixels {
 
@@ -679,7 +678,7 @@ pub fn raytrace_2d(layer: &Layer2D) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Bo
                 x,
                 y,
                 image::Rgba([
-                    final_color.x.clamp(0.0, 255.0) as u8,
+                    final_color.x.clamp(0.0, 255.0) as u8, // TODO: later on we can re-use our tone mapping operatorss
                     final_color.y.clamp(0.0, 255.0) as u8,
                     final_color.z.clamp(0.0, 255.0) as u8,
                     255,

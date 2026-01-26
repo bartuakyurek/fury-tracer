@@ -8,6 +8,7 @@ use fury_tracer::scene::{Layer2D, Scene};
 
 */
 use walkdir::WalkDir;
+use std::time::Instant;
 use std::{env, path::Path, path::PathBuf};
 
 use fury_tracer::*; // lib.rs mods
@@ -24,6 +25,7 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
 
     // If quick test mode on, use input output arguments for .png images
     if std::env::var("QUICK_PNG").is_ok() {
+        let start = Instant::now();
         let img_path = &args[1];
         let img_path = Path::new(img_path);
         info!("Found image path: {:?}", img_path);
@@ -35,8 +37,10 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
         let layer = Layer2D::load_from(img_path)?;
         let output_img = renderer::raytrace_2d(&layer)?;
 
+        info!("Rendering took {:?}", start.elapsed());
         info!("Saving output to: {:?}", out_path);
         output_img.save(out_path)?;
+        
     } else {
         
         // If not quick test mode, use JSON input files to render images
