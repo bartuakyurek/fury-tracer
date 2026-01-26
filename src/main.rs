@@ -1,4 +1,4 @@
-use fury_tracer::scene::Scene;
+use fury_tracer::scene::{Layer2D, Scene};
 /*
 
     A simple ray tracer implemented for CENG 795 course.
@@ -24,7 +24,19 @@ fn main()  -> Result<(), Box<dyn std::error::Error>> {
 
     // If quick test mode on, use input output arguments for .png images
     if std::env::var("QUICK_PNG").is_ok() {
-        todo!()
+        let img_path = &args[1];
+        let img_path = Path::new(img_path);
+        info!("Found image path: {:?}", img_path);
+
+        let out_path = &args[2];
+        let out_path = Path::new(out_path);
+        info!("Found output path: {:?}", out_path);
+
+        let layer = Layer2D::load_from(img_path)?;
+        let output_img = renderer::raytrace_2d(&layer)?;
+
+        info!("Saving output to: {:?}", out_path);
+        output_img.save(out_path)?;
     } else {
         
         // If not quick test mode, use JSON input files to render images

@@ -108,6 +108,30 @@ impl Layer2D {
 
     }
 
+    pub fn load_from(img_path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
+        let img = image::open(img_path)?;
+        let rgba = img.to_rgba8();
+        let (width, height) = rgba.dimensions();
+
+        let mut pixels = Vec::with_capacity((width * height) as usize);
+        for y in 0..height {
+            for x in 0..width {
+                let pixel = rgba.get_pixel(x, y);
+                let emissive_marker = Vector3::new(0., 255., 255.);
+                let emission_intensity = Vector3::ONE * 255.; // TODO: this is easy to forget
+                pixels.push(PixelData::from_rgba(*pixel, emissive_marker, emission_intensity));
+            }
+        }
+
+        Ok(Self {
+            _id: 0,
+            image_relative_path: String::new(), // TODO: not a good practice to default them because we currently know that we wont use it but 1 month later we'll just forget it...
+            width,
+            height,
+            pixels,
+        })
+    }
+
     #[inline]
     pub fn get_pixel(&self, x: u32, y: u32) -> Option<&PixelData> {
         if x < self.width && y < self.height {
