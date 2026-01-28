@@ -18,5 +18,6 @@ pub mod light;
 pub mod tonemap;
 pub mod sampler;
 pub mod brdf;
+pub mod pixel;
 
 pub mod prelude;

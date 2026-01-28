@@ -13,11 +13,13 @@
 */
 use std::{path::Path, io::BufReader, error::Error, fs::File};
 use bevy_math::NormedVectorSpace;
+use image::Pixel;
 use rand::random; // traits needed for norm_squared( ) 
 
 use crate::brdf::BRDFs;
-use crate::image::Textures;
+use crate::image::{ImageData, Textures};
 use crate::material::{*};
+use crate::pixel::PixelData;
 use crate::shapes::{*};
 use crate::mesh::{LightMesh, Mesh, MeshInstanceField};
 use crate::json_structs::{*};
@@ -30,19 +32,194 @@ use crate::prelude::*; // TODO: Excuse me but what's the point of prelude if the
 
 pub type HeapAllocatedVerts = Arc<VertexCache>;
 
+pub trait Scene {
 
+    fn print_my_dummy_debug(&self) {
+        dbg!("No debug message found for the scene. Make sure to implement Scene trait print function.");
+    }
+
+    fn render(&self) -> Result<Vec<crate::image::ImageData>, Box<dyn std::error::Error>>;
+}
 
 
 #[derive(Debug, Deserialize)]
 pub struct RootScene {
     #[serde(rename = "Scene")]
-    pub scene: SceneJSON,
+    pub scene_3d: Option<Scene3DJSON>,
+
+    #[serde(rename = "Scene2D")]
+    pub scene_2d: Option<Scene2D>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Scene2D {
+    #[serde(rename = "ImageName")]
+    pub image_name: String, // output image name TODO: normally this was encapsulated in camera but for 2d case im not sure using it, it's more OOP that Rust is not very compatible with
+
+    #[serde(rename = "BackgroundColor", deserialize_with = "deser_vec3")]
+    pub background_color: Vector3,
+
+    #[serde(rename = "Lights")]
+    pub lights: SceneLights2D,
+
+    #[serde(rename = "Layers")]
+    pub layers: SingleOrVec<Layer2D>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Layer2D {
+    #[serde(rename = "_id", deserialize_with = "deser_usize")]
+    _id: usize,
+
+    #[serde(rename = "Image")]
+    image_relative_path: String,
+
+    #[serde(skip)]
+    pub pixels: Vec<PixelData>,
+    #[serde(skip)]
+    pub width: u32,
+    #[serde(skip)]
+    pub height: u32,
+}
+
+impl Layer2D {
+    pub fn setup(&mut self, jsonpath: &Path)  -> Result<(), Box<dyn std::error::Error>> {
+        let path = jsonpath.parent().unwrap_or(jsonpath).join(self.image_relative_path.clone());
+        info!("Reading layer image from {:?} ", path);
+        let img = image::open(path).unwrap();
+
+        let rgba = img.as_rgba8().unwrap();
+        let (width, height) = rgba.dimensions();
+
+        let mut pixels = Vec::with_capacity((width * height) as usize);
+        for y in 0..height {
+            for x in 0..width {
+                let pixel = rgba.get_pixel(x, y);
+                let light_intensity = Vector3::ONE * 255.; // TODO: will be read from json
+                let emissive_indicator = Vector3::new(0., 255., 255.); // TODO: SHOULD'VE READ FROM JSON but code became too spaghetti, it needs a refactor first
+                pixels.push(PixelData::from_rgba(*pixel, emissive_indicator, light_intensity));
+            }
+        }
+
+        self.width = width;
+        self.height = height;
+        self.pixels = pixels;
+        Ok(())
+
+    }
+
+    pub fn load_from(img_path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
+        let img = image::open(img_path)?;
+        let rgba = img.to_rgba8();
+        let (width, height) = rgba.dimensions();
+
+        let mut pixels = Vec::with_capacity((width * height) as usize);
+        for y in 0..height {
+            for x in 0..width {
+                let pixel = rgba.get_pixel(x, y);
+                let emissive_marker = Vector3::new(0., 255., 255.);
+                let emission_intensity = Vector3::ONE * 255.; // TODO: this is easy to forget
+                pixels.push(PixelData::from_rgba(*pixel, emissive_marker, emission_intensity));
+            }
+        }
+
+        Ok(Self {
+            _id: 0,
+            image_relative_path: String::new(), // TODO: not a good practice to default them because we currently know that we wont use it but 1 month later we'll just forget it...
+            width,
+            height,
+            pixels,
+        })
+    }
+
+    #[inline]
+    pub fn get_pixel(&self, x: u32, y: u32) -> Option<&PixelData> {
+        if x < self.width && y < self.height {
+            Some(&self.pixels[(y * self.width + x) as usize])
+        } else {
+            None
+        }
+    }
+
+    pub fn collect_emissive_pixels(&self) -> Vec<(u32, u32)> {
+        let mut emissive = Vec::new();
+        for y in 0..self.height {
+            for x in 0..self.width {
+                if let Some(pixel) = self.get_pixel(x, y) {
+                    if pixel.is_emissive {
+                        emissive.push((x, y));
+                    }
+                }
+            }
+        }
+        emissive
+    }
+
+    // Bresenham's line algorithm to check if line is blocked by a pixel
+    // See also https://www.geeksforgeeks.org/dsa/bresenhams-line-generation-algorithm/
+    pub fn is_line_blocked(&self, x0: u32, y0: u32, x1: u32, y1: u32) -> bool {
+        let dx = (x1 as i32 - x0 as i32).abs();
+        let dy = (y1 as i32 - y0 as i32).abs();
+        let sx = if x0 < x1 { 1 } else { -1 };
+        let sy = if y0 < y1 { 1 } else { -1 };
+        let mut err = dx - dy;
+
+        let mut x = x0 as i32;
+        let mut y = y0 as i32;
+
+        loop {
+            // Skip the start and end points
+            if (x as u32, y as u32) != (x0, y0) && (x as u32, y as u32) != (x1, y1) {
+                if let Some(pixel) = self.get_pixel(x as u32, y as u32) {
+                    
+                    if pixel.color.is_some() {
+                        return true;
+                    }
+                }
+            }
+
+            if x == x1 as i32 && y == y1 as i32 {
+                break;
+            }
+
+            let e2 = 2 * err;
+            if e2 > -dy {
+                err -= dy;
+                x += sx;
+            }
+            if e2 < dx {
+                err += dx;
+                y += sy;
+            }
+        }
+
+        false
+    }
+}
+
+
+
+
+
+#[derive(Debug, Deserialize)]
+pub struct SceneLights2D {
+    #[serde(rename = "PointLight2D")]
+    pub point_lights: SingleOrVec<PointLight2D>,
+
+}
+
+impl Scene2D {
+    pub fn setup(&mut self, jsonpath: &Path) {
+        for layer in self.layers.iter_mut() {
+            layer.setup(jsonpath);
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, SmartDefault)]
 #[serde(rename_all = "PascalCase")]
 #[serde(default)]
-pub struct SceneJSON {
+pub struct Scene3DJSON {
     #[default = 5]
     #[serde(deserialize_with = "deser_usize")]
     pub max_recursion_depth: usize,
@@ -75,7 +252,7 @@ pub struct SceneJSON {
     
 }
 
-impl SceneJSON {
+impl Scene3DJSON {
     pub fn setup_and_get_cache(&mut self, jsonpath: &Path) -> Result<VertexCache, Box<dyn Error>>{
         // Implement required adjustments after loading from a JSON file
         debug!(">> Scene transformations: {:?}", self.transformations);
@@ -122,29 +299,28 @@ impl SceneJSON {
 }
 
 #[derive(Debug)]
-pub struct Scene <'a> 
+pub struct Scene3D 
 //where 
 //   T: Shape + BBoxable + 'static,
 {
-    pub data: &'a SceneJSON, // I'm figuring out data composition in Rust here
-                             // in order not to clutter deserialized Scene with additional data.
-                             // Otherwise it requires serde[skip] annotations for each addition.
+    pub data: Box<Scene3DJSON>, // Now owns the data instead of borrowing
 
     pub vertex_cache: HeapAllocatedVerts,
     pub bvh: Option<BVHSubtree>,
 }
 
 
-impl<'a> Scene <'a>  // Lifetime annotation 'a looks scary but it was needed for storing a pointer to deserialized data
+impl Scene3D 
 //where 
 //    T: Shape + BBoxable + 'static,
     { 
-    pub fn new_from(scene_json: &'a mut SceneJSON, jsonpath: &Path) -> Self {
+    pub fn new_from(scene_json: Scene3DJSON, jsonpath: &Path) -> Self {
 
+        let mut scene_json = scene_json;
         let cache = scene_json.setup_and_get_cache(jsonpath).unwrap(); 
 
         let mut scene = Self {
-            data: scene_json,
+            data: Box::new(scene_json),
             vertex_cache: Arc::new(cache),
             bvh: None,
         };
@@ -328,7 +504,7 @@ impl SceneMaterials {
 }
 
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Clone, Debug, Deserialize, Default)]
 #[serde(default)] // If any of the fields below is missing in the JSON, use default (empty vector, hopefully)
 // #[serde(rename_all = "PascalCase")] // Do NOT do that here, naming is different in json file
 pub struct SceneObjects {

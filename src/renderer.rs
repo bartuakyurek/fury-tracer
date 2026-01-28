@@ -11,10 +11,10 @@
     @author: Bartu
 */
 
+use image::{ImageBuffer, Rgba};
 use rayon::prelude::*;
 use bevy_math::{NormedVectorSpace};
 
-use std::f64::consts::PI;
 use std::ops::Mul;
 use std::{self, time::Instant};
 
@@ -22,7 +22,7 @@ use crate::brdf;
 use crate::material::{HeapAllocMaterial, ReflectanceParams};
 use crate::ray::{HitRecord, Ray};
 use crate::light::{LightKind};
-use crate::scene::{Scene};
+use crate::scene::{Layer2D, Scene2D, Scene3D};
 use crate::camera::Camera;
 use crate::image::{DecalMode, ImageData, Interpolation, Textures};
 use crate::interval::{Interval, FloatConst};
@@ -84,7 +84,7 @@ pub fn get_shadow_ray(light: &LightKind, hit_record: &HitRecord, ray_in: &Ray, e
     (shadow_ray, interval)
 }
 
-pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) -> Vector3 {
+pub fn shade_diffuse(scene: &Scene3D, hit_record: &mut HitRecord, ray_in: &Ray) -> Vector3 {
     let mat: &HeapAllocMaterial = &scene.data.materials.data[hit_record.material - 1];
     let mut material_params = mat.reflectance_data().clone(); // Clone needed for mutability but if no texture is present this is very unefficient I assume    
         
@@ -196,7 +196,7 @@ pub fn shade_diffuse(scene: &Scene, hit_record: &mut HitRecord, ray_in: &Ray) ->
 }
 
 // Return radiance
-fn intersect_object_light(scene: &Scene, shadow_ray: &Ray, object_light: &Arc<dyn EmissiveShape>) -> bool {
+fn intersect_object_light(scene: &Scene3D, shadow_ray: &Ray, object_light: &Arc<dyn EmissiveShape>) -> bool {
     
     // Use a much smaller interval min to catch intersections close to the ray origin
     // This is important for transformed lights where the intersection might be very close
@@ -216,7 +216,7 @@ fn intersect_object_light(scene: &Scene, shadow_ray: &Ray, object_light: &Arc<dy
     false
 }
 
-pub fn ray_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 { 
+pub fn ray_trace(ray_in: &Ray, scene: &Scene3D, cam: &Camera, max_depth: usize, depth: usize) -> Vector3 { 
   
    if depth >= max_depth {
         //return Vector3::X * 255.;
@@ -284,7 +284,7 @@ pub fn ray_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, de
 
 
 //const SURVIVAL_PROBABILITY: Float = 0.5; // TODO: THIS SHOULDNT BE A FIXED PROBABILITY
-pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, depth: usize, mut throughput: Vector3) -> Vector3 {
+pub fn path_trace(ray_in: &Ray, scene: &Scene3D, cam: &Camera, max_depth: usize, depth: usize, mut throughput: Vector3) -> Vector3 {
     if depth >= max_depth {
         return sample_background(ray_in, scene, cam);
     }
@@ -353,7 +353,7 @@ pub fn path_trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize, d
     }
 }
 
-pub fn trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize) -> Vector3 { 
+pub fn trace(ray_in: &Ray, scene: &Scene3D, cam: &Camera, max_depth: usize) -> Vector3 { 
 
     match cam.renderer.to_ascii_lowercase().as_str() {
         "pathtracing" => { 
@@ -368,7 +368,7 @@ pub fn trace(ray_in: &Ray, scene: &Scene, cam: &Camera, max_depth: usize) -> Vec
     
 }
 
-fn sample_background(ray_in: &Ray, scene: &Scene, cam: &Camera) -> Vector3 {
+fn sample_background(ray_in: &Ray, scene: &Scene3D, cam: &Camera) -> Vector3 {
     // TODO: avoid iterating over textures, cache if background texture is
     // provided in json file
 
@@ -452,65 +452,245 @@ fn clamp_colors(colors: &Vec<Vector3>, max_value: Float) -> Vec<Vector3> {
         clamped_colors
 }
 
-pub fn render(scene: &Scene) -> Result<Vec<ImageData>, Box<dyn std::error::Error>>
-{
-    let mut images: Vec<ImageData> = Vec::new();
 
-    for mut cam in scene.data.cameras.all() {
-        // TODO: Could setup() be integrated to deserialization? Because it's easy to forget calling it
-        // but for that to be done in Scene creation (or in setup() of scene), cameras need to be
-        // vectorized via .all( ) call, however we don't hold the vec versions (currently they are SingleOrVec) 
-        //  in actual scene structs, that needs to be changed maybe.
-        // TODO: std::OnceCell can be handy to integrate setup( ) calls of our deserialized structs  
-        cam.setup(&scene.data.transformations); 
-        info!("{}\nSplitting factor: {}", cam.comment, cam.splitting_factor);
-
-        let n_samples = cam.num_samples as usize;
-        
-        // Infer maximum recursion depth
-        let max_depth = 
-        if let Some(depth) = cam.max_recursion_depth {
-            info!("Found max recursion depth inside Camera: {}", depth);
-            depth
-        } else {
-            info!("Using scene's global max recursion depth {}", scene.data.max_recursion_depth);
-            scene.data.max_recursion_depth
-        };
-
-        // --- Rayon Multithreading ---
-        let start = Instant::now();
-        let eye_rays: Vec<Ray> = cam.generate_primary_rays(n_samples);
-        info!("Starting ray tracing...");
-        let mut colors: Vec<_> = eye_rays
-            .par_iter()
-            .map(|ray| trace(ray, scene, &cam, max_depth))
-            .collect();
-        info!("Ray tracing completed.");
-        // -----------------------------
-        
-        // Clamping before aggregating pixel values 
-        if let Some(max_value) = cam.sample_maxval {
-            colors = clamp_colors(&colors, max_value);
-        }
-
-        let pixel_colors = if n_samples > 1 {
-            box_filter(&colors, n_samples)
-        } else {
-            colors
-        };
-
-        let im_raw = ImageData::new_from_colors(cam.image_resolution, cam.image_name.clone(), pixel_colors);
-        
-        for tonemap in cam.tone_maps.all().iter() {
-            info!("Applying tone map {}", tonemap);
-            let tonemapped_im = tonemap.apply(&im_raw);
-            images.push(tonemapped_im);
-        }
-
-        images.push(im_raw); 
-        info!("Rendering of {} took: {:?}", cam.image_name, start.elapsed()); 
-    }
+// TODO: Could we make Render a separate trait from Scene? otherwise this renderer.rs is meaningless
+// if render is a part of Scene trait (or maybe make Scenes enum instead of a trait)
     
-    Ok(images)
+
+
+impl crate::scene::Scene for Scene3D {
+            
+    fn print_my_dummy_debug(&self) {
+        //dbg!("-------------------");
+        //dbg!("Texture Coords:");
+        //dbg!(&scene.data.tex_coord_data);
+        //dbg!(&scene.vertex_cache.uv_coords);
+        //dbg!("-------------------");
+        //dbg!(&scene.data.textures.as_ref().unwrap().texture_maps); // TODO https://github.com/casey/just see this one to have commands like "just print textures"
+        //dbg!(&scene.data.lights);
+        //dbg!(&scene.data.objects.light_meshes);
+        //dbg!(&scene.data.objects.light_spheres);
+        //dbg!("-------------------");
+        // dbg!(&scene.data.objects.emissive_shapes);
+        for cam in self.data.cameras.all() {
+            info!(cam.comment);
+            info!("{:?}", cam.renderer_params);
+            info!(cam.splitting_factor);
+        }
+    }
+
+    fn render(&self) -> Result<Vec<ImageData>, Box<dyn std::error::Error>>
+    {
+        let mut images: Vec<ImageData> = Vec::new();
+
+        for mut cam in self.data.cameras.all() {
+            // TODO: Could setup() be integrated to deserialization? Because it's easy to forget calling it
+            // but for that to be done in Scene creation (or in setup() of scene), cameras need to be
+            // vectorized via .all( ) call, however we don't hold the vec versions (currently they are SingleOrVec) 
+            //  in actual scene structs, that needs to be changed maybe.
+            // TODO: std::OnceCell can be handy to integrate setup( ) calls of our deserialized structs  
+            cam.setup(&self.data.transformations); 
+            info!("{}\nSplitting factor: {}", cam.comment, cam.splitting_factor);
+
+            let n_samples = cam.num_samples as usize;
+            
+            // Infer maximum recursion depth
+            let max_depth = 
+            if let Some(depth) = cam.max_recursion_depth {
+                info!("Found max recursion depth inside Camera: {}", depth);
+                depth
+            } else {
+                info!("Using scene's global max recursion depth {}", self.data.max_recursion_depth);
+                self.data.max_recursion_depth
+            };
+
+            // --- Rayon Multithreading ---
+            let start = Instant::now();
+            let eye_rays: Vec<Ray> = cam.generate_primary_rays(n_samples);
+            info!("Starting ray tracing...");
+            let mut colors: Vec<_> = eye_rays
+                .par_iter()
+                .map(|ray| trace(ray, self, &cam, max_depth))
+                .collect();
+            info!("Ray tracing completed.");
+            // -----------------------------
+            
+            // Clamping before aggregating pixel values 
+            if let Some(max_value) = cam.sample_maxval {
+                colors = clamp_colors(&colors, max_value);
+            }
+
+            let pixel_colors = if n_samples > 1 {
+                box_filter(&colors, n_samples)
+            } else {
+                colors
+            };
+
+            let im_raw = ImageData::new_from_colors(cam.image_resolution, cam.image_name.clone(), pixel_colors);
+            
+            for tonemap in cam.tone_maps.all().iter() {
+                info!("Applying tone map {}", tonemap);
+                let tonemapped_im = tonemap.apply(&im_raw);
+                images.push(tonemapped_im);
+            }
+
+            images.push(im_raw); 
+            info!("Rendering of {} took: {:?}", cam.image_name, start.elapsed()); 
+        }
+        
+        Ok(images)
+    }
 }
 
+
+impl crate::scene::Scene for Scene2D {
+
+    fn print_my_dummy_debug(&self) {
+        dbg!(self);
+    }
+    fn render(&self) -> Result<Vec<crate::image::ImageData>, Box<dyn std::error::Error>> {
+        // TODO: Implement proper 2D rendering
+        // For now, return empty images vector
+
+        for layer in self.layers.iter() {
+            let output_img = raytrace_2d(layer)?;
+
+            // TODO: should've either convert ImageBuffer to our ImageData struct  (but I've found save option of Image crate very useful, I want to use it from now on, so maybe 3D scenes can be refactored for it) 
+            let output_path = self.image_name.clone(); // TODO: This does not consider outputs folder structure 
+            println!("Saving output to: {:?}", output_path);
+            output_img.save(output_path)?;
+            println!("Done!");
+        }
+
+        let empty_images: Vec<ImageData> = Vec::new();
+        Ok(empty_images)
+    }
+}
+
+
+pub fn raytrace_2d(layer: &Layer2D) -> Result<ImageBuffer<Rgba<u8>, Vec<u8>>, Box<dyn std::error::Error>> {
+    
+    // Collect all emissive pixels
+    let emissive_pixels = layer.collect_emissive_pixels();
+    println!("Found {} emissive pixels", emissive_pixels.len());
+
+    if emissive_pixels.is_empty() {
+        println!("WARNING: No emissive pixels found! Make sure input has cyan (0,255,255) pixels.");
+    }
+
+    // Create output image
+    let mut output: ImageBuffer<Rgba<u8>, Vec<u8>> = image::RgbaImage::new(layer.width, layer.height);
+
+    // Define emission color (white light)
+    let emission = Vector3::ONE * 255.0 * 5.;
+    
+    // TODO: this should've inferred from the scene but I need a refactor for that
+    let ambient_light = Vector3::ONE * 0.1;
+    let distance_constant = 1.0; // Controls falloff rate
+    let phong_exponent = 2.0; // 
+
+    // For each pixel in the scene
+    for y in 0..layer.height {
+        for x in 0..layer.width {
+            let current_pixel = layer.get_pixel(x, y).unwrap();
+
+            // If pixel is transparent, keep it transparent
+            if current_pixel.color.is_none() {
+                output.put_pixel(x, y, image::Rgba([0, 0, 0, 0]));
+                continue;
+            }
+
+            let color = current_pixel.color.unwrap();
+            if current_pixel.is_emissive {
+                // Emissive pixels show their emission
+                let final_color = emission;
+                output.put_pixel(
+                    x,
+                    y,
+                    image::Rgba([
+                        final_color.x.clamp(0.0, 255.0) as u8,
+                        final_color.y.clamp(0.0, 255.0) as u8, // TODO: dont forget to remove clamping later to replace it with our tone mapping
+                        final_color.z.clamp(0.0, 255.0) as u8,
+                        255,
+                    ]),
+                );
+                continue;
+            }
+
+            // For regular pixels, compute lighting from all emissive pixels 
+            let mut diffuse_irradiance = Vector3::ZERO;
+            let mut specular_irradiance = Vector3::ZERO;
+
+            // Camera/view direction (assume looking straight at the image)
+            let view_dir = Vector3::new(0.0, 0.0, 1.0); 
+
+            // Surface normal for 2D (pointing out of screen toward viewer)
+            let normal =  Vector3::new(0.0, 0.0, 1.0);
+
+            // Connect to every emissive pixel
+            for &(light_x, light_y) in &emissive_pixels {
+
+                if light_x == x && light_y == y {
+                    continue;
+                }
+
+                let dx = light_x as Float - x as Float;
+                let dy = light_y as Float - y as Float;
+                let distance = (dx * dx + dy * dy).sqrt();
+
+                let mut attenuation = 1.; //Vector3::ONE;
+                if layer.is_line_blocked(x, y, light_x, light_y) { // assuming same layer for object and light
+                     continue;
+                   // attenuation *= 1. / distance.powf(0.2); 
+                }
+
+                //if !layer.is_line_blocked(x, y, light_x, light_y) {
+                    // Distance and direction to light
+                    
+
+                    // Light direction in 3D (light comes from the 2D plane but also has z-component pointing toward surface)
+                    // For flat 2D surfaces, we assume light rays travel slightly "above" the plane
+                    let z_component = distance;
+                    let light_dir = Vector3::new(dx, dy, z_component).normalize(); 
+
+                    // WARNING: Using distance squared attenuates a lot in tiny pixel world, so using a linear term below
+                    attenuation = 1. / (distance_constant + distance);
+                    
+
+                    // Blinn-Phong shading similar to what we did in the homeworks:
+                    // Diffuse 
+                    let n_dot_l = normal.dot(light_dir).max(0.0);
+                    diffuse_irradiance += emission * attenuation * n_dot_l;
+
+                    // Specular 
+                    let half_vector = (light_dir + view_dir).normalize();
+                    let n_dot_h = normal.dot(half_vector).max(0.0);
+                    let spec = n_dot_h.powf(phong_exponent);
+                    specular_irradiance += emission * attenuation * spec;
+                //}
+            }
+
+            // Add reflective components (just like what we did starting from Homework 1)
+            // One difference is that here we use material's "color", i.e. pixel colors but in homeworks we 
+            // used k_d, k_s, k_a instead of color. 
+            let ambient_color = (ambient_light) * color; // Color here acts as k_ambient, k_d, k_s... that would be replaced when we define materials
+            let diffuse_color = (diffuse_irradiance) * color;
+            let specular_color = specular_irradiance; // For specular let's just use light without material's components (somehow it worked better but that should be further investigated)
+            
+            let final_color = (ambient_color + diffuse_color + specular_color) / 255.; // TODO: dividing by 255 because our "color" variable is defined in .png, but if it was actual material k_d k_s etc, then we shouldnt do that! 
+            
+            output.put_pixel(
+                x,
+                y,
+                image::Rgba([
+                    final_color.x.clamp(0.0, 255.0) as u8, // TODO: later on we can re-use our tone mapping operatorss
+                    final_color.y.clamp(0.0, 255.0) as u8,
+                    final_color.z.clamp(0.0, 255.0) as u8,
+                    255,
+                ]),
+            );
+        }
+    }
+
+    Ok(output)
+}
