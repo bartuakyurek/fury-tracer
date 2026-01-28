@@ -1,8 +1,20 @@
 
 
 All blogs available at https://www.notion.so/bartuakyurek/Journey-of-a-Rust-Ray-Tracer-29bf07c7cdad8045ae34f2f68f4d7301
+Source available at https://github.com/bartuakyurek/fury-tracer
 
 -----------------------------------------------------------------------------
+FOR PROJECT
+---------------
+There exists a json file implementation as well (./inputs/red-circle.json) but 
+it is incomplete. For now using .png as input works the quickest, e.g.:
+
+$ QUICK_PNG=1 cargo run --release ./inputs/images/cornell-box-2d.png ./output.png
+
+(don't forget the QUICK_PNG flag in the beginning)
+
+FOR HOMEWORKS
+----------------
 To render a specific .json: 
 $ cargo run --release ./path/to/your.json
 
@@ -23,4 +35,3 @@ Instead of cargo executable can also be used directly
 
 -----------------------------------------------------------------------------
 
-Source available at https://github.com/bartuakyurek/fury-tracer

@@ -40,7 +40,8 @@ Note: on windows these commands work on git bash in VSCode, not powershell.
 ![Elmo Fire](./assets/elmofire.png)
 
 # TODO 
----
+- [ ] torrance sparrow killeroo does not work as expected
+- MIS_BALANCE missing in NEE
 - [ ] Exploding HDR radiance from HW 5
 - [ ] Veach ajar scene causes memory allocation problem in HW 6
 - [ ] Textures of veach ajar does not work as expected
